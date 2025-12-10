@@ -193,6 +193,7 @@ const App = {
         PeekSystem.init();
         DevPanel.init();
         await GuildHallSystem.init();
+        await NotificationSystem.init();
     },
 
     // Update interval for hero cards showing quest progress
