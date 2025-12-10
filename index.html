@@ -22,14 +22,26 @@
          ============================================ -->
 
     <div id="app">
-        <!-- Header / Navigation -->
-        <header class="guild-header">
-            <h1 class="guild-title">Guild Master</h1>
-            <div class="player-info">
-                <span class="gold-display">💰 <span id="player-gold">0</span></span>
-                <span class="guild-name" id="guild-name">Loading...</span>
-            </div>
-        </header>
+        <!-- ==================== AUTH SCREEN ==================== -->
+        <!-- Shown first, before the game loads -->
+        <div id="auth-screen" class="auth-screen">
+            <!-- Auth UI populated by auth.js -->
+        </div>
+
+        <!-- ==================== GAME CONTAINER ==================== -->
+        <!-- Hidden until authenticated -->
+        <div id="game-container" class="hidden">
+            <!-- Header / Navigation -->
+            <header class="guild-header">
+                <h1 class="guild-title">Guild Master</h1>
+                <div class="player-info">
+                    <span class="gold-display">💰 <span id="player-gold">0</span></span>
+                    <span class="guild-name" id="guild-name">Loading...</span>
+                    <button id="sign-out-btn" class="btn btn-small btn-secondary" title="Sign Out">
+                        Sign Out
+                    </button>
+                </div>
+            </header>
 
         <!-- Main Navigation Tabs -->
         <nav class="main-nav">
@@ -165,9 +177,10 @@
             </div>
         </div>
 
-        <!-- Toast Notifications -->
-        <div id="toast-container" class="toast-container"></div>
-    </div>
+            <!-- Toast Notifications -->
+            <div id="toast-container" class="toast-container"></div>
+        </div><!-- end game-container -->
+    </div><!-- end app -->
 
     <!-- ============================================
          JAVASCRIPT MODULES
@@ -207,6 +220,7 @@
     <script src="src/js/ui/heroCard.js"></script>
     <script src="src/js/ui/questCard.js"></script>
     <script src="src/js/ui/peek.js"></script>
+    <script src="src/js/ui/auth.js"></script>
 
     <!-- Main Application Entry -->
     <script src="src/js/main.js"></script>
