@@ -7,8 +7,9 @@
  */
 
 const InventorySystem = {
-    // Current filter
+    // Current filter and sort
     _filter: 'all',
+    _sort: 'newest',
 
     /**
      * Initialize inventory UI
@@ -39,6 +40,19 @@ const InventorySystem = {
                 this.render();
             });
         });
+
+        // Sort buttons
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active state
+                document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Apply sort
+                this._sort = btn.dataset.sort;
+                this.render();
+            });
+        });
     },
 
     /**
@@ -48,12 +62,15 @@ const InventorySystem = {
         const container = document.getElementById('inventory-grid');
         if (!container) return;
 
-        let items = GameState.inventory;
+        let items = [...GameState.inventory]; // Clone to avoid mutating original
 
         // Apply filter
         if (this._filter !== 'all') {
             items = items.filter(item => this.matchesFilter(item, this._filter));
         }
+
+        // Apply sort
+        items = this.sortItems(items, this._sort);
 
         container.innerHTML = '';
 
@@ -69,6 +86,29 @@ const InventorySystem = {
         for (const item of items) {
             container.appendChild(this.createGearCard(item));
         }
+    },
+
+    /**
+     * Sort items by criteria
+     */
+    sortItems(items, sortBy) {
+        const rarityOrder = { common: 0, magic: 1, rare: 2, unique: 3, heirloom: 4 };
+        const slotOrder = { weapon: 0, helmet: 1, chest: 2, gloves: 3, boots: 4, amulet: 5, ring1: 6, ring2: 6 };
+
+        return items.sort((a, b) => {
+            switch (sortBy) {
+                case 'newest':
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                case 'rarity':
+                    return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
+                case 'slot':
+                    return (slotOrder[a.slot] || 99) - (slotOrder[b.slot] || 99);
+                case 'name':
+                    return a.displayName.localeCompare(b.displayName);
+                default:
+                    return 0;
+            }
+        });
     },
 
     /**

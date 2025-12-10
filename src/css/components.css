@@ -1517,3 +1517,232 @@
     background: var(--color-forest);
     transition: width 0.5s ease;
 }
+
+/* ==================== SKILL BUBBLES (Interactive) ==================== */
+.skills-bubbles {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.skill-bubble {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: 2px solid var(--color-parchment-dark);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.skill-bubble:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Skill rarity colors */
+.skill-bubble.skill-rarity-common {
+    border-color: #8b7355;
+}
+
+.skill-bubble.skill-rarity-uncommon {
+    border-color: #228b22;
+    background: linear-gradient(135deg, rgba(34, 139, 34, 0.05), var(--color-parchment-light));
+}
+
+.skill-bubble.skill-rarity-rare {
+    border-color: #4169e1;
+    background: linear-gradient(135deg, rgba(65, 105, 225, 0.08), var(--color-parchment-light));
+}
+
+.skill-bubble.skill-rarity-legendary {
+    border-color: #daa520;
+    background: linear-gradient(135deg, rgba(218, 165, 32, 0.1), var(--color-parchment-light));
+    box-shadow: 0 0 10px rgba(218, 165, 32, 0.2);
+}
+
+/* Doubled/Tripled glow */
+.skill-bubble.doubled {
+    box-shadow: 0 0 8px rgba(65, 105, 225, 0.3);
+}
+
+.skill-bubble.tripled {
+    box-shadow: 0 0 12px rgba(218, 165, 32, 0.4);
+}
+
+.skill-bubble.skill-rarity-legendary:hover,
+.skill-bubble.tripled:hover {
+    box-shadow: 0 0 20px rgba(218, 165, 32, 0.5);
+}
+
+/* Skill icon bubble */
+.skill-bubble-icon {
+    font-size: 2rem;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-parchment);
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    flex-shrink: 0;
+    transition: all var(--transition-fast);
+}
+
+.skill-bubble:hover .skill-bubble-icon {
+    transform: scale(1.1);
+}
+
+.skill-bubble.skill-rarity-legendary .skill-bubble-icon {
+    animation: skill-glow 2s ease-in-out infinite;
+}
+
+@keyframes skill-glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(218, 165, 32, 0.3); }
+    50% { box-shadow: 0 0 15px rgba(218, 165, 32, 0.6); }
+}
+
+/* Skill content */
+.skill-bubble-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.skill-bubble-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+.skill-bubble-name {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.skill-bubble-rank {
+    font-size: 0.85rem;
+    color: var(--color-ink-faded);
+    background: var(--color-parchment-dark);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+}
+
+.skill-bubble-desc {
+    font-style: italic;
+    color: var(--color-ink-faded);
+    font-size: 0.9rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.skill-bubble-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.skill-bubble-info span {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    background: var(--color-parchment-dark);
+    border-radius: var(--radius-sm);
+}
+
+.skill-type {
+    color: var(--color-royal);
+}
+
+.skill-damage-type {
+    color: var(--color-blood);
+}
+
+.skill-scaling {
+    color: var(--color-forest);
+}
+
+/* Skill effect display */
+.skill-bubble-effect {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--color-parchment);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.effect-current {
+    font-weight: 600;
+}
+
+.effect-next {
+    color: var(--color-forest);
+    font-weight: 600;
+}
+
+.effect-max {
+    color: var(--color-gold);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+}
+
+/* Upgrade button */
+.skill-upgrade-btn {
+    position: absolute;
+    top: 50%;
+    right: var(--spacing-sm);
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--color-forest);
+    background: var(--color-parchment);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.skill-upgrade-btn:hover {
+    background: var(--color-forest);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.skill-upgrade-btn:hover .upgrade-plus {
+    color: var(--color-parchment);
+}
+
+.upgrade-plus {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-forest);
+    line-height: 1;
+}
+
+.skill-upgrade-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* Skill points badge */
+.skill-points-badge {
+    display: inline-block;
+    background: var(--color-forest);
+    color: var(--color-parchment);
+    padding: 2px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    margin-left: var(--spacing-sm);
+    animation: pulse-points 2s ease-in-out infinite;
+}
+
+@keyframes pulse-points {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}

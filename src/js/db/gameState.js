@@ -541,7 +541,8 @@ const GameState = {
      */
     async checkQuestCompletions() {
         for (const quest of this._state.activeQuests) {
-            if (quest.isTimeComplete && quest.status === QuestStatus.ACTIVE) {
+            // isReadyToComplete includes both time completion AND early hero death
+            if (quest.isReadyToComplete && quest.status === QuestStatus.ACTIVE) {
                 await this.completeQuest(quest.id);
             }
         }
