@@ -239,6 +239,20 @@ const Modals = {
             equippedBySlot[item.slot] = item;
         }
 
+        // Calculate equipment stat bonuses
+        const equipmentBonuses = { atk: 0, will: 0, def: 0, spd: 0 };
+        for (const item of equippedItems) {
+            const itemStats = item.totalStats;
+            for (const stat of ['atk', 'will', 'def', 'spd']) {
+                if (itemStats[stat]) {
+                    equipmentBonuses[stat] += itemStats[stat];
+                }
+            }
+        }
+
+        // Check if there are any bonuses to display
+        const hasBonuses = Object.values(equipmentBonuses).some(v => v !== 0);
+
         content.innerHTML = `
             <div class="modal-header">
                 <h2>${hero.name}</h2>
@@ -257,7 +271,7 @@ const Modals = {
                 ${UI.createStatBar(hero.currentHp, hero.maxHp, 'hp').outerHTML}
 
                 <h4 style="margin-top: 1rem;">Stats (BST: ${hero.bst})</h4>
-                ${UI.createStatDisplay(hero.stats).outerHTML}
+                ${UI.createStatDisplay(hero.stats, hasBonuses ? equipmentBonuses : null).outerHTML}
 
                 <h4 style="margin-top: 1rem;">Equipment</h4>
                 <div class="equipment-grid">

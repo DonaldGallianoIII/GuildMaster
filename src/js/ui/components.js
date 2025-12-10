@@ -34,8 +34,10 @@ const UI = {
 
     /**
      * Create stat display row
+     * @param {Object} stats - Base stats { atk, will, def, spd }
+     * @param {Object} bonuses - Optional equipment bonuses { atk, will, def, spd }
      */
-    createStatDisplay(stats) {
+    createStatDisplay(stats, bonuses = null) {
         const container = Utils.createElement('div', { className: 'hero-stats' });
 
         const statOrder = ['atk', 'will', 'def', 'spd'];
@@ -50,10 +52,28 @@ const UI = {
             const item = Utils.createElement('div', {
                 className: `stat-item stat-${stat}`,
             });
-            item.innerHTML = `
-                <span class="stat-label">${statLabels[stat]}</span>
-                <span class="stat-value">${stats[stat] || 0}</span>
-            `;
+
+            const baseValue = stats[stat] || 0;
+            const bonusValue = bonuses ? (bonuses[stat] || 0) : 0;
+            const totalValue = baseValue + bonusValue;
+
+            if (bonuses && bonusValue !== 0) {
+                // Show total with bonus indicator
+                const bonusClass = bonusValue > 0 ? 'stat-bonus-positive' : 'stat-bonus-negative';
+                const bonusSign = bonusValue > 0 ? '+' : '';
+                item.innerHTML = `
+                    <span class="stat-label">${statLabels[stat]}</span>
+                    <span class="stat-value">
+                        ${totalValue}
+                        <span class="${bonusClass}">(${bonusSign}${bonusValue})</span>
+                    </span>
+                `;
+            } else {
+                item.innerHTML = `
+                    <span class="stat-label">${statLabels[stat]}</span>
+                    <span class="stat-value">${baseValue}</span>
+                `;
+            }
             container.appendChild(item);
         }
 

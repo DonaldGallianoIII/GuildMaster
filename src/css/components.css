@@ -196,6 +196,19 @@
 .stat-def .stat-label { color: var(--stat-def); }
 .stat-spd .stat-label { color: var(--stat-spd); }
 
+/* Stat Bonus Indicators (from equipment) */
+.stat-bonus-positive {
+    color: var(--color-gold);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.stat-bonus-negative {
+    color: var(--color-blood);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
 /* Skills List */
 .hero-skills {
     display: flex;
