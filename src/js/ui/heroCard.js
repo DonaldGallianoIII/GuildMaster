@@ -179,16 +179,16 @@ const HeroCard = {
         // Increment version to invalidate any in-progress renders
         const thisRenderVersion = ++_heroCardRenderVersion;
 
-        container.innerHTML = '';
-
+        // Handle empty state
         if (heroes.length === 0) {
+            container.innerHTML = '';
             container.appendChild(UI.createEmptyState(
                 options.emptyMessage || 'No heroes yet. Visit the Tavern to recruit!'
             ));
             return;
         }
 
-        // Fetch equipment bonuses for all heroes
+        // Fetch equipment bonuses for all heroes BEFORE clearing container
         const heroEquipment = {};
         for (const hero of heroes) {
             try {
@@ -223,19 +223,25 @@ const HeroCard = {
             }
         }
 
-        // Final check before appending
-        if (thisRenderVersion !== _heroCardRenderVersion) {
-            return; // Abort - a newer render started during quest lookup
-        }
-
+        // Build all cards into a fragment first (off-screen)
+        const fragment = document.createDocumentFragment();
         for (const hero of heroes) {
             const cardOptions = {
                 ...options,
                 equipmentBonuses: heroEquipment[hero.id],
                 activeQuest: heroQuests[hero.id],
             };
-            container.appendChild(this.create(hero, cardOptions));
+            fragment.appendChild(this.create(hero, cardOptions));
         }
+
+        // Final check before replacing content
+        if (thisRenderVersion !== _heroCardRenderVersion) {
+            return; // Abort - a newer render started
+        }
+
+        // Replace container content all at once (minimizes flash)
+        container.innerHTML = '';
+        container.appendChild(fragment);
     },
 };
 
