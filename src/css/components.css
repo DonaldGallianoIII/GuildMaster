@@ -397,152 +397,119 @@
     margin-right: var(--spacing-md);
 }
 
-/* ==================== QUEST BOARD GRID ==================== */
-.quest-board-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-md);
+/* ==================== QUEST TIER ACCORDION ==================== */
+.quest-tier-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
 }
 
-/* Bracket Columns */
-.quest-bracket-column {
+/* Tier Bar (full-width horizontal bar) */
+.tier-bar {
     border: 2px solid var(--color-leather-dark);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-xs);
     overflow: hidden;
-    box-shadow: var(--shadow-md);
     background: #fff;
+    box-shadow: var(--shadow-sm);
 }
 
-/* Bracket color coding */
-.quest-bracket-column.bracket-novice {
-    border-color: #4caf50;
-}
-
-.quest-bracket-column.bracket-journeyman {
-    border-color: #ff9800;
-}
-
-.quest-bracket-column.bracket-expert {
-    border-color: #e53935;
-}
-
-/* Bracket Header */
-.bracket-header {
-    padding: var(--spacing-md);
-    text-align: center;
+/* Tier Bar Header (clickable) */
+.tier-bar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: linear-gradient(90deg, #5d4037 0%, #4e342e 50%, #5d4037 100%);
+    color: #fff;
     cursor: pointer;
     user-select: none;
     transition: all 0.2s ease;
-    position: relative;
 }
 
-.bracket-novice .bracket-header {
-    background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
-    color: #fff;
+.tier-bar-header:hover {
+    background: linear-gradient(90deg, #6d4c41 0%, #5d4037 50%, #6d4c41 100%);
 }
 
-.bracket-journeyman .bracket-header {
-    background: linear-gradient(135deg, #ff9800 0%, #e65100 100%);
-    color: #fff;
-}
-
-.bracket-expert .bracket-header {
-    background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
-    color: #fff;
-}
-
-.bracket-header:hover {
-    filter: brightness(1.1);
-}
-
-.bracket-title {
+.tier-bar-name {
     font-family: var(--font-heading);
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 700;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-.bracket-level {
-    font-size: 0.9rem;
-    opacity: 0.9;
-}
-
-.bracket-count {
-    font-size: 0.8rem;
-    margin-top: var(--spacing-xs);
-    background: rgba(255, 255, 255, 0.2);
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-    display: inline-block;
-}
-
-.bracket-toggle {
-    position: absolute;
-    right: var(--spacing-sm);
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.9rem;
+.tier-bar-count {
+    font-size: 0.85rem;
     opacity: 0.8;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
 }
 
-/* Bracket Content */
-.bracket-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    background: linear-gradient(180deg, #f9f6f0 0%, #f0ebe0 100%);
-    max-height: 1500px;
-    overflow: hidden;
-    transition: max-height 0.4s ease-out, padding 0.4s ease-out, opacity 0.3s ease;
-    opacity: 1;
+.tier-bar-arrow {
+    font-size: 1rem;
+    transition: transform 0.3s ease;
 }
 
-.quest-bracket-column.collapsed .bracket-content {
+/* Quest Carousel (hidden by default) */
+.tier-quest-carousel {
     max-height: 0;
-    padding: 0;
-    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out;
+    background: linear-gradient(180deg, #f5f0e6 0%, #ebe4d6 100%);
 }
 
-.bracket-empty {
-    text-align: center;
-    padding: var(--spacing-lg);
-    color: var(--color-ink-faded);
-    font-style: italic;
+.tier-bar.expanded .tier-quest-carousel {
+    max-height: 400px;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
-/* Quest cards inside bracket columns */
-.bracket-content .quest-card {
+/* Carousel Track (horizontal scroll) */
+.carousel-track {
+    display: flex;
+    flex-direction: row;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    min-width: min-content;
+}
+
+/* Quest Cards in Carousel */
+.carousel-card {
+    flex: 0 0 300px;
+    min-width: 300px;
+    max-width: 300px;
     border: 2px solid var(--color-leather);
     background: #fff;
     box-shadow: var(--shadow-sm);
     transition: all 0.2s ease;
 }
 
-.bracket-content .quest-card:hover {
-    transform: translateY(-2px);
+.carousel-card:hover {
+    transform: translateY(-4px);
     box-shadow: var(--shadow-md);
     border-color: var(--color-gold);
 }
 
-.bracket-content .quest-card .card-header {
-    background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
-    border-bottom: 1px solid var(--color-leather-light);
-    padding: var(--spacing-sm);
+/* Scrollbar styling for carousel */
+.tier-quest-carousel::-webkit-scrollbar {
+    height: 8px;
 }
 
-.bracket-content .quest-card .quest-name {
-    color: #2c1810;
-    font-size: 1rem;
+.tier-quest-carousel::-webkit-scrollbar-track {
+    background: var(--color-parchment-dark);
+    border-radius: 4px;
 }
 
-.bracket-content .quest-card .card-body {
-    padding: var(--spacing-sm);
+.tier-quest-carousel::-webkit-scrollbar-thumb {
+    background: var(--color-leather);
+    border-radius: 4px;
 }
 
-.bracket-content .quest-card .card-footer {
-    padding: var(--spacing-sm);
+.tier-quest-carousel::-webkit-scrollbar-thumb:hover {
+    background: var(--color-leather-dark);
 }
 
 /* ==================== TIER BADGE ==================== */
