@@ -131,22 +131,31 @@ const QuestCard = {
         `;
         body.appendChild(peekArea);
 
-        // Hero HP (calculated based on quest progress)
+        // Hero HP (calculated based on revealed combat events)
         if (options.hero) {
             const hpSection = Utils.createElement('div', {
                 className: 'peek-hero-hp',
                 dataset: { questId: quest.id, heroId: options.hero.id },
             });
 
-            // Calculate current HP based on progress through combat
-            let displayHp = options.hero.currentHp;
+            // Calculate current HP from revealed damage events
             const combatResults = quest.combatResults;
-            if (combatResults) {
-                const startHp = combatResults.heroStartingHp ?? options.hero.maxHp;
-                const endHp = combatResults.heroFinalHp ?? options.hero.currentHp;
-                const progress = quest.progressPercent / 100;
-                displayHp = Math.round(startHp + ((endHp - startHp) * progress));
-                displayHp = Math.max(0, Math.min(options.hero.maxHp, displayHp));
+            const startHp = combatResults?.heroStartingHp ?? options.hero.maxHp;
+            let displayHp = startHp;
+
+            // Process revealed events to calculate HP
+            if (quest.getCurrentEvents) {
+                const events = quest.getCurrentEvents();
+                for (const event of events) {
+                    if (event.type === 'combat_action' && event.data) {
+                        if (!event.data.actorIsHero && event.data.damage) {
+                            displayHp = Math.max(0, displayHp - event.data.damage);
+                        }
+                        if (event.data.actorIsHero && event.data.healing) {
+                            displayHp = Math.min(options.hero.maxHp, displayHp + event.data.healing);
+                        }
+                    }
+                }
             }
 
             hpSection.appendChild(UI.createStatBar(

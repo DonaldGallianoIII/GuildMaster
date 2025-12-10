@@ -224,11 +224,17 @@ const PeekSystem = {
      */
     cleanupQuest(questId) {
         delete this._seenEvents[questId];
+        delete this._questHp[questId];
         this.stopPeek(questId);
     },
 
     /**
-     * Update hero HP display based on quest progress
+     * Track HP per quest based on revealed damage events
+     */
+    _questHp: {},
+
+    /**
+     * Update hero HP display based on revealed combat events
      */
     updateHeroHp(quest) {
         const hpSection = document.querySelector(`.peek-hero-hp[data-quest-id="${quest.id}"]`);
@@ -238,25 +244,41 @@ const PeekSystem = {
         if (!hero) return;
 
         const combatResults = quest.combatResults;
-        let displayHp = hero.currentHp;
+        const startHp = combatResults?.heroStartingHp ?? hero.maxHp;
 
-        if (combatResults) {
-            const startHp = combatResults.heroStartingHp ?? hero.maxHp;
-            const endHp = combatResults.heroFinalHp ?? hero.currentHp;
-            const progress = quest.progressPercent / 100;
-            displayHp = Math.round(startHp + ((endHp - startHp) * progress));
-            displayHp = Math.max(0, Math.min(hero.maxHp, displayHp));
+        // Initialize HP tracking for this quest if needed
+        if (this._questHp[quest.id] === undefined) {
+            this._questHp[quest.id] = startHp;
         }
+
+        // Get current events and calculate HP from damage events
+        const events = quest.getCurrentEvents();
+        let calculatedHp = startHp;
+
+        for (const event of events) {
+            if (event.type === 'combat_action' && event.data) {
+                // Hero took damage
+                if (!event.data.actorIsHero && event.data.damage) {
+                    calculatedHp = Math.max(0, calculatedHp - event.data.damage);
+                }
+                // Hero healed
+                if (event.data.actorIsHero && event.data.healing) {
+                    calculatedHp = Math.min(hero.maxHp, calculatedHp + event.data.healing);
+                }
+            }
+        }
+
+        this._questHp[quest.id] = calculatedHp;
 
         // Update the stat bar
         const hpFill = hpSection.querySelector('.stat-bar-fill');
         const hpText = hpSection.querySelector('.stat-bar-text');
 
         if (hpFill) {
-            hpFill.style.width = `${(displayHp / hero.maxHp) * 100}%`;
+            hpFill.style.width = `${(calculatedHp / hero.maxHp) * 100}%`;
         }
         if (hpText) {
-            hpText.textContent = `${displayHp}/${hero.maxHp}`;
+            hpText.textContent = `${calculatedHp}/${hero.maxHp}`;
         }
     },
 
