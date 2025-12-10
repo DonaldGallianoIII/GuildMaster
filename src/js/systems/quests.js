@@ -74,12 +74,23 @@ const QuestSystem = {
         QuestCard.renderActive(container, GameState.activeQuests, {
             getHero: (heroId) => GameState.getHero(heroId),
             onPeek: (quest) => this.showPeekModal(quest),
+            onViewResults: (quest) => this.resolveFailedQuest(quest),
         });
 
-        // Start peek system for each active quest
+        // Start peek system for each active quest (only for non-defeated)
         for (const quest of GameState.activeQuests) {
-            PeekSystem.startPeek(quest.id);
+            if (!quest.heroDefeated) {
+                PeekSystem.startPeek(quest.id);
+            }
         }
+    },
+
+    /**
+     * Resolve a failed quest (hero died) - called when clicking "View Results"
+     */
+    async resolveFailedQuest(quest) {
+        // Complete the quest immediately (will handle hero death)
+        await GameState.completeQuest(quest.id);
     },
 
     /**
@@ -115,11 +126,32 @@ const QuestSystem = {
      * Update active quest displays
      */
     updateActiveQuests() {
-        // Check for completions
+        // Check for completions (time-based)
         GameState.checkQuestCompletions();
 
-        // Update progress bars and times
+        // Check for newly defeated heroes and re-render if needed
+        let needsRerender = false;
         for (const quest of GameState.activeQuests) {
+            if (quest.heroDefeated) {
+                // Check if we already rendered this as failed
+                const card = document.querySelector(`.active-quest-card[data-quest-id="${quest.id}"]`);
+                if (card && !card.classList.contains('quest-failed')) {
+                    // Stop the peek system for this quest
+                    PeekSystem.stopPeek(quest.id);
+                    needsRerender = true;
+                }
+            }
+        }
+
+        if (needsRerender) {
+            this.renderActive();
+            return; // Skip individual updates since we just re-rendered
+        }
+
+        // Update progress bars and times for non-defeated quests
+        for (const quest of GameState.activeQuests) {
+            if (quest.heroDefeated) continue; // Skip defeated quests
+
             // Update progress bar
             const progressFill = document.querySelector(
                 `.active-quest-card[data-quest-id="${quest.id}"] .quest-progress-fill`

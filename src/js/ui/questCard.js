@@ -90,8 +90,11 @@ const QuestCard = {
      * Create an active quest card (with peek)
      */
     createActiveCard(quest, options = {}) {
+        // Check if hero was defeated (pre-calculated combat failed)
+        const heroDefeated = quest.heroDefeated;
+
         const card = Utils.createElement('div', {
-            className: 'card active-quest-card',
+            className: `card active-quest-card ${heroDefeated ? 'quest-failed' : ''}`,
             dataset: { questId: quest.id },
         });
 
@@ -106,7 +109,10 @@ const QuestCard = {
         header.innerHTML = `
             <div class="quest-header">
                 <div class="quest-name">${template?.icon || '⚔️'} ${quest.name}</div>
-                ${UI.createDifficultyBadge(quest.difficulty).outerHTML}
+                ${heroDefeated
+                    ? '<span class="quest-failed-badge">💀 FAILED</span>'
+                    : UI.createDifficultyBadge(quest.difficulty).outerHTML
+                }
             </div>
         `;
         card.appendChild(header);
@@ -114,66 +120,93 @@ const QuestCard = {
         // Body
         const body = Utils.createElement('div', { className: 'card-body' });
 
-        // Progress bar
-        const progressBar = UI.createProgressBar(
-            quest.progressPercent,
-            Utils.formatTime(quest.timeRemaining)
-        );
-        body.appendChild(progressBar);
-
-        // Peek area
-        const peekArea = Utils.createElement('div', {
-            className: 'quest-peek-area',
-            dataset: { questId: quest.id },
-        });
-        peekArea.innerHTML = `
-            <div class="peek-status">Adventuring...</div>
-        `;
-        body.appendChild(peekArea);
-
-        // Hero HP (calculated based on revealed combat events)
-        if (options.hero) {
-            const hpSection = Utils.createElement('div', {
-                className: 'peek-hero-hp',
-                dataset: { questId: quest.id, heroId: options.hero.id },
+        if (heroDefeated) {
+            // Show failed state
+            const failedArea = Utils.createElement('div', {
+                className: 'quest-failed-area',
             });
+            failedArea.innerHTML = `
+                <div class="failed-message">
+                    <span class="failed-icon">💀</span>
+                    <div class="failed-text">
+                        <strong>${options.hero?.name || 'Hero'} has fallen!</strong>
+                        <p>The quest has ended in defeat.</p>
+                    </div>
+                </div>
+            `;
+            body.appendChild(failedArea);
+        } else {
+            // Progress bar (only show if not defeated)
+            const progressBar = UI.createProgressBar(
+                quest.progressPercent,
+                Utils.formatTime(quest.timeRemaining)
+            );
+            body.appendChild(progressBar);
 
-            // Calculate current HP from revealed damage events
-            const combatResults = quest.combatResults;
-            const startHp = combatResults?.heroStartingHp ?? options.hero.maxHp;
-            let displayHp = startHp;
+            // Peek area
+            const peekArea = Utils.createElement('div', {
+                className: 'quest-peek-area',
+                dataset: { questId: quest.id },
+            });
+            peekArea.innerHTML = `
+                <div class="peek-status">Adventuring...</div>
+            `;
+            body.appendChild(peekArea);
 
-            // Process revealed events to calculate HP
-            if (quest.getCurrentEvents) {
-                const events = quest.getCurrentEvents();
-                for (const event of events) {
-                    if (event.type === 'combat_action' && event.data) {
-                        if (!event.data.actorIsHero && event.data.damage) {
-                            displayHp = Math.max(0, displayHp - event.data.damage);
-                        }
-                        if (event.data.actorIsHero && event.data.healing) {
-                            displayHp = Math.min(options.hero.maxHp, displayHp + event.data.healing);
+            // Hero HP (calculated based on revealed combat events)
+            if (options.hero) {
+                const hpSection = Utils.createElement('div', {
+                    className: 'peek-hero-hp',
+                    dataset: { questId: quest.id, heroId: options.hero.id },
+                });
+
+                // Calculate current HP from revealed damage events
+                const combatResults = quest.combatResults;
+                const startHp = combatResults?.heroStartingHp ?? options.hero.maxHp;
+                let displayHp = startHp;
+
+                // Process revealed events to calculate HP
+                if (quest.getCurrentEvents) {
+                    const events = quest.getCurrentEvents();
+                    for (const event of events) {
+                        if (event.type === 'combat_action' && event.data) {
+                            if (!event.data.actorIsHero && event.data.damage) {
+                                displayHp = Math.max(0, displayHp - event.data.damage);
+                            }
+                            if (event.data.actorIsHero && event.data.healing) {
+                                displayHp = Math.min(options.hero.maxHp, displayHp + event.data.healing);
+                            }
                         }
                     }
                 }
-            }
 
-            hpSection.appendChild(UI.createStatBar(
-                displayHp,
-                options.hero.maxHp,
-                'hp'
-            ));
-            body.appendChild(hpSection);
+                hpSection.appendChild(UI.createStatBar(
+                    displayHp,
+                    options.hero.maxHp,
+                    'hp'
+                ));
+                body.appendChild(hpSection);
+            }
         }
 
         card.appendChild(body);
 
         // Footer
         const footer = Utils.createElement('div', { className: 'card-footer' });
-        const peekBtn = UI.createButton('Peek', 'secondary', () => {
-            if (options.onPeek) options.onPeek(quest);
-        });
-        footer.appendChild(peekBtn);
+
+        if (heroDefeated) {
+            // Show "View Results" button for failed quests
+            const resultsBtn = UI.createButton('View Results', 'primary', () => {
+                if (options.onViewResults) options.onViewResults(quest);
+            });
+            footer.appendChild(resultsBtn);
+        } else {
+            const peekBtn = UI.createButton('Peek', 'secondary', () => {
+                if (options.onPeek) options.onPeek(quest);
+            });
+            footer.appendChild(peekBtn);
+        }
+
         card.appendChild(footer);
 
         return card;
