@@ -8,6 +8,46 @@
 
 const QuestCard = {
     /**
+     * Create danger rating bars (cell signal style)
+     * @param {Quest} quest - The quest
+     * @param {number} heroLevel - Highest hero level
+     * @returns {HTMLElement}
+     */
+    createDangerRating(quest, heroLevel = 1) {
+        const recLevel = quest.recommendedLevel || 1;
+        const levelDiff = recLevel - heroLevel;
+
+        // Calculate bars (1-4 based on level difference)
+        let bars = 2; // Default: moderate
+        if (levelDiff <= -2) bars = 1;      // Very easy
+        else if (levelDiff <= 0) bars = 2;  // Easy
+        else if (levelDiff <= 2) bars = 3;  // Hard
+        else bars = 4;                       // Very hard
+
+        const container = Utils.createElement('div', { className: 'danger-rating' });
+        container.title = `Recommended: Lv ${recLevel}`;
+
+        for (let i = 1; i <= 4; i++) {
+            const bar = Utils.createElement('div', {
+                className: `danger-bar ${i <= bars ? 'active' : ''} ${bars >= 3 ? 'warning' : ''} ${bars >= 4 ? 'danger' : ''}`,
+            });
+            container.appendChild(bar);
+        }
+
+        return container;
+    },
+
+    /**
+     * Create tier badge
+     */
+    createTierBadge(tier) {
+        const tierNames = { 1: 'I', 2: 'II', 3: 'III' };
+        return Utils.createElement('span', {
+            className: `tier-badge tier-${tier}`,
+        }, tierNames[tier] || 'I');
+    },
+
+    /**
      * Create a quest board card (available quest)
      */
     createBoardCard(quest, options = {}) {
@@ -16,7 +56,7 @@ const QuestCard = {
 
         const card = Utils.createElement('div', {
             className: 'card quest-card',
-            dataset: { questId: quest.templateId },
+            dataset: { questId: quest.id || quest.templateId },
         });
 
         // Header
@@ -25,12 +65,17 @@ const QuestCard = {
 
         const nameSection = Utils.createElement('div');
         nameSection.innerHTML = `
-            <div class="quest-name">${template.icon} ${template.name}</div>
+            <div class="quest-name">${template.icon} ${quest.name}</div>
             <div class="quest-duration">⏱️ ${Utils.formatDuration(quest.duration)}</div>
         `;
         headerContent.appendChild(nameSection);
 
-        headerContent.appendChild(UI.createDifficultyBadge(template.difficulty));
+        // Add tier badge and danger rating
+        const badgeSection = Utils.createElement('div', { className: 'quest-badges' });
+        badgeSection.appendChild(this.createTierBadge(quest.tier));
+        const highestHeroLevel = options.heroLevel || 1;
+        badgeSection.appendChild(this.createDangerRating(quest, highestHeroLevel));
+        headerContent.appendChild(badgeSection);
 
         header.appendChild(headerContent);
         card.appendChild(header);
@@ -223,7 +268,7 @@ const QuestCard = {
     },
 
     /**
-     * Render quest board
+     * Render quest board with accordion sections
      */
     renderBoard(container, quests, options = {}) {
         container.innerHTML = '';
@@ -233,9 +278,70 @@ const QuestCard = {
             return;
         }
 
+        // Group quests by bracket
+        const brackets = {
+            novice: { name: 'Novice Contracts', levelRange: 'Lv 1-3', quests: [] },
+            journeyman: { name: 'Journeyman Contracts', levelRange: 'Lv 4-6', quests: [] },
+            expert: { name: 'Expert Contracts', levelRange: 'Lv 7+', quests: [] },
+        };
+
         for (const quest of quests) {
-            const card = this.createBoardCard(quest, options);
-            if (card) container.appendChild(card);
+            const bracket = quest.bracket || 'novice';
+            if (brackets[bracket]) {
+                brackets[bracket].quests.push(quest);
+            }
+        }
+
+        // Get highest hero level for danger rating
+        const highestHeroLevel = options.heroLevel || 1;
+
+        // Create accordion for each bracket
+        for (const [bracketId, bracket] of Object.entries(brackets)) {
+            if (bracket.quests.length === 0) continue;
+
+            // Sort quests by tier
+            bracket.quests.sort((a, b) => (a.tier || 1) - (b.tier || 1));
+
+            const accordion = Utils.createElement('div', {
+                className: 'quest-accordion',
+                dataset: { bracket: bracketId },
+            });
+
+            // Accordion header
+            const header = Utils.createElement('div', {
+                className: 'accordion-header',
+            });
+            header.innerHTML = `
+                <span class="accordion-title">
+                    <span class="accordion-icon">▼</span>
+                    ${bracket.name}
+                    <span class="bracket-level">(${bracket.levelRange})</span>
+                </span>
+                <span class="quest-count">${bracket.quests.length} quests</span>
+            `;
+
+            // Toggle accordion on click
+            header.addEventListener('click', () => {
+                accordion.classList.toggle('collapsed');
+                const icon = header.querySelector('.accordion-icon');
+                icon.textContent = accordion.classList.contains('collapsed') ? '▶' : '▼';
+            });
+
+            accordion.appendChild(header);
+
+            // Accordion content
+            const content = Utils.createElement('div', {
+                className: 'accordion-content',
+            });
+
+            // Create cards for quests in this bracket
+            for (const quest of bracket.quests) {
+                const card = this.createBoardCard(quest, { ...options, heroLevel: highestHeroLevel });
+                if (card) content.appendChild(card);
+            }
+
+            accordion.appendChild(content);
+            container.appendChild(accordion);
         }
     },
 

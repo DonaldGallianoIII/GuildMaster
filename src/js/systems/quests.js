@@ -94,14 +94,18 @@ const QuestSystem = {
     },
 
     /**
-     * Render quest board
+     * Render quest board with accordions
      */
     renderBoard() {
         const container = document.getElementById('quest-board');
         if (!container) return;
 
+        // Get highest hero level for danger rating
+        const highestHeroLevel = GameState.heroes.reduce((max, h) => Math.max(max, h.level || 1), 1);
+
         QuestCard.renderBoard(container, GameState.questBoard, {
             onAccept: (quest) => this.showAssignmentModal(quest),
+            heroLevel: highestHeroLevel,
         });
     },
 
@@ -111,7 +115,8 @@ const QuestSystem = {
     showAssignmentModal(quest) {
         const availableHeroes = GameState.availableHeroes;
         Modals.showQuestAssignment(quest, availableHeroes, async (hero) => {
-            await GameState.startQuest(quest.templateId, hero.id);
+            // Use quest.id for new system, fall back to templateId for legacy
+            await GameState.startQuest(quest.id || quest.templateId, hero.id);
         });
     },
 
