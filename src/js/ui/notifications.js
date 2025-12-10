@@ -71,6 +71,15 @@ const NotificationSystem = {
             this.toggleDropdown();
         });
 
+        // Double-click to quickly mark all as read
+        bellButton.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            if (this._unreadCount > 0) {
+                this.markAllAsRead();
+                Utils.toast('All notifications marked as read', 'success');
+            }
+        });
+
         const markAllBtn = bellContainer.querySelector('.mark-all-read-btn');
         markAllBtn.addEventListener('click', (e) => {
             e.stopPropagation();

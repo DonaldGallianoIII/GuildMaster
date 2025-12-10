@@ -405,11 +405,12 @@ a:hover {
 .toast-container {
     position: fixed;
     bottom: var(--spacing-lg);
-    right: var(--spacing-lg);
+    left: var(--spacing-lg);
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse;
     gap: var(--spacing-sm);
-    z-index: 1000;
+    z-index: 1001;
+    pointer-events: none;
 }
 
 .toast {
@@ -418,8 +419,10 @@ a:hover {
     color: var(--color-parchment);
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-lg);
-    animation: slideIn var(--transition-normal);
+    animation: slideInLeft var(--transition-normal);
     max-width: 300px;
+    pointer-events: auto;
+    transition: opacity 0.3s, transform 0.3s;
 }
 
 .toast.success {
@@ -435,9 +438,9 @@ a:hover {
     color: var(--color-ink);
 }
 
-@keyframes slideIn {
+@keyframes slideInLeft {
     from {
-        transform: translateX(100%);
+        transform: translateX(-100%);
         opacity: 0;
     }
     to {
