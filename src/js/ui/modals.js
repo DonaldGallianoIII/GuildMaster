@@ -610,9 +610,6 @@ const Modals = {
             hpFill.style.width = `${(this._questDisplayHp[quest.id] / hero.maxHp) * 100}%`;
             hpText.textContent = `${this._questDisplayHp[quest.id]} / ${hero.maxHp} HP`;
 
-            // Auto-scroll to bottom
-            logEntries.scrollTop = logEntries.scrollHeight;
-
             // Stop updating if quest is complete
             if (quest.isTimeComplete) {
                 this.hideCombatLog();

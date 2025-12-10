@@ -960,6 +960,13 @@ a:hover {
     padding: var(--spacing-md);
     max-height: 350px;
     overflow-y: auto;
+    /* Hide scrollbar but keep functionality */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.combat-log-scroll::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
 }
 
 .combat-log-entry {
