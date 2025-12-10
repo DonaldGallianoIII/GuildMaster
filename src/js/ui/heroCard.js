@@ -101,6 +101,22 @@ const HeroCard = {
         } else {
             // Normal HP Bar
             body.appendChild(UI.createStatBar(hero.currentHp, hero.maxHp, 'hp'));
+
+            // Passive healing indicator (when hero is available and not at full HP)
+            if (hero.canPassiveHeal) {
+                const healIndicator = Utils.createElement('div', { className: 'hero-healing-indicator' });
+                const progress = hero.passiveHealProgress;
+                const timeLeft = Math.ceil(hero.timeUntilNextHeal);
+
+                healIndicator.innerHTML = `
+                    <span>💚 Resting</span>
+                    <div class="healing-progress-bar">
+                        <div class="healing-progress-fill" style="width: ${progress}%"></div>
+                    </div>
+                    <span>${timeLeft > 0 ? Utils.formatTime(timeLeft) : 'Ready'}</span>
+                `;
+                body.appendChild(healIndicator);
+            }
         }
 
         // Stats with equipment bonuses

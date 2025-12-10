@@ -97,6 +97,9 @@ class Hero {
 
         // Conjured weapon commitment (0 = none, up to WILL)
         this.conjuredWeaponWill = data.conjuredWeaponWill || data.conjured_weapon_will || 0;
+
+        // Passive healing tracking (timestamp of last passive heal tick)
+        this.lastHealTick = data.lastHealTick || data.last_heal_tick || null;
     }
 
     // ==================== COMPUTED PROPERTIES ====================
@@ -156,6 +159,44 @@ class Hero {
      */
     get isAvailable() {
         return this.state === HeroState.AVAILABLE;
+    }
+
+    /**
+     * Check if hero needs healing (not at full HP)
+     */
+    get needsHealing() {
+        return this.currentHp < this.maxHp;
+    }
+
+    /**
+     * Check if hero can passively heal (available and not at full HP)
+     */
+    get canPassiveHeal() {
+        return this.isAvailable && this.needsHealing;
+    }
+
+    /**
+     * Get time until next passive heal tick (in seconds)
+     */
+    get timeUntilNextHeal() {
+        if (!this.canPassiveHeal) return 0;
+        if (!this.lastHealTick) return 0; // Ready to heal immediately
+
+        const elapsed = (Date.now() - new Date(this.lastHealTick).getTime()) / 1000;
+        const interval = 60; // 1 minute per tick
+        return Math.max(0, interval - elapsed);
+    }
+
+    /**
+     * Get passive heal progress (0-100%)
+     */
+    get passiveHealProgress() {
+        if (!this.canPassiveHeal) return 0;
+        if (!this.lastHealTick) return 100; // Ready now
+
+        const elapsed = (Date.now() - new Date(this.lastHealTick).getTime()) / 1000;
+        const interval = 60; // 1 minute per tick
+        return Math.min(100, (elapsed / interval) * 100);
     }
 
     /**
@@ -243,6 +284,40 @@ class Hero {
      */
     fullHeal() {
         this._currentHp = null; // Will return maxHp
+        this.lastHealTick = null; // Reset passive heal timer
+    }
+
+    /**
+     * Apply passive healing (4% per tick)
+     * @returns {Object} { healed: boolean, amount: number, nowFull: boolean }
+     */
+    applyPassiveHeal() {
+        if (!this.canPassiveHeal) {
+            return { healed: false, amount: 0, nowFull: false };
+        }
+
+        // Check if enough time has passed since last tick
+        if (this.lastHealTick) {
+            const elapsed = (Date.now() - new Date(this.lastHealTick).getTime()) / 1000;
+            if (elapsed < 60) { // 1 minute between ticks
+                return { healed: false, amount: 0, nowFull: false };
+            }
+        }
+
+        // Calculate 4% of max HP
+        const healAmount = Math.max(1, Math.round(this.maxHp * 0.04));
+        const actualHealed = this.heal(healAmount);
+
+        // Update tick time
+        this.lastHealTick = new Date().toISOString();
+
+        // Check if now at full HP
+        const nowFull = this.currentHp >= this.maxHp;
+        if (nowFull) {
+            this.lastHealTick = null; // Clear timer when full
+        }
+
+        return { healed: true, amount: actualHealed, nowFull };
     }
 
     /**
@@ -430,6 +505,7 @@ class Hero {
             summon_loadout: this.summonLoadout,
             conjured_weapon_will: this.conjuredWeaponWill,
             skills: JSON.stringify(this.skills), // Store skills as JSON
+            last_heal_tick: this.lastHealTick,
         };
     }
 
@@ -471,6 +547,7 @@ class Hero {
             summonLoadout: row.summon_loadout,
             conjuredWeaponWill: row.conjured_weapon_will,
             skills: skills || [], // Include skills from database
+            lastHealTick: row.last_heal_tick,
         });
     }
 }

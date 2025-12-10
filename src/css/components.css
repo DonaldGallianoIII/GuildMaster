@@ -1074,3 +1074,446 @@
     font-size: 0.85rem;
     color: var(--color-forest);
 }
+
+/* ==================== GUILD HALL ==================== */
+
+/* Tab Navigation */
+.guild-hall-tabs {
+    display: flex;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+    border-bottom: var(--border-thin);
+    padding-bottom: var(--spacing-sm);
+}
+
+.guild-hall-tab {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    cursor: pointer;
+    font-family: var(--font-heading);
+    transition: all var(--transition-fast);
+}
+
+.guild-hall-tab:hover {
+    background: var(--color-parchment-dark);
+}
+
+.guild-hall-tab.active {
+    background: var(--color-royal);
+    color: var(--color-parchment);
+    border-color: var(--color-royal);
+}
+
+/* Sections */
+.guild-hall-section {
+    display: none;
+}
+
+.guild-hall-section.active {
+    display: block;
+}
+
+/* Farm Plots */
+.farm-plots-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.farm-plot {
+    background: var(--color-parchment-light);
+    border: var(--border-medium);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.farm-plot.empty {
+    background: var(--color-parchment-dark);
+    border-style: dashed;
+}
+
+.farm-plot.empty:hover {
+    background: var(--color-forest);
+    color: var(--color-parchment);
+    border-color: var(--color-forest);
+}
+
+.farm-plot.growing {
+    background: linear-gradient(to bottom, #e8f5e9, var(--color-parchment-light));
+    border-color: var(--color-forest);
+}
+
+.farm-plot.ready {
+    background: linear-gradient(to bottom, #fff8e1, var(--color-parchment-light));
+    border-color: var(--color-gold);
+    animation: pulse-ready 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-ready {
+    0%, 100% { box-shadow: 0 0 5px rgba(218, 165, 32, 0.3); }
+    50% { box-shadow: 0 0 15px rgba(218, 165, 32, 0.6); }
+}
+
+.plot-icon {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.plot-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--color-parchment-dark);
+    border-radius: var(--radius-sm);
+    margin: var(--spacing-xs) 0;
+    overflow: hidden;
+}
+
+.plot-progress-fill {
+    height: 100%;
+    background: var(--color-forest);
+    border-radius: var(--radius-sm);
+    transition: width 0.5s ease;
+}
+
+.plot-time {
+    font-size: 0.85rem;
+    color: var(--color-ink-faded);
+}
+
+/* Seed Selection */
+.seed-selection h4 {
+    margin-bottom: var(--spacing-sm);
+}
+
+.seed-options {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.seed-option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.seed-option:hover:not(.disabled) {
+    background: var(--color-parchment-dark);
+    border-color: var(--color-forest);
+}
+
+.seed-option.selected {
+    background: var(--color-forest);
+    color: var(--color-parchment);
+    border-color: var(--color-forest);
+}
+
+.seed-option.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.seed-icon {
+    font-size: 1.2rem;
+}
+
+.seed-count {
+    font-size: 0.85rem;
+    color: var(--color-ink-faded);
+}
+
+/* Fishing Section */
+.fishing-section {
+    text-align: center;
+}
+
+.go-fishing-btn {
+    font-size: 1.2rem;
+    padding: var(--spacing-md) var(--spacing-xl);
+    margin: var(--spacing-lg) 0;
+}
+
+.fishing-catches {
+    margin-top: var(--spacing-lg);
+}
+
+.fishing-catches h4 {
+    margin-bottom: var(--spacing-sm);
+}
+
+.catch-option {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin: var(--spacing-xs);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm);
+}
+
+.catch-rarity {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    background: var(--color-parchment-dark);
+    border-radius: var(--radius-sm);
+}
+
+/* Shop */
+.shop-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.shop-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.shop-item:hover {
+    background: var(--color-parchment-dark);
+}
+
+.shop-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    text-align: center;
+}
+
+.shop-item-info {
+    flex: 1;
+}
+
+.shop-name {
+    font-weight: 600;
+    display: block;
+}
+
+.shop-desc {
+    font-size: 0.85rem;
+    color: var(--color-ink-faded);
+}
+
+.shop-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.shop-price {
+    font-weight: 600;
+    color: var(--color-gold);
+}
+
+/* Crafting */
+.recipes-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.recipe {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-md);
+}
+
+.recipe.can-craft {
+    border-color: var(--color-forest);
+}
+
+.recipe.cannot-craft {
+    opacity: 0.7;
+}
+
+.recipe-result {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-width: 120px;
+}
+
+.recipe-icon {
+    font-size: 1.5rem;
+}
+
+.recipe-name {
+    font-weight: 600;
+}
+
+.recipe-ingredients {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.ingredient {
+    padding: 2px 8px;
+    background: var(--color-parchment-dark);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.ingredient.has-enough {
+    background: #c8e6c9;
+    color: var(--color-forest);
+}
+
+.ingredient.not-enough {
+    background: #ffcdd2;
+    color: var(--color-blood);
+}
+
+/* Pantry */
+.pantry-type {
+    margin-bottom: var(--spacing-lg);
+}
+
+.pantry-type h4 {
+    margin-bottom: var(--spacing-sm);
+    padding-bottom: var(--spacing-xs);
+    border-bottom: var(--border-thin);
+}
+
+.pantry-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.pantry-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm);
+}
+
+.pantry-icon {
+    font-size: 1.5rem;
+}
+
+.pantry-item-info {
+    flex: 1;
+}
+
+.pantry-name {
+    font-weight: 600;
+    display: block;
+}
+
+.heal-info {
+    font-size: 0.85rem;
+    color: var(--color-forest);
+}
+
+.pantry-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.empty-pantry {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--color-ink-faded);
+}
+
+/* Feed Modal */
+.feed-modal .modal-content {
+    max-width: 400px;
+}
+
+.feed-hero-list {
+    margin: var(--spacing-md) 0;
+}
+
+.feed-hero-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.feed-hero-option:hover {
+    background: var(--color-parchment-dark);
+    border-color: var(--color-forest);
+}
+
+.feed-hero-name {
+    font-weight: 600;
+    display: block;
+}
+
+.feed-hero-hp {
+    font-size: 0.85rem;
+    color: var(--color-ink-faded);
+}
+
+.feed-heal-amount {
+    color: var(--color-forest);
+    font-weight: 600;
+}
+
+/* Passive Healing Indicator on Hero Cards */
+.hero-healing-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: rgba(46, 125, 50, 0.1);
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    color: var(--color-forest);
+}
+
+.healing-progress-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--color-parchment-dark);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.healing-progress-fill {
+    height: 100%;
+    background: var(--color-forest);
+    transition: width 0.5s ease;
+}
