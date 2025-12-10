@@ -323,8 +323,6 @@ const QuestCard = {
             // Toggle accordion on click
             header.addEventListener('click', () => {
                 accordion.classList.toggle('collapsed');
-                const icon = header.querySelector('.accordion-icon');
-                icon.textContent = accordion.classList.contains('collapsed') ? '▶' : '▼';
             });
 
             accordion.appendChild(header);
