@@ -429,6 +429,7 @@ class Hero {
             equipment: this.equipment,
             summon_loadout: this.summonLoadout,
             conjured_weapon_will: this.conjuredWeaponWill,
+            skills: JSON.stringify(this.skills), // Store skills as JSON
         };
     }
 
@@ -436,6 +437,16 @@ class Hero {
      * Create hero from database row
      */
     static fromDatabase(row) {
+        // Parse skills from JSON if stored as string
+        let skills = row.skills;
+        if (typeof skills === 'string') {
+            try {
+                skills = JSON.parse(skills);
+            } catch (e) {
+                skills = [];
+            }
+        }
+
         return new Hero({
             id: row.id,
             userId: row.user_id,
@@ -459,6 +470,7 @@ class Hero {
             equipment: row.equipment,
             summonLoadout: row.summon_loadout,
             conjuredWeaponWill: row.conjured_weapon_will,
+            skills: skills || [], // Include skills from database
         });
     }
 }
