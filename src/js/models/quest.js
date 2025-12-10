@@ -613,7 +613,29 @@ const QUEST_THEMES = {
 Object.freeze(QUEST_THEMES);
 
 /**
+ * Get threat tier label for a mob
+ * @param {string} mobTier - The mob's tier from MOB_DEFINITIONS
+ * @returns {string} Display label like "(Fodder)" or "(Elite)"
+ */
+function getMobThreatLabel(mobTier) {
+    const labels = {
+        'fodder_trash': 'Trash',
+        'fodder': 'Fodder',
+        'fodder_exalted': 'Fodder+',
+        'standard_weak': 'Common',
+        'standard': 'Common',
+        'standard_exalted': 'Common+',
+        'elite': 'Elite',
+        'elite_exalted': 'Elite+',
+        'boss': 'Boss',
+        'boss_legendary': 'Boss+',
+    };
+    return labels[mobTier] || 'Unknown';
+}
+
+/**
  * Generate encounters for a quest based on tier
+ * Reduced mob counts for better early game balance
  * @param {Object} theme - Quest theme
  * @param {number} tier - Quest tier (1, 2, or 3)
  * @returns {Array} Array of encounter objects
@@ -622,29 +644,34 @@ function generateEncountersForTier(theme, tier) {
     const encounters = [];
     const numEncounters = CONFIG.QUESTS.ENCOUNTERS[tier] || 2;
 
-    // Get mob pools (convert to arrays if single values)
-    const fodderPool = Array.isArray(theme.fodder) ? theme.fodder : [theme.fodder];
-    const standardPool = Array.isArray(theme.standard) ? theme.standard : [theme.standard];
+    // Get mob pools (convert to arrays if single values, filter out undefined)
+    const fodderPool = (Array.isArray(theme.fodder) ? theme.fodder : [theme.fodder]).filter(m => m && MOB_DEFINITIONS[m]);
+    const standardPool = (Array.isArray(theme.standard) ? theme.standard : [theme.standard]).filter(m => m && MOB_DEFINITIONS[m]);
+
+    // Fallback if pools are empty
+    if (fodderPool.length === 0) {
+        fodderPool.push('goblin'); // Default fodder
+    }
+    if (standardPool.length === 0) {
+        standardPool.push('goblin_brute'); // Default standard
+    }
 
     for (let i = 0; i < numEncounters; i++) {
         const mobs = [];
 
-        // Tier determines pack composition
+        // Tier determines pack composition (REDUCED COUNTS for balance)
         if (tier === 1) {
-            // Tier I: 1-2 fodder
+            // Tier I: 1 fodder (solo encounter)
+            mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
+        } else if (tier === 2) {
+            // Tier II: 1-2 fodder (reduced from 2-3)
             const count = Utils.randomInt(1, 2);
             for (let j = 0; j < count; j++) {
                 mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
             }
-        } else if (tier === 2) {
-            // Tier II: 2-3 fodder
-            const count = Utils.randomInt(2, 3);
-            for (let j = 0; j < count; j++) {
-                mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
-            }
         } else {
-            // Tier III: 2-3 fodder + 1 standard
-            const fodderCount = Utils.randomInt(2, 3);
+            // Tier III: 1-2 fodder + 1 standard (reduced from 2-3 fodder)
+            const fodderCount = Utils.randomInt(1, 2);
             for (let j = 0; j < fodderCount; j++) {
                 mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
             }
@@ -1437,15 +1464,10 @@ class Quest {
     }
 
     /**
-     * Get quest name
+     * Get quest name (no Roman numerals - tier is shown via UI tier bar)
      */
     get name() {
-        const baseName = this.template?.name || 'Unknown Quest';
-        // Add tier suffix for new system
-        if (this.themeId) {
-            return `${baseName} ${this.tierName}`;
-        }
-        return baseName;
+        return this.template?.name || 'Unknown Quest';
     }
 
     /**
@@ -2043,6 +2065,7 @@ if (typeof module !== 'undefined' && module.exports) {
         QUEST_THEMES,
         QUEST_TEMPLATES,
         generateEncountersForTier,
+        getMobThreatLabel,
         Quest,
         Quests,
     };
