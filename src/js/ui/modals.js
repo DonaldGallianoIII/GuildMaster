@@ -298,7 +298,8 @@ const Modals = {
      * Show live combat log for active quest
      */
     _combatLogInterval: null,
-    _seenLogEvents: new Set(),
+    _seenLogEvents: {},  // Track per quest: { questId: Set() }
+    _questDisplayHp: {}, // Track HP per quest: { questId: number }
 
     showCombatLog(quest) {
         const modal = document.getElementById('combat-modal');
@@ -315,11 +316,18 @@ const Modals = {
             clearInterval(this._combatLogInterval);
         }
 
-        // Reset seen events for this viewing
-        this._seenLogEvents = new Set();
+        // Initialize tracking for this quest if needed (don't reset if exists)
+        if (!this._seenLogEvents[quest.id]) {
+            this._seenLogEvents[quest.id] = new Set();
+        }
 
         const combatResults = quest.combatResults;
         const startHp = combatResults?.heroStartingHp ?? hero.maxHp;
+
+        // Initialize HP tracking if needed
+        if (this._questDisplayHp[quest.id] === undefined) {
+            this._questDisplayHp[quest.id] = startHp;
+        }
 
         // Build initial HTML structure once
         content.innerHTML = `
@@ -334,17 +342,17 @@ const Modals = {
                         <div class="hero-name">${hero.name}</div>
                         <div class="hero-level">Level ${hero.level}</div>
                         <div class="combat-hp-bar">
-                            <div class="hp-bar-fill" id="combat-hp-fill" style="width: ${(startHp / hero.maxHp) * 100}%"></div>
-                            <span class="hp-text" id="combat-hp-text">${startHp} / ${hero.maxHp} HP</span>
+                            <div class="hp-bar-fill" id="combat-hp-fill" style="width: ${(this._questDisplayHp[quest.id] / hero.maxHp) * 100}%"></div>
+                            <span class="hp-text" id="combat-hp-text">${this._questDisplayHp[quest.id]} / ${hero.maxHp} HP</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="combat-progress">
                     <div class="progress-bar">
-                        <div class="progress-fill" id="combat-progress-fill" style="width: 0%"></div>
+                        <div class="progress-fill" id="combat-progress-fill" style="width: ${quest.progressPercent}%"></div>
                     </div>
-                    <div class="progress-text" id="combat-progress-text">0% - ${Utils.formatTime(quest.timeRemaining)} remaining</div>
+                    <div class="progress-text" id="combat-progress-text">${Math.round(quest.progressPercent)}% - ${Utils.formatTime(quest.timeRemaining)} remaining</div>
                 </div>
 
                 <div class="combat-log-scroll" id="combat-log-entries">
@@ -366,11 +374,27 @@ const Modals = {
         const progressText = content.querySelector('#combat-progress-text');
         const logEntries = content.querySelector('#combat-log-entries');
 
-        // Track current HP based on revealed damage events
-        let currentDisplayHp = startHp;
+        // Rebuild log entries that were already seen
+        const events = quest.getCurrentEvents();
+        for (const event of events) {
+            const eventKey = `${event.time}-${event.type}`;
+            if (this._seenLogEvents[quest.id].has(eventKey)) {
+                // Re-add previously seen events to the display
+                const formatted = this._formatCombatEvent(event, hero);
+                if (formatted) {
+                    const entry = document.createElement('div');
+                    entry.className = `combat-log-entry ${formatted.type}`;
+                    entry.innerHTML = `
+                        <span class="log-icon">${formatted.icon}</span>
+                        <span class="log-text">${formatted.text}</span>
+                    `;
+                    logEntries.appendChild(entry);
+                }
+            }
+        }
 
         const updateLog = () => {
-            const events = quest.getCurrentEvents();
+            const currentEvents = quest.getCurrentEvents();
             const progress = quest.progressPercent;
 
             // Update progress bar (no flicker - just update values)
@@ -378,20 +402,20 @@ const Modals = {
             progressText.textContent = `${Math.round(progress)}% - ${Utils.formatTime(quest.timeRemaining)} remaining`;
 
             // Process new events only
-            for (const event of events) {
+            for (const event of currentEvents) {
                 const eventKey = `${event.time}-${event.type}`;
-                if (this._seenLogEvents.has(eventKey)) continue;
-                this._seenLogEvents.add(eventKey);
+                if (this._seenLogEvents[quest.id].has(eventKey)) continue;
+                this._seenLogEvents[quest.id].add(eventKey);
 
                 // Update HP based on combat actions
                 if (event.type === 'combat_action' && event.data) {
                     // Hero took damage
                     if (!event.data.actorIsHero && event.data.damage) {
-                        currentDisplayHp = Math.max(0, currentDisplayHp - event.data.damage);
+                        this._questDisplayHp[quest.id] = Math.max(0, this._questDisplayHp[quest.id] - event.data.damage);
                     }
                     // Hero healed
                     if (event.data.actorIsHero && event.data.healing) {
-                        currentDisplayHp = Math.min(hero.maxHp, currentDisplayHp + event.data.healing);
+                        this._questDisplayHp[quest.id] = Math.min(hero.maxHp, this._questDisplayHp[quest.id] + event.data.healing);
                     }
                 }
 
@@ -409,8 +433,8 @@ const Modals = {
             }
 
             // Update HP display
-            hpFill.style.width = `${(currentDisplayHp / hero.maxHp) * 100}%`;
-            hpText.textContent = `${currentDisplayHp} / ${hero.maxHp} HP`;
+            hpFill.style.width = `${(this._questDisplayHp[quest.id] / hero.maxHp) * 100}%`;
+            hpText.textContent = `${this._questDisplayHp[quest.id]} / ${hero.maxHp} HP`;
 
             // Auto-scroll to bottom
             logEntries.scrollTop = logEntries.scrollHeight;
@@ -435,6 +459,14 @@ const Modals = {
             this._combatLogInterval = null;
         }
         this.hide('combat-modal');
+    },
+
+    /**
+     * Clean up combat log tracking for a quest
+     */
+    cleanupCombatLog(questId) {
+        delete this._seenLogEvents[questId];
+        delete this._questDisplayHp[questId];
     },
 
     /**
