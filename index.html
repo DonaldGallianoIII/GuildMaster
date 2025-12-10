@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guild Master</title>
+    <link rel="stylesheet" href="src/css/main.css">
+    <link rel="stylesheet" href="src/css/components.css">
+    <!-- Google Fonts - Medieval feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- ============================================
+         GUILD MASTER - MVP Scaffold
+         ============================================
+         Tech Stack: Vanilla JS + Supabase
+
+         NOTE: All game state flows through Supabase.
+         Local state is for UI reactivity only.
+         ============================================ -->
+
+    <div id="app">
+        <!-- Header / Navigation -->
+        <header class="guild-header">
+            <h1 class="guild-title">Guild Master</h1>
+            <div class="player-info">
+                <span class="gold-display">💰 <span id="player-gold">0</span></span>
+                <span class="guild-name" id="guild-name">Loading...</span>
+            </div>
+        </header>
+
+        <!-- Main Navigation Tabs -->
+        <nav class="main-nav">
+            <button class="nav-tab active" data-tab="heroes">Heroes</button>
+            <button class="nav-tab" data-tab="recruitment">Recruit</button>
+            <button class="nav-tab" data-tab="quests">Quests</button>
+            <button class="nav-tab" data-tab="inventory">Inventory</button>
+            <button class="nav-tab" data-tab="guild">Guild Hall</button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="content-area">
+            <!-- ==================== HEROES TAB ==================== -->
+            <!-- Shows all hired heroes, their stats, current status -->
+            <section id="heroes-tab" class="tab-content active">
+                <div class="section-header">
+                    <h2>Your Heroes</h2>
+                    <p class="section-desc">Manage your roster of adventurers</p>
+                </div>
+                <div id="heroes-grid" class="heroes-grid">
+                    <!-- Hero cards populated by JS -->
+                    <div class="empty-state">
+                        <p>No heroes yet. Visit the Tavern to recruit!</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== RECRUITMENT TAB ==================== -->
+            <!-- Tavern where new recruits appear -->
+            <section id="recruitment-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>The Tavern</h2>
+                    <p class="section-desc">Adventurers seeking employment</p>
+                </div>
+                <div id="recruits-pool" class="recruits-pool">
+                    <!-- Recruit cards populated by JS -->
+                    <div class="empty-state">
+                        <p>No adventurers available. Check back later.</p>
+                    </div>
+                </div>
+                <button id="refresh-recruits" class="btn btn-secondary">
+                    Scout for Recruits (100g)
+                </button>
+            </section>
+
+            <!-- ==================== QUESTS TAB ==================== -->
+            <!-- Quest board + active quests with peek -->
+            <section id="quests-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Quest Board</h2>
+                    <p class="section-desc">Available contracts and active missions</p>
+                </div>
+
+                <!-- Active Quests (with Peek) -->
+                <div class="active-quests-section">
+                    <h3>Active Quests</h3>
+                    <div id="active-quests" class="active-quests-grid">
+                        <!-- Active quest cards with peek functionality -->
+                    </div>
+                </div>
+
+                <!-- Available Quests -->
+                <div class="available-quests-section">
+                    <h3>Available Contracts</h3>
+                    <div id="quest-board" class="quest-board">
+                        <!-- Quest cards populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== INVENTORY TAB ==================== -->
+            <!-- Gear and items storage -->
+            <section id="inventory-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Armory</h2>
+                    <p class="section-desc">Equipment and treasures</p>
+                </div>
+                <div class="inventory-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="weapon">Weapons</button>
+                    <button class="filter-btn" data-filter="armor">Armor</button>
+                    <button class="filter-btn" data-filter="accessory">Accessories</button>
+                </div>
+                <div id="inventory-grid" class="inventory-grid">
+                    <!-- Inventory items populated by JS -->
+                </div>
+            </section>
+
+            <!-- ==================== GUILD HALL TAB ==================== -->
+            <!-- Guild stats, workers, buildings (placeholder for now) -->
+            <section id="guild-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Guild Hall</h2>
+                    <p class="section-desc">Your base of operations</p>
+                </div>
+                <div class="guild-stats">
+                    <p>🏰 Guild features coming in future update...</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- ==================== MODALS ==================== -->
+
+        <!-- Hero Detail Modal -->
+        <div id="hero-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content hero-detail">
+                <!-- Populated by JS when viewing hero -->
+            </div>
+        </div>
+
+        <!-- Quest Assignment Modal -->
+        <div id="quest-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content quest-assignment">
+                <!-- Populated by JS when assigning quest -->
+            </div>
+        </div>
+
+        <!-- Stat Allocation Modal (for new heroes) -->
+        <div id="stat-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content stat-allocation">
+                <!-- Populated by JS during recruitment -->
+            </div>
+        </div>
+
+        <!-- Combat Log Modal (for viewing quest results) -->
+        <div id="combat-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content combat-log">
+                <!-- Populated by JS when viewing combat results -->
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <!-- ============================================
+         JAVASCRIPT MODULES
+         ============================================
+         Load order matters! Config -> Utils -> Models ->
+         Systems -> UI -> Main
+         ============================================ -->
+
+    <!-- Configuration (Supabase keys, game constants) -->
+    <script src="src/js/config.js"></script>
+
+    <!-- Utility Functions -->
+    <script src="src/js/utils.js"></script>
+
+    <!-- Data Models -->
+    <script src="src/js/models/hero.js"></script>
+    <script src="src/js/models/skill.js"></script>
+    <script src="src/js/models/gear.js"></script>
+    <script src="src/js/models/quest.js"></script>
+
+    <!-- Game Systems -->
+    <script src="src/js/systems/combat.js"></script>
+    <script src="src/js/systems/recruitment.js"></script>
+    <script src="src/js/systems/quests.js"></script>
+    <script src="src/js/systems/inventory.js"></script>
+
+    <!-- Database Layer -->
+    <script src="src/js/db/supabase.js"></script>
+    <script src="src/js/db/gameState.js"></script>
+
+    <!-- UI Components -->
+    <script src="src/js/ui/components.js"></script>
+    <script src="src/js/ui/modals.js"></script>
+    <script src="src/js/ui/heroCard.js"></script>
+    <script src="src/js/ui/questCard.js"></script>
+    <script src="src/js/ui/peek.js"></script>
+
+    <!-- Main Application Entry -->
+    <script src="src/js/main.js"></script>
+</body>
+</html>
