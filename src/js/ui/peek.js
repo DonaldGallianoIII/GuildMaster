@@ -299,6 +299,8 @@ const PeekSystem = {
 
         GameState.on('questCompleted', ({ quest }) => {
             this.cleanupQuest(quest.id);
+            // Also cleanup modal tracking
+            Modals.cleanupCombatLog(quest.id);
         });
     },
 };
