@@ -70,9 +70,8 @@ const QuestCard = {
         `;
         headerContent.appendChild(nameSection);
 
-        // Add tier badge and danger rating
+        // Add danger rating (tier badge removed - tier is shown in accordion bar header)
         const badgeSection = Utils.createElement('div', { className: 'quest-badges' });
-        badgeSection.appendChild(this.createTierBadge(quest.tier));
         const highestHeroLevel = options.heroLevel || 1;
         badgeSection.appendChild(this.createDangerRating(quest, highestHeroLevel));
         headerContent.appendChild(badgeSection);
