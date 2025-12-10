@@ -60,11 +60,12 @@ const GameState = {
         Utils.log('Loading player data for:', userId);
 
         // Load in parallel
-        let [player, heroes, inventory, activeQuests] = await Promise.all([
+        let [player, heroes, inventory, activeQuests, availableQuests] = await Promise.all([
             DB.players.get(userId),
             DB.heroes.getAll(userId),
             DB.items.getInventory(userId),
             DB.quests.getActive(userId),
+            DB.quests.getAvailable(userId),
         ]);
 
         // If player doesn't exist in database, create them
@@ -86,12 +87,13 @@ const GameState = {
         this._state.heroes = heroes || [];
         this._state.inventory = inventory || [];
         this._state.activeQuests = activeQuests || [];
+        this._state.questBoard = availableQuests || [];
 
         // Run stat migration for heroes with outdated BST
         await this.migrateHeroStats();
 
-        // Generate quest board
-        this.refreshQuestBoard();
+        // Load or generate quest board from Supabase
+        await this.loadQuestBoard();
 
         // Load recruits from localStorage (persists between refreshes)
         this.loadRecruits();
@@ -474,49 +476,108 @@ const GameState = {
     },
 
     /**
-     * Generate fresh quest board
-     * Board has: 2 easy, 2 medium, 2 hard quests
+     * Load quest board from Supabase, generate if empty or incomplete
      */
-    refreshQuestBoard() {
-        const board = [];
+    async loadQuestBoard() {
+        // Check if we have valid quests in the board (already loaded from Supabase)
+        const validQuests = this._state.questBoard.filter(q => {
+            // Check quest has encounters and isn't expired
+            return q.encounters && q.encounters.length > 0 && !q.isExpired;
+        });
 
-        // Generate 2 of each difficulty
+        // Remove expired quests from database
+        for (const quest of this._state.questBoard) {
+            if (quest.isExpired) {
+                await DB.quests.delete(quest.id);
+            }
+        }
+
+        this._state.questBoard = validQuests;
+
+        // Generate more quests if we don't have enough
+        const targetCounts = { easy: 2, medium: 2, hard: 2 };
+        const currentCounts = {
+            easy: validQuests.filter(q => q.difficulty === QuestDifficulty.EASY).length,
+            medium: validQuests.filter(q => q.difficulty === QuestDifficulty.MEDIUM).length,
+            hard: validQuests.filter(q => q.difficulty === QuestDifficulty.HARD).length,
+        };
+
+        const newQuests = [];
+        for (const [difficulty, target] of Object.entries(targetCounts)) {
+            const needed = target - currentCounts[difficulty];
+            for (let i = 0; i < needed; i++) {
+                const quest = this.generateRandomQuest(difficulty);
+                if (quest) {
+                    newQuests.push(quest);
+                    this._state.questBoard.push(quest);
+                }
+            }
+        }
+
+        // Save new quests to Supabase
+        if (newQuests.length > 0) {
+            await Promise.all(newQuests.map(q => DB.quests.save(q)));
+            Utils.log(`Generated ${newQuests.length} new quest(s) for board`);
+        }
+
+        this.emit('questBoardRefreshed');
+    },
+
+    /**
+     * Refresh quest board (regenerate all)
+     */
+    async refreshQuestBoard() {
+        // Delete all current available quests
+        await Promise.all(this._state.questBoard.map(q => DB.quests.delete(q.id)));
+        this._state.questBoard = [];
+
+        // Generate fresh board
+        const newQuests = [];
         for (let i = 0; i < 2; i++) {
             const easy = this.generateRandomQuest(QuestDifficulty.EASY);
-            if (easy) board.push(easy);
+            if (easy) newQuests.push(easy);
         }
         for (let i = 0; i < 2; i++) {
             const medium = this.generateRandomQuest(QuestDifficulty.MEDIUM);
-            if (medium) board.push(medium);
+            if (medium) newQuests.push(medium);
         }
         for (let i = 0; i < 2; i++) {
             const hard = this.generateRandomQuest(QuestDifficulty.HARD);
-            if (hard) board.push(hard);
+            if (hard) newQuests.push(hard);
         }
 
-        this._state.questBoard = board;
+        // Save to Supabase
+        await Promise.all(newQuests.map(q => DB.quests.save(q)));
+
+        this._state.questBoard = newQuests;
         this.emit('questBoardRefreshed');
     },
 
     /**
      * Check for expired quests and replace them
      */
-    checkQuestBoardExpiration() {
+    async checkQuestBoardExpiration() {
         let replaced = 0;
+        const savePromises = [];
 
         for (let i = 0; i < this._state.questBoard.length; i++) {
             const quest = this._state.questBoard[i];
             if (quest.isExpired) {
+                // Delete expired quest from database
+                savePromises.push(DB.quests.delete(quest.id));
+
                 // Generate replacement of same difficulty
                 const replacement = this.generateRandomQuest(quest.difficulty);
                 if (replacement) {
                     this._state.questBoard[i] = replacement;
+                    savePromises.push(DB.quests.save(replacement));
                     replaced++;
                 }
             }
         }
 
         if (replaced > 0) {
+            await Promise.all(savePromises);
             this.emit('questBoardRefreshed');
             Utils.log(`Replaced ${replaced} expired quest(s)`);
         }
@@ -552,6 +613,8 @@ const GameState = {
         const replacement = this.generateRandomQuest(quest.difficulty);
         if (replacement) {
             this._state.questBoard[boardIndex] = replacement;
+            // Save replacement to Supabase
+            DB.quests.save(replacement).catch(e => Utils.error('Failed to save replacement quest:', e));
         } else {
             this._state.questBoard.splice(boardIndex, 1);
         }

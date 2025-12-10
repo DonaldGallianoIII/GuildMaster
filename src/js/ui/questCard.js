@@ -26,7 +26,7 @@ const QuestCard = {
         const nameSection = Utils.createElement('div');
         nameSection.innerHTML = `
             <div class="quest-name">${template.icon} ${template.name}</div>
-            <div class="quest-duration">⏱️ ${Utils.formatDuration(template.duration)}</div>
+            <div class="quest-duration">⏱️ ${Utils.formatDuration(quest.duration)}</div>
         `;
         headerContent.appendChild(nameSection);
 
