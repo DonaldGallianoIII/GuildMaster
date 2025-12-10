@@ -175,7 +175,7 @@ const Modals = {
     /**
      * Show quest assignment modal
      */
-    showQuestAssignment(quest, availableHeroes, onConfirm) {
+    async showQuestAssignment(quest, availableHeroes, onConfirm) {
         const modal = document.getElementById('quest-modal');
         const content = modal.querySelector('.modal-content');
         const template = quest.template;
@@ -199,7 +199,7 @@ const Modals = {
                 <div id="hero-select-list" class="heroes-grid" style="grid-template-columns: 1fr;">
                     ${availableHeroes.length === 0
                         ? '<p style="color: var(--color-ink-faded);">No heroes available.</p>'
-                        : ''
+                        : '<p style="color: var(--color-ink-faded);">Loading heroes...</p>'
                     }
                 </div>
             </div>
@@ -208,19 +208,48 @@ const Modals = {
             </div>
         `;
 
-        // Render hero selection
-        const heroList = content.querySelector('#hero-select-list');
+        this.show('quest-modal');
+
+        // Fetch equipment bonuses for all heroes
+        const heroEquipment = {};
         for (const hero of availableHeroes) {
-            const card = HeroCard.create(hero, {
-                onClick: (h) => {
-                    if (onConfirm) onConfirm(h);
-                    this.hide('quest-modal');
-                },
-            });
-            heroList.appendChild(card);
+            try {
+                const equippedItems = await DB.items.getEquipped(hero.id);
+                const bonuses = { atk: 0, will: 0, def: 0, spd: 0 };
+                for (const item of equippedItems) {
+                    const itemStats = item.totalStats;
+                    for (const stat of ['atk', 'will', 'def', 'spd']) {
+                        if (itemStats[stat]) {
+                            bonuses[stat] += itemStats[stat];
+                        }
+                    }
+                }
+                heroEquipment[hero.id] = bonuses;
+            } catch (e) {
+                heroEquipment[hero.id] = { atk: 0, will: 0, def: 0, spd: 0 };
+            }
         }
 
-        this.show('quest-modal');
+        // Render hero selection with equipment bonuses
+        const heroList = content.querySelector('#hero-select-list');
+        heroList.innerHTML = '';
+
+        if (availableHeroes.length === 0) {
+            heroList.innerHTML = '<p style="color: var(--color-ink-faded);">No heroes available.</p>';
+        } else {
+            for (const hero of availableHeroes) {
+                const bonuses = heroEquipment[hero.id];
+                const hasBonuses = bonuses && Object.values(bonuses).some(v => v !== 0);
+                const card = HeroCard.create(hero, {
+                    equipmentBonuses: hasBonuses ? bonuses : null,
+                    onClick: (h) => {
+                        if (onConfirm) onConfirm(h);
+                        this.hide('quest-modal');
+                    },
+                });
+                heroList.appendChild(card);
+            }
+        }
     },
 
     // ==================== HERO DETAIL MODAL ====================
