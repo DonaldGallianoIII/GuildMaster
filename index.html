@@ -172,9 +172,12 @@
     <!-- ============================================
          JAVASCRIPT MODULES
          ============================================
-         Load order matters! Config -> Utils -> Models ->
-         Systems -> UI -> Main
+         Load order matters! Supabase -> Config -> Utils -> 
+         Models -> Systems -> UI -> Main
          ============================================ -->
+
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- Configuration (Supabase keys, game constants) -->
     <script src="src/js/config.js"></script>
