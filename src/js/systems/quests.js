@@ -41,8 +41,18 @@ const QuestSystem = {
     startUpdates() {
         if (this._updateInterval) return;
 
-        this._updateInterval = setInterval(() => {
-            this.updateActiveQuests();
+        // Use a flag to prevent overlapping updates
+        let isUpdating = false;
+
+        this._updateInterval = setInterval(async () => {
+            if (isUpdating) return; // Skip if previous update still running
+            isUpdating = true;
+            try {
+                await this.updateActiveQuests();
+            } catch (e) {
+                console.error('Error updating active quests:', e);
+            }
+            isUpdating = false;
         }, 1000); // Update every second
     },
 
@@ -130,9 +140,9 @@ const QuestSystem = {
     /**
      * Update active quest displays
      */
-    updateActiveQuests() {
-        // Check for completions (time-based)
-        GameState.checkQuestCompletions();
+    async updateActiveQuests() {
+        // Check for completions (time-based) - must await to ensure completion happens
+        await GameState.checkQuestCompletions();
 
         // Check for expired quest board quests
         GameState.checkQuestBoardExpiration();

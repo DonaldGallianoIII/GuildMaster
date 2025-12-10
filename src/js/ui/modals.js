@@ -210,11 +210,11 @@ const Modals = {
 
         this.show('quest-modal');
 
-        // Fetch equipment bonuses for all heroes
+        // Fetch equipment bonuses for all heroes (using cache)
         const heroEquipment = {};
         for (const hero of availableHeroes) {
             try {
-                const equippedItems = await DB.items.getEquipped(hero.id);
+                const equippedItems = await GameState.getEquippedItems(hero.id);
                 const bonuses = { atk: 0, will: 0, def: 0, spd: 0 };
                 for (const item of equippedItems) {
                     const itemStats = item.totalStats;
@@ -261,8 +261,8 @@ const Modals = {
         const modal = document.getElementById('hero-modal');
         const content = modal.querySelector('.modal-content');
 
-        // Get equipped items for this hero
-        const equippedItems = await DB.items.getEquipped(hero.id);
+        // Get equipped items for this hero (using cached version)
+        const equippedItems = await GameState.getEquippedItems(hero.id);
         const equippedBySlot = {};
         for (const item of equippedItems) {
             equippedBySlot[item.slot] = item;
@@ -391,8 +391,8 @@ const Modals = {
         const equippedItem = equippedBySlot[slotKey];
 
         if (equippedItem) {
-            // Unequip the item
-            await GameState.unequipItem(equippedItem.id);
+            // Unequip the item (pass heroId for fast lookup)
+            await GameState.unequipItem(equippedItem.id, hero.id);
             Utils.toast(`${equippedItem.displayName} unequipped!`, 'info');
             // Refresh modal
             this.showHeroDetail(hero);
