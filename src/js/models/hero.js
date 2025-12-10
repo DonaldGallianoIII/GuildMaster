@@ -504,6 +504,7 @@ class Hero {
             equipment: this.equipment,
             summon_loadout: this.summonLoadout,
             conjured_weapon_will: this.conjuredWeaponWill,
+            skills: this.skills, // JSONB column in Supabase
             last_heal_tick: this.lastHealTick,
         };
     }
