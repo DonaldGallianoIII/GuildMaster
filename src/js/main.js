@@ -238,28 +238,44 @@ const App = {
     /**
      * Update passive healing progress display on hero cards
      */
-    updateHeroHealingProgress() {
+    async updateHeroHealingProgress() {
         const healingHeroes = GameState.heroes.filter(h => h.canPassiveHeal);
         if (healingHeroes.length === 0) return;
 
+        let anyHealed = false;
+
         for (const hero of healingHeroes) {
+            const progress = hero.passiveHealProgress;
+            const timeLeft = Math.ceil(hero.timeUntilNextHeal);
+
+            // If ready to heal, trigger it immediately instead of waiting for GuildHall interval
+            if (progress >= 100 || timeLeft <= 0) {
+                const result = hero.applyPassiveHeal();
+                if (result.healed) {
+                    await GameState.updateHero(hero);
+                    anyHealed = true;
+                }
+            }
+
             const indicator = document.querySelector(
                 `.hero-card[data-hero-id="${hero.id}"] .hero-healing-indicator`
             );
             if (indicator) {
-                const progress = hero.passiveHealProgress;
-                const timeLeft = Math.ceil(hero.timeUntilNextHeal);
-
                 const progressFill = indicator.querySelector('.healing-progress-fill');
                 if (progressFill) {
-                    progressFill.style.width = `${progress}%`;
+                    progressFill.style.width = `${hero.passiveHealProgress}%`;
                 }
 
+                const currentTimeLeft = Math.ceil(hero.timeUntilNextHeal);
                 const timeSpan = indicator.querySelector('span:last-child');
                 if (timeSpan) {
-                    timeSpan.textContent = timeLeft > 0 ? Utils.formatTime(timeLeft * 1000) : 'Ready';
+                    timeSpan.textContent = currentTimeLeft > 0 ? Utils.formatTime(currentTimeLeft * 1000) : 'Ready';
                 }
             }
+        }
+
+        if (anyHealed) {
+            GameState.emit('heroHealed');
         }
     },
 
