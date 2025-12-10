@@ -681,6 +681,8 @@ const GameState = {
         for (const quest of this._state.activeQuests) {
             // isReadyToComplete includes both time completion AND early hero death
             if (quest.isReadyToComplete && quest.status === QuestStatus.ACTIVE) {
+                // Debug: Log why quest is completing
+                Utils.log(`Quest completing: ${quest.name}, timeRemaining: ${quest.timeRemaining}ms, isTimeComplete: ${quest.isTimeComplete}, heroDefeated: ${quest.heroDefeated}, endsAt: ${quest.endsAt}`);
                 await this.completeQuest(quest.id);
             }
         }

@@ -1097,7 +1097,17 @@ class Quest {
      * Get total duration in ms
      */
     get duration() {
-        return this.template?.duration || CONFIG.QUESTS.DURATION[this.difficulty] || CONFIG.QUESTS.DURATION.easy;
+        const templateDuration = this.template?.duration;
+        const configDuration = CONFIG.QUESTS.DURATION[this.difficulty];
+        const fallbackDuration = CONFIG.QUESTS.DURATION.easy;
+        const duration = templateDuration || configDuration || fallbackDuration;
+
+        // Debug: Log if duration is unexpectedly small
+        if (duration < 60000) {
+            Utils.warn(`Quest ${this.templateId} has unexpected duration: ${duration}ms (template: ${templateDuration}, config[${this.difficulty}]: ${configDuration}, fallback: ${fallbackDuration})`);
+        }
+
+        return duration;
     }
 
     /**
