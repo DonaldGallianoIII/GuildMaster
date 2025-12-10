@@ -504,7 +504,6 @@ class Hero {
             equipment: this.equipment,
             summon_loadout: this.summonLoadout,
             conjured_weapon_will: this.conjuredWeaponWill,
-            skills: JSON.stringify(this.skills), // Store skills as JSON
             last_heal_tick: this.lastHealTick,
         };
     }
