@@ -471,10 +471,12 @@ const CombatEngine = {
         // Lifesteal check (works on total damage for AoE)
         let leechHealing = 0;
         const leechValue = this.getPassiveValue(actor, 'leech', hero);
+        Utils.log(`Leech check - actor: ${actor.name}, isHero: ${actor.isHero}, gearBonuses:`, actor.gearBonuses, `leechValue: ${leechValue}, damage: ${damage}`);
         if (leechValue > 0 && damage > 0) {
             leechHealing = Math.round(damage * leechValue);
             actor.heal(leechHealing);
             healing += leechHealing; // Add to action's healing for combat log
+            Utils.log(`Leech activated! Healing: ${leechHealing}, total healing: ${healing}`);
         }
 
         // Determine primary target killed status
