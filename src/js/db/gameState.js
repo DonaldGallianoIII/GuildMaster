@@ -399,8 +399,17 @@ const GameState = {
             return null;
         }
 
+        // Save hero's starting HP before combat simulation
+        const startingHp = hero.currentHp;
+
         // Pre-run combat simulation (result is predetermined but revealed over time)
         const combatResults = CombatEngine.runQuest(hero, quest);
+
+        // Store the final HP for later, but restore hero to starting HP
+        // (HP will be revealed progressively during quest and applied at completion)
+        combatResults.heroStartingHp = startingHp;
+        combatResults.heroFinalHp = hero.currentHp;
+        hero.currentHp = startingHp;
 
         // Start quest with pre-calculated combat events
         quest.start(heroId, combatResults);
@@ -432,7 +441,7 @@ const GameState = {
     },
 
     /**
-     * Complete a quest (run combat sim, distribute rewards)
+     * Complete a quest (use pre-calculated combat results, distribute rewards)
      */
     async completeQuest(questId) {
         const quest = this._state.activeQuests.find(q => q.id === questId);
@@ -443,8 +452,13 @@ const GameState = {
 
         Utils.log(`Completing quest: ${quest.name}`);
 
-        // Run combat simulation
-        const results = CombatEngine.runQuest(hero, quest);
+        // Use pre-calculated combat results from quest start
+        const results = quest.combatResults || CombatEngine.runQuest(hero, quest);
+
+        // Apply final HP to hero (was deferred from quest start)
+        if (results.heroFinalHp !== undefined) {
+            hero.currentHp = results.heroFinalHp;
+        }
 
         if (results.success) {
             // Quest succeeded

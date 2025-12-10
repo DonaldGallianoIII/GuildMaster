@@ -292,7 +292,222 @@ const Modals = {
         `;
     },
 
-    // ==================== COMBAT LOG MODAL ====================
+    // ==================== LIVE COMBAT LOG MODAL ====================
+
+    /**
+     * Show live combat log for active quest
+     */
+    _combatLogInterval: null,
+
+    showCombatLog(quest) {
+        const modal = document.getElementById('combat-modal');
+        const content = modal.querySelector('.modal-content');
+        const hero = GameState.getHero(quest.heroId);
+
+        if (!hero) {
+            Utils.toast('Hero not found', 'error');
+            return;
+        }
+
+        // Stop any existing interval
+        if (this._combatLogInterval) {
+            clearInterval(this._combatLogInterval);
+        }
+
+        const updateLog = () => {
+            const events = quest.getCurrentEvents();
+            const progress = quest.progressPercent;
+            const combatResults = quest.combatResults;
+
+            // Calculate current HP based on progress through combat
+            let displayHp = hero.currentHp;
+            if (combatResults) {
+                const startHp = combatResults.heroStartingHp ?? hero.maxHp;
+                const endHp = combatResults.heroFinalHp ?? hero.currentHp;
+                displayHp = Math.round(startHp + ((endHp - startHp) * (progress / 100)));
+                displayHp = Math.max(0, Math.min(hero.maxHp, displayHp));
+            }
+
+            // Generate narrative combat log entries
+            const logEntries = events.map(event => this._formatCombatEvent(event, hero)).filter(Boolean);
+
+            content.innerHTML = `
+                <div class="modal-header">
+                    <h2>⚔️ ${quest.name} - Combat Log</h2>
+                    <button class="modal-close" onclick="Modals.hideCombatLog()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="combat-log-hero">
+                        ${UI.createPortrait(hero.portraitId).outerHTML}
+                        <div class="combat-log-hero-info">
+                            <div class="hero-name">${hero.name}</div>
+                            <div class="hero-level">Level ${hero.level}</div>
+                            <div class="combat-hp-bar">
+                                <div class="hp-bar-fill" style="width: ${(displayHp / hero.maxHp) * 100}%"></div>
+                                <span class="hp-text">${displayHp} / ${hero.maxHp} HP</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="combat-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="progress-text">${Math.round(progress)}% - ${Utils.formatTime(quest.timeRemaining)} remaining</div>
+                    </div>
+
+                    <div class="combat-log-scroll" id="combat-log-entries">
+                        ${logEntries.length > 0 ? logEntries.map(entry => `
+                            <div class="combat-log-entry ${entry.type}">
+                                <span class="log-icon">${entry.icon}</span>
+                                <span class="log-text">${entry.text}</span>
+                            </div>
+                        `).join('') : `
+                            <div class="combat-log-entry narrative">
+                                <span class="log-icon">🚶</span>
+                                <span class="log-text">${hero.name} sets out on the quest...</span>
+                            </div>
+                        `}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="Modals.hideCombatLog()">Close</button>
+                </div>
+            `;
+
+            // Auto-scroll to bottom
+            const logScroll = content.querySelector('#combat-log-entries');
+            if (logScroll) {
+                logScroll.scrollTop = logScroll.scrollHeight;
+            }
+
+            // Stop updating if quest is complete
+            if (quest.isTimeComplete) {
+                this.hideCombatLog();
+            }
+        };
+
+        // Initial render
+        updateLog();
+        this.show('combat-modal');
+
+        // Update every 500ms
+        this._combatLogInterval = setInterval(updateLog, 500);
+    },
+
+    hideCombatLog() {
+        if (this._combatLogInterval) {
+            clearInterval(this._combatLogInterval);
+            this._combatLogInterval = null;
+        }
+        this.hide('combat-modal');
+    },
+
+    /**
+     * Format a combat event into narrative text
+     */
+    _formatCombatEvent(event, hero) {
+        const heroName = hero?.name || 'Hero';
+
+        switch (event.type) {
+            case 'encounter_start': {
+                const mobs = event.data.mobs || [];
+                const mobList = mobs.join(', ');
+                const narratives = [
+                    `${heroName} encounters ${mobList}!`,
+                    `Enemies appear: ${mobList}!`,
+                    `${heroName} faces ${mobs.length > 1 ? 'a group of foes' : 'a foe'}: ${mobList}!`,
+                    `The shadows reveal ${mobList}!`,
+                ];
+                return {
+                    type: 'encounter',
+                    icon: '⚔️',
+                    text: narratives[Math.floor(event.time) % narratives.length],
+                };
+            }
+
+            case 'combat_action': {
+                const { actorName, targetName, damage, healing, killed, isCritical, actorIsHero, description } = event.data;
+
+                // Use provided description or generate one
+                if (description) {
+                    return {
+                        type: actorIsHero ? 'hero-action' : 'enemy-action',
+                        icon: killed ? '💀' : (healing ? '💚' : (isCritical ? '💥' : '⚔️')),
+                        text: description,
+                    };
+                }
+
+                // Generate narrative flavor
+                const attackVerbs = ['strikes', 'attacks', 'slashes at', 'hits', 'smashes'];
+                const critVerbs = ['CRITICALLY HITS', 'delivers a devastating blow to', 'lands a perfect strike on'];
+                const killVerbs = ['slays', 'defeats', 'vanquishes', 'destroys'];
+
+                let text;
+                if (killed) {
+                    const verb = killVerbs[Math.floor(Math.random() * killVerbs.length)];
+                    text = `${actorName} ${verb} ${targetName}!`;
+                } else if (healing) {
+                    text = `${actorName} recovers ${healing} HP!`;
+                } else if (isCritical) {
+                    const verb = critVerbs[Math.floor(Math.random() * critVerbs.length)];
+                    text = `${actorName} ${verb} ${targetName} for ${damage} damage!`;
+                } else {
+                    const verb = attackVerbs[Math.floor(Math.random() * attackVerbs.length)];
+                    text = `${actorName} ${verb} ${targetName} for ${damage} damage.`;
+                }
+
+                return {
+                    type: actorIsHero ? 'hero-action' : 'enemy-action',
+                    icon: killed ? '💀' : (healing ? '💚' : (isCritical ? '💥' : '⚔️')),
+                    text,
+                };
+            }
+
+            case 'encounter_end': {
+                if (event.data.victory === false) {
+                    return {
+                        type: 'danger',
+                        icon: '😰',
+                        text: `${heroName} is struggling...`,
+                    };
+                }
+                const narratives = [
+                    `${heroName} emerges victorious from the battle!`,
+                    `The enemies have been defeated!`,
+                    `${heroName} catches their breath after the fight.`,
+                    `Victory! ${heroName} presses onward.`,
+                ];
+                return {
+                    type: 'victory',
+                    icon: event.data.loot ? '💎' : '✓',
+                    text: event.data.loot
+                        ? `${heroName} finds treasure among the fallen!`
+                        : narratives[Math.floor(event.time) % narratives.length],
+                };
+            }
+
+            case 'quest_complete': {
+                if (event.data.success === false) {
+                    return {
+                        type: 'defeat',
+                        icon: '💀',
+                        text: `${heroName} has fallen in battle...`,
+                    };
+                }
+                return {
+                    type: 'complete',
+                    icon: '🏆',
+                    text: `${heroName} completes the quest! Earned ${event.data.totalGold}g and ${event.data.totalXp} XP!`,
+                };
+            }
+
+            default:
+                return null;
+        }
+    },
+
+    // ==================== COMBAT RESULTS MODAL ====================
 
     /**
      * Show combat results

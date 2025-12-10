@@ -874,3 +874,181 @@ a:hover {
         width: 100%;
     }
 }
+
+/* ==================== COMBAT LOG MODAL ==================== */
+.combat-log-hero {
+    display: flex;
+    gap: var(--spacing-lg);
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: var(--color-parchment-dark);
+    border-radius: var(--radius-md);
+}
+
+.combat-log-hero-info {
+    flex: 1;
+}
+
+.combat-log-hero-info .hero-name {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--color-ink);
+    margin-bottom: var(--spacing-xs);
+}
+
+.combat-log-hero-info .hero-level {
+    font-size: 0.9rem;
+    color: var(--color-ink-faded);
+    margin-bottom: var(--spacing-sm);
+}
+
+.combat-hp-bar {
+    position: relative;
+    height: 24px;
+    background: var(--color-ink);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.combat-hp-bar .hp-bar-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--color-blood), var(--color-blood-light));
+    transition: width 0.3s ease;
+}
+
+.combat-hp-bar .hp-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--color-parchment);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.combat-progress {
+    margin-bottom: var(--spacing-lg);
+}
+
+.combat-progress .progress-bar {
+    height: 8px;
+    background: var(--color-parchment-dark);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: var(--spacing-xs);
+}
+
+.combat-progress .progress-fill {
+    height: 100%;
+    background: var(--color-gold);
+    transition: width 0.5s ease;
+}
+
+.combat-progress .progress-text {
+    font-size: 0.85rem;
+    color: var(--color-ink-faded);
+    text-align: center;
+}
+
+.combat-log-scroll {
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.combat-log-entry {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.combat-log-entry .log-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    width: 24px;
+    text-align: center;
+}
+
+.combat-log-entry .log-text {
+    flex: 1;
+    line-height: 1.4;
+}
+
+/* Entry type styles */
+.combat-log-entry.encounter {
+    background: var(--color-royal);
+    color: var(--color-parchment);
+    font-weight: bold;
+}
+
+.combat-log-entry.hero-action {
+    background: rgba(45, 90, 39, 0.15);
+    border-left: 3px solid var(--color-forest);
+}
+
+.combat-log-entry.enemy-action {
+    background: rgba(139, 0, 0, 0.1);
+    border-left: 3px solid var(--color-blood);
+}
+
+.combat-log-entry.victory {
+    background: var(--color-gold);
+    color: var(--color-ink);
+    font-weight: bold;
+}
+
+.combat-log-entry.danger {
+    background: var(--color-blood-light);
+    color: var(--color-parchment);
+}
+
+.combat-log-entry.defeat {
+    background: var(--color-blood);
+    color: var(--color-parchment);
+    font-weight: bold;
+}
+
+.combat-log-entry.complete {
+    background: linear-gradient(135deg, var(--color-gold), var(--color-gold-light));
+    color: var(--color-ink);
+    font-weight: bold;
+    font-size: 1.05rem;
+}
+
+.combat-log-entry.narrative {
+    color: var(--color-ink-faded);
+    font-style: italic;
+}
+
+/* Scrollbar styling for combat log */
+.combat-log-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.combat-log-scroll::-webkit-scrollbar-track {
+    background: var(--color-parchment-dark);
+    border-radius: var(--radius-sm);
+}
+
+.combat-log-scroll::-webkit-scrollbar-thumb {
+    background: var(--color-ink-faded);
+    border-radius: var(--radius-sm);
+}
+
+.combat-log-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-light);
+}

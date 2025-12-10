@@ -88,6 +88,9 @@ const PeekSystem = {
             timeText.textContent = Utils.formatTime(quest.timeRemaining);
         }
 
+        // Update HP bar based on quest progress
+        this.updateHeroHp(quest);
+
         // Check for new events to animate
         this.checkForNewEvents(questId, events);
 
@@ -222,6 +225,39 @@ const PeekSystem = {
     cleanupQuest(questId) {
         delete this._seenEvents[questId];
         this.stopPeek(questId);
+    },
+
+    /**
+     * Update hero HP display based on quest progress
+     */
+    updateHeroHp(quest) {
+        const hpSection = document.querySelector(`.peek-hero-hp[data-quest-id="${quest.id}"]`);
+        if (!hpSection) return;
+
+        const hero = GameState.getHero(quest.heroId);
+        if (!hero) return;
+
+        const combatResults = quest.combatResults;
+        let displayHp = hero.currentHp;
+
+        if (combatResults) {
+            const startHp = combatResults.heroStartingHp ?? hero.maxHp;
+            const endHp = combatResults.heroFinalHp ?? hero.currentHp;
+            const progress = quest.progressPercent / 100;
+            displayHp = Math.round(startHp + ((endHp - startHp) * progress));
+            displayHp = Math.max(0, Math.min(hero.maxHp, displayHp));
+        }
+
+        // Update the stat bar
+        const hpFill = hpSection.querySelector('.stat-bar-fill');
+        const hpText = hpSection.querySelector('.stat-bar-text');
+
+        if (hpFill) {
+            hpFill.style.width = `${(displayHp / hero.maxHp) * 100}%`;
+        }
+        if (hpText) {
+            hpText.textContent = `${displayHp}/${hero.maxHp}`;
+        }
     },
 
     /**
