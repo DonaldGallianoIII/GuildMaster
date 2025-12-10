@@ -9,6 +9,7 @@
 const App = {
     // Application state
     _initialized: false,
+    _authenticated: false,
     _currentTab: 'heroes',
 
     /**
@@ -18,29 +19,104 @@ const App = {
         Utils.log('Guild Master starting...');
 
         try {
-            // Initialize Supabase (or mock for local dev)
+            // Initialize Supabase
             initSupabase();
 
-            // Initialize game state
-            await GameState.init();
+            // Initialize auth UI first
+            AuthUI.init();
 
-            // Set up UI
-            this.initNavigation();
-            this.initSystems();
-            this.updatePlayerDisplay();
+            // Check for existing session
+            const session = await Auth.getSession();
 
-            // Listen for state events
-            this.bindStateEvents();
+            if (session) {
+                // Already authenticated - show game directly
+                Utils.log('Existing session found, loading game...');
+                await this.startGame(session.user);
+            } else {
+                // Not authenticated - auth screen is already visible
+                Utils.log('No session found, showing auth screen');
 
-            this._initialized = true;
-            Utils.log('Guild Master initialized successfully!');
+                // Listen for successful authentication
+                GameState.on('authSuccess', async ({ user }) => {
+                    await this.startGame(user);
+                });
+            }
 
-            // Show initial tab
-            this.switchTab(this._currentTab);
+            // Listen for auth state changes (e.g., session expiry)
+            Auth.onAuthStateChange(async (event, session) => {
+                Utils.log('Auth state changed:', event);
+
+                if (event === 'SIGNED_OUT' || !session) {
+                    this.handleSignOut();
+                } else if (event === 'SIGNED_IN' && session && !this._authenticated) {
+                    await this.startGame(session.user);
+                }
+            });
 
         } catch (error) {
             Utils.error('Failed to initialize:', error);
             Utils.toast('Failed to load game. Please refresh.', 'error');
+        }
+    },
+
+    /**
+     * Start the game after authentication
+     */
+    async startGame(user) {
+        Utils.log('Starting game for user:', user.id);
+
+        // Hide auth, show game
+        document.getElementById('auth-screen').classList.add('hidden');
+        document.getElementById('game-container').classList.remove('hidden');
+
+        // Load player data
+        await GameState.loadPlayerData(user.id);
+
+        // Set up UI
+        this.initNavigation();
+        this.initSystems();
+        this.initSignOut();
+        this.updatePlayerDisplay();
+
+        // Listen for state events
+        this.bindStateEvents();
+
+        this._initialized = true;
+        this._authenticated = true;
+        Utils.log('Guild Master initialized successfully!');
+
+        // Show initial tab
+        this.switchTab(this._currentTab);
+    },
+
+    /**
+     * Handle sign out
+     */
+    handleSignOut() {
+        this._authenticated = false;
+        this._initialized = false;
+
+        // Show auth, hide game
+        document.getElementById('auth-screen').classList.remove('hidden');
+        document.getElementById('game-container').classList.add('hidden');
+
+        // Reset auth UI
+        AuthUI._mode = 'login';
+        AuthUI.render();
+        AuthUI.bindEvents();
+    },
+
+    /**
+     * Initialize sign out button
+     */
+    initSignOut() {
+        const signOutBtn = document.getElementById('sign-out-btn');
+        if (signOutBtn) {
+            signOutBtn.addEventListener('click', async () => {
+                if (confirm('Are you sure you want to sign out?')) {
+                    await AuthUI.signOut();
+                }
+            });
         }
     },
 
