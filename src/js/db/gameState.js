@@ -333,13 +333,14 @@ const GameState = {
 
         const skills = Skills.rollForRecruit();
 
-        return {
+        // Return as Hero instance so hireCost is preserved through serialization
+        return new Hero({
             id: Utils.uuid(),
             name: Utils.randomChoice(names),
             portraitId: Utils.randomInt(1, 20),
             skills,
             hireCost: this.calcHireCost(skills),
-        };
+        });
     },
 
     /**
