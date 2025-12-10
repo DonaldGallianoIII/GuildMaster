@@ -14,16 +14,16 @@ const CONFIG = {
     // ==================== GAME BALANCE ====================
 
     /**
-     * STAT SYSTEM (from design doc update)
-     * BST = Level × 10
-     * HP = (Level × 20) + DEF
+     * STAT SYSTEM (updated for balance)
+     * BST = Level × 20
+     * HP = (Level × 40) + DEF
      *
      * Physical Damage = ATK² ÷ (ATK + target DEF)
      * Magical Damage = WILL² ÷ (WILL + target WILL ÷ 2)
      */
     STATS: {
-        BST_PER_LEVEL: 10,
-        HP_PER_LEVEL: 20,
+        BST_PER_LEVEL: 20,
+        HP_PER_LEVEL: 40,
         MIN_DAMAGE: 1,
     },
 
@@ -110,13 +110,37 @@ const CONFIG = {
     },
 
     /**
-     * MOB TIER MODIFIERS
+     * MOB TIER SYSTEM (Dynamic scaling based on hero level)
+     * levelOffset: How many levels above/below the hero
+     * bstMult: Multiplier for BST relative to hero's BST
+     * hpMult: HP multiplier (mobs use lower HP formula)
      */
     MOB_TIERS: {
-        normal: { statMult: 1.0, label: 'Normal' },
-        magic: { statMult: 1.5, label: 'Enhanced' },
-        rare: { statMult: 2.0, label: 'Elite' },
-        boss: { statMult: 3.0, label: 'Boss' },
+        // Fodder Tiers - easy kills, swarm enemies
+        fodder_trash: { levelOffset: -3, bstMult: 0.35, hpMult: 0.5, label: 'Fodder Trash' },
+        fodder: { levelOffset: -2, bstMult: 0.5, hpMult: 0.6, label: 'Fodder' },
+        fodder_exalted: { levelOffset: -1, bstMult: 0.6, hpMult: 0.7, label: 'Fodder Exalted' },
+
+        // Standard Tiers - fair fights
+        standard_weak: { levelOffset: 0, bstMult: 0.7, hpMult: 0.8, label: 'Standard Weak' },
+        standard: { levelOffset: 1, bstMult: 0.85, hpMult: 0.9, label: 'Standard' },
+        standard_exalted: { levelOffset: 2, bstMult: 1.0, hpMult: 1.0, label: 'Standard Exalted' },
+
+        // Elite Tiers - dangerous, mini-boss
+        elite: { levelOffset: 4, bstMult: 1.2, hpMult: 1.2, label: 'Elite' },
+        elite_exalted: { levelOffset: 6, bstMult: 1.5, hpMult: 1.5, label: 'Elite Exalted' },
+
+        // Boss Tiers - major threats
+        boss: { levelOffset: 10, bstMult: 2.0, hpMult: 2.0, label: 'Boss' },
+        boss_legendary: { levelOffset: 15, bstMult: 3.0, hpMult: 3.0, label: 'Legendary Boss' },
+    },
+
+    /**
+     * FREE HIT SETTINGS (when enemy dies in duel, next enemy gets free attack)
+     */
+    FREE_HIT: {
+        DAMAGE_MULT: 0.5,    // Free hit does 50% damage
+        MIN_HP_REMAINING: 1, // Free hit can never kill (leaves at 1 HP minimum)
     },
 
     /**
@@ -172,6 +196,7 @@ Object.freeze(CONFIG.QUESTS.GOLD_REWARDS);
 Object.freeze(CONFIG.QUESTS.XP_REWARDS);
 Object.freeze(CONFIG.QUESTS.ENCOUNTERS);
 Object.freeze(CONFIG.MOB_TIERS);
+Object.freeze(CONFIG.FREE_HIT);
 Object.freeze(CONFIG.INHERITANCE);
 Object.freeze(CONFIG.ALIGNMENT);
 Object.freeze(CONFIG.SUMMONS);

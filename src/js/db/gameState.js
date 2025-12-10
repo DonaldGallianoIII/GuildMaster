@@ -87,6 +87,9 @@ const GameState = {
         this._state.inventory = inventory || [];
         this._state.activeQuests = activeQuests || [];
 
+        // Run stat migration for heroes with outdated BST
+        await this.migrateHeroStats();
+
         // Generate quest board
         this.refreshQuestBoard();
 
@@ -166,6 +169,85 @@ const GameState = {
     },
 
     // ==================== HERO MANAGEMENT ====================
+
+    /**
+     * Migrate heroes with outdated BST to the new stat system
+     * This handles the balance update from 10 BST/level to 20 BST/level
+     */
+    async migrateHeroStats() {
+        let migrated = 0;
+
+        for (const hero of this._state.heroes) {
+            // Skip dead/retired heroes
+            if (hero.state === HeroState.DEAD || hero.state === HeroState.RETIRED) {
+                continue;
+            }
+
+            const currentBst = hero.bst;
+            const expectedBst = hero.expectedBst;
+
+            // If hero has less BST than expected, they need migration
+            if (currentBst < expectedBst) {
+                const extraPoints = expectedBst - currentBst;
+                Utils.log(`Migrating ${hero.name}: ${currentBst} BST -> ${expectedBst} BST (+${extraPoints})`);
+
+                // Distribute extra points proportionally to existing stat distribution
+                // If hero has no stats allocated yet (shouldn't happen), distribute evenly
+                if (currentBst === 0) {
+                    const perStat = Math.floor(extraPoints / 4);
+                    const remainder = extraPoints % 4;
+                    hero.stats.atk += perStat + (remainder > 0 ? 1 : 0);
+                    hero.stats.spd += perStat + (remainder > 1 ? 1 : 0);
+                    hero.stats.def += perStat + (remainder > 2 ? 1 : 0);
+                    hero.stats.will += perStat;
+                } else {
+                    // Proportional distribution based on current allocation
+                    const ratios = {
+                        atk: hero.stats.atk / currentBst,
+                        will: hero.stats.will / currentBst,
+                        def: hero.stats.def / currentBst,
+                        spd: hero.stats.spd / currentBst,
+                    };
+
+                    // Calculate additional points per stat
+                    let distributed = 0;
+                    const additions = {};
+                    for (const stat of ['atk', 'will', 'def', 'spd']) {
+                        additions[stat] = Math.floor(extraPoints * ratios[stat]);
+                        distributed += additions[stat];
+                    }
+
+                    // Distribute remainder to highest ratio stats
+                    let remainder = extraPoints - distributed;
+                    const sortedStats = Object.entries(ratios)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([stat]) => stat);
+
+                    let i = 0;
+                    while (remainder > 0) {
+                        additions[sortedStats[i % 4]]++;
+                        remainder--;
+                        i++;
+                    }
+
+                    // Apply additions
+                    hero.stats.atk += additions.atk;
+                    hero.stats.will += additions.will;
+                    hero.stats.def += additions.def;
+                    hero.stats.spd += additions.spd;
+                }
+
+                // Save updated hero
+                await DB.heroes.save(hero);
+                migrated++;
+            }
+        }
+
+        if (migrated > 0) {
+            Utils.log(`Migrated ${migrated} heroes to new stat system`);
+            Utils.toast(`${migrated} hero(es) updated with new stat balance!`, 'success');
+        }
+    },
 
     /**
      * Get hero by ID

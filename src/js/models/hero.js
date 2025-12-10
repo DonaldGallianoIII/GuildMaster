@@ -4,13 +4,13 @@
  * ============================================
  * Hero data structure and methods
  *
- * STAT SYSTEM (from design update):
- * - BST = Level × 10 (distributed across 4 stats)
- * - HP = (Level × 20) + DEF
+ * STAT SYSTEM (balance update v2):
+ * - BST = Level × 20 (distributed across 4 stats)
+ * - HP = (Level × 40) + DEF
  * - Stats: ATK, WILL, DEF, SPD
  *
  * Heroes are recruited with 3 skills and start at level 1.
- * Player allocates their 10 BST at recruitment.
+ * Player allocates their 20 BST at recruitment.
  * ============================================
  */
 

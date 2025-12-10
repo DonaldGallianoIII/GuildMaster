@@ -47,133 +47,130 @@ Object.freeze(QuestStatus);
  * ============================================
  * MOB DEFINITIONS
  * ============================================
- * Enemies have level-based stats similar to heroes
- * Their BST = Level × 10, distributed across stats
+ * Enemies scale dynamically based on hero level
+ * - tier: Determines level offset and BST multiplier from CONFIG.MOB_TIERS
+ * - statDist: Percentage distribution of BST across stats (must sum to 1.0)
  * ============================================
  */
 const MOB_DEFINITIONS = {
-    // ==================== EASY MOBS ====================
+    // ==================== FODDER MOBS (Easy kills) ====================
     goblin: {
         id: 'goblin',
         name: 'Goblin',
-        level: 1,
-        // Stat distribution (out of 10 BST for level 1)
-        stats: { atk: 4, will: 0, def: 2, spd: 4 },
+        tier: 'fodder_trash',
+        statDist: { atk: 0.4, will: 0, def: 0.2, spd: 0.4 },
         icon: '👺',
         skills: ['strike'],
-        tier: 'normal',
     },
-    goblin_brute: {
-        id: 'goblin_brute',
-        name: 'Goblin Brute',
-        level: 2,
-        stats: { atk: 8, will: 0, def: 8, spd: 4 }, // 20 BST for level 2
-        icon: '👹',
-        skills: ['strike', 'bash'],
-        tier: 'rare',
+    rat: {
+        id: 'rat',
+        name: 'Giant Rat',
+        tier: 'fodder_trash',
+        statDist: { atk: 0.3, will: 0, def: 0.1, spd: 0.6 },
+        icon: '🐀',
+        skills: ['strike'],
     },
     wolf: {
         id: 'wolf',
         name: 'Wolf',
-        level: 1,
-        stats: { atk: 5, will: 0, def: 1, spd: 4 },
+        tier: 'fodder',
+        statDist: { atk: 0.5, will: 0, def: 0.1, spd: 0.4 },
         icon: '🐺',
         skills: ['strike'],
-        tier: 'normal',
     },
-    alpha_wolf: {
-        id: 'alpha_wolf',
-        name: 'Alpha Wolf',
-        level: 3,
-        stats: { atk: 12, will: 0, def: 6, spd: 12 },
-        icon: '🐕',
-        skills: ['strike', 'frenzy'],
-        tier: 'rare',
+    goblin_brute: {
+        id: 'goblin_brute',
+        name: 'Goblin Brute',
+        tier: 'fodder_exalted',
+        statDist: { atk: 0.4, will: 0, def: 0.4, spd: 0.2 },
+        icon: '👹',
+        skills: ['strike', 'bash'],
     },
 
-    // ==================== MEDIUM MOBS ====================
+    // ==================== STANDARD MOBS (Fair fights) ====================
     bandit: {
         id: 'bandit',
         name: 'Bandit',
-        level: 3,
-        stats: { atk: 12, will: 0, def: 8, spd: 10 },
+        tier: 'standard_weak',
+        statDist: { atk: 0.4, will: 0, def: 0.3, spd: 0.3 },
         icon: '🥷',
         skills: ['strike', 'backstab'],
-        tier: 'normal',
-    },
-    bandit_chief: {
-        id: 'bandit_chief',
-        name: 'Bandit Chief',
-        level: 5,
-        stats: { atk: 20, will: 5, def: 15, spd: 10 },
-        icon: '🦹',
-        skills: ['strike', 'cleave', 'second_wind'],
-        tier: 'boss',
     },
     skeleton: {
         id: 'skeleton',
         name: 'Skeleton',
-        level: 4,
-        stats: { atk: 15, will: 5, def: 15, spd: 5 },
+        tier: 'standard_weak',
+        statDist: { atk: 0.35, will: 0.15, def: 0.35, spd: 0.15 },
         icon: '💀',
         skills: ['strike'],
-        tier: 'normal',
-    },
-    skeleton_mage: {
-        id: 'skeleton_mage',
-        name: 'Skeleton Mage',
-        level: 4,
-        stats: { atk: 5, will: 20, def: 10, spd: 5 },
-        icon: '🧙',
-        skills: ['spark', 'fireball'],
-        tier: 'magic',
     },
     cave_spider: {
         id: 'cave_spider',
         name: 'Cave Spider',
-        level: 3,
-        stats: { atk: 10, will: 0, def: 5, spd: 15 },
+        tier: 'standard',
+        statDist: { atk: 0.35, will: 0, def: 0.15, spd: 0.5 },
         icon: '🕷️',
         skills: ['strike'],
-        tier: 'normal',
+    },
+    alpha_wolf: {
+        id: 'alpha_wolf',
+        name: 'Alpha Wolf',
+        tier: 'standard_exalted',
+        statDist: { atk: 0.4, will: 0, def: 0.2, spd: 0.4 },
+        icon: '🐕',
+        skills: ['strike', 'frenzy'],
+    },
+    skeleton_mage: {
+        id: 'skeleton_mage',
+        name: 'Skeleton Mage',
+        tier: 'standard_exalted',
+        statDist: { atk: 0.1, will: 0.5, def: 0.25, spd: 0.15 },
+        icon: '🧙',
+        skills: ['spark', 'fireball'],
     },
 
-    // ==================== HARD MOBS ====================
+    // ==================== ELITE MOBS (Mini-boss) ====================
+    bandit_chief: {
+        id: 'bandit_chief',
+        name: 'Bandit Chief',
+        tier: 'elite',
+        statDist: { atk: 0.4, will: 0.1, def: 0.3, spd: 0.2 },
+        icon: '🦹',
+        skills: ['strike', 'cleave', 'second_wind'],
+    },
     wraith: {
         id: 'wraith',
         name: 'Wraith',
-        level: 6,
-        stats: { atk: 10, will: 30, def: 10, spd: 10 },
+        tier: 'elite',
+        statDist: { atk: 0.15, will: 0.5, def: 0.15, spd: 0.2 },
         icon: '👻',
         skills: ['soul_rend', 'mana_shield'],
-        tier: 'magic',
     },
     treant: {
         id: 'treant',
         name: 'Treant',
-        level: 7,
-        stats: { atk: 25, will: 10, def: 30, spd: 5 },
+        tier: 'elite_exalted',
+        statDist: { atk: 0.35, will: 0.1, def: 0.45, spd: 0.1 },
         icon: '🌳',
         skills: ['bash', 'thorns', 'block'],
-        tier: 'rare',
     },
     drake: {
         id: 'drake',
         name: 'Drake',
-        level: 8,
-        stats: { atk: 30, will: 20, def: 20, spd: 10 },
+        tier: 'elite_exalted',
+        statDist: { atk: 0.35, will: 0.25, def: 0.25, spd: 0.15 },
         icon: '🐲',
         skills: ['cleave', 'fireball'],
-        tier: 'magic',
     },
+
+    // ==================== BOSS MOBS (Major threats) ====================
     dragon: {
         id: 'dragon',
         name: 'Ancient Dragon',
-        level: 10,
-        stats: { atk: 40, will: 30, def: 20, spd: 10 },
+        tier: 'boss',
+        statDist: { atk: 0.4, will: 0.3, def: 0.2, spd: 0.1 },
         icon: '🐉',
         skills: ['cleave', 'meteor', 'frenzy'],
-        tier: 'boss',
     },
 };
 
@@ -187,7 +184,7 @@ Object.freeze(MOB_DEFINITIONS);
  * ============================================
  */
 const QUEST_TEMPLATES = {
-    // ==================== EASY ====================
+    // ==================== EASY (Simplified for testing) ====================
     goblin_warren: {
         id: 'goblin_warren',
         name: 'Goblin Warren',
@@ -196,9 +193,7 @@ const QUEST_TEMPLATES = {
         duration: CONFIG.QUESTS.DURATION.easy,
         icon: '🕳️',
         encounters: [
-            { mobs: ['goblin', 'goblin', 'goblin'] },
-            { mobs: ['goblin', 'goblin', 'goblin'] },
-            { mobs: ['goblin', 'goblin', 'goblin'] },
+            { mobs: ['goblin', 'goblin'] },
             { mobs: ['goblin_brute'] },
         ],
         rewards: {
@@ -216,9 +211,7 @@ const QUEST_TEMPLATES = {
         icon: '🐺',
         encounters: [
             { mobs: ['wolf', 'wolf'] },
-            { mobs: ['wolf', 'wolf', 'wolf'] },
-            { mobs: ['wolf', 'wolf'] },
-            { mobs: ['alpha_wolf'] },
+            { mobs: ['wolf'] },
         ],
         rewards: {
             gold: CONFIG.QUESTS.GOLD_REWARDS.easy,
@@ -226,7 +219,7 @@ const QUEST_TEMPLATES = {
         },
     },
 
-    // ==================== MEDIUM ====================
+    // ==================== MEDIUM (Simplified for testing) ====================
     bandit_camp: {
         id: 'bandit_camp',
         name: 'Bandit Camp',
@@ -235,10 +228,7 @@ const QUEST_TEMPLATES = {
         duration: CONFIG.QUESTS.DURATION.medium,
         icon: '⛺',
         encounters: [
-            { mobs: ['bandit', 'bandit'] },
-            { mobs: ['bandit', 'bandit', 'bandit'] },
-            { mobs: ['bandit', 'bandit'] },
-            { mobs: ['bandit', 'bandit', 'bandit'] },
+            { mobs: ['bandit'] },
             { mobs: ['bandit', 'bandit'] },
             { mobs: ['bandit_chief'] },
         ],
@@ -256,12 +246,9 @@ const QUEST_TEMPLATES = {
         duration: CONFIG.QUESTS.DURATION.medium,
         icon: '⛏️',
         encounters: [
-            { mobs: ['skeleton', 'skeleton'] },
-            { mobs: ['cave_spider', 'cave_spider', 'cave_spider'] },
-            { mobs: ['skeleton', 'skeleton_mage'] },
+            { mobs: ['skeleton'] },
             { mobs: ['cave_spider', 'cave_spider'] },
-            { mobs: ['skeleton', 'skeleton', 'skeleton_mage'] },
-            { mobs: ['skeleton_mage', 'skeleton_mage'] },
+            { mobs: ['skeleton_mage'] },
         ],
         rewards: {
             gold: CONFIG.QUESTS.GOLD_REWARDS.medium,
@@ -269,7 +256,7 @@ const QUEST_TEMPLATES = {
         },
     },
 
-    // ==================== HARD ====================
+    // ==================== HARD (Simplified for testing) ====================
     cursed_forest: {
         id: 'cursed_forest',
         name: 'Cursed Forest',
@@ -278,16 +265,9 @@ const QUEST_TEMPLATES = {
         duration: CONFIG.QUESTS.DURATION.hard,
         icon: '🌲',
         encounters: [
-            { mobs: ['wraith', 'wraith'] },
+            { mobs: ['wraith'] },
             { mobs: ['treant'] },
-            { mobs: ['wraith', 'wraith', 'wraith'] },
-            { mobs: ['treant', 'wraith'] },
             { mobs: ['wraith', 'wraith'] },
-            { mobs: ['treant', 'treant'] },
-            { mobs: ['wraith', 'wraith', 'wraith'] },
-            { mobs: ['treant'] },
-            { mobs: ['wraith', 'treant', 'wraith'] },
-            { mobs: ['treant', 'treant', 'wraith'] },
         ],
         rewards: {
             gold: CONFIG.QUESTS.GOLD_REWARDS.hard,
@@ -303,15 +283,8 @@ const QUEST_TEMPLATES = {
         duration: CONFIG.QUESTS.DURATION.hard,
         icon: '🏔️',
         encounters: [
+            { mobs: ['drake'] },
             { mobs: ['drake', 'drake'] },
-            { mobs: ['drake', 'drake', 'drake'] },
-            { mobs: ['drake', 'drake'] },
-            { mobs: ['drake', 'drake', 'drake'] },
-            { mobs: ['drake', 'drake'] },
-            { mobs: ['drake', 'drake', 'drake'] },
-            { mobs: ['drake', 'drake', 'drake'] },
-            { mobs: ['drake', 'drake'] },
-            { mobs: ['drake', 'drake', 'drake'] },
             { mobs: ['dragon'] },
         ],
         rewards: {
@@ -717,30 +690,47 @@ const Quests = {
     },
 
     /**
-     * Create mob instance for combat
-     * Returns a combat-ready mob object with calculated stats
+     * Create a mob instance with stats scaled to hero level
+     * @param {string} mobId - The mob definition ID
+     * @param {number} heroLevel - The level of the hero fighting this mob
+     * @param {string} tierOverride - Optional tier override
      */
-    createMobInstance(mobId, tierOverride = null) {
+    createMobInstance(mobId, heroLevel = 1, tierOverride = null) {
         const def = MOB_DEFINITIONS[mobId];
         if (!def) return null;
 
         const tier = tierOverride || def.tier;
-        const tierMult = CONFIG.MOB_TIERS[tier]?.statMult || 1.0;
+        const tierConfig = CONFIG.MOB_TIERS[tier];
 
-        // Scale stats by tier
-        const stats = {};
-        for (const [stat, value] of Object.entries(def.stats)) {
-            stats[stat] = Math.floor(value * tierMult);
+        if (!tierConfig) {
+            Utils.error(`Unknown mob tier: ${tier}`);
+            return null;
         }
 
-        // Calculate HP
-        const hp = Utils.calcHP(def.level, stats.def);
+        // Calculate mob level based on hero level + tier offset
+        const mobLevel = Math.max(1, heroLevel + tierConfig.levelOffset);
+
+        // Calculate BST: hero's BST * tier multiplier
+        const heroBst = heroLevel * CONFIG.STATS.BST_PER_LEVEL;
+        const mobBst = Math.floor(heroBst * tierConfig.bstMult);
+
+        // Distribute BST according to stat distribution
+        const stats = {
+            atk: Math.floor(mobBst * (def.statDist.atk || 0)),
+            will: Math.floor(mobBst * (def.statDist.will || 0)),
+            def: Math.floor(mobBst * (def.statDist.def || 0)),
+            spd: Math.floor(mobBst * (def.statDist.spd || 0)),
+        };
+
+        // Calculate HP: base HP formula * tier HP multiplier
+        const baseHp = (mobLevel * CONFIG.STATS.HP_PER_LEVEL) + stats.def;
+        const hp = Math.floor(baseHp * tierConfig.hpMult);
 
         return {
             id: Utils.uuid(),
             mobId: def.id,
             name: def.name,
-            level: def.level,
+            level: mobLevel,
             tier,
             stats,
             maxHp: hp,

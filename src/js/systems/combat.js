@@ -6,11 +6,14 @@
  * This is NOT fake theater - actual damage calculations
  * determine outcomes.
  *
- * COMBAT FLOW:
- * 1. Initialize combatants (hero + summons vs mobs)
- * 2. Determine turn order (SPD)
- * 3. Execute turns until one side is eliminated
- * 4. Return detailed combat log
+ * COMBAT FLOW (Duelist System):
+ * 1. Hero fights mobs 1v1 in sequence within each pack
+ * 2. Each duel: faster combatant attacks first (ties = coin flip)
+ * 3. When hero kills an enemy, NEXT enemy gets a FREE HIT
+ *    - Free hit does 50% damage
+ *    - Free hit can never kill (leaves hero at 1 HP minimum)
+ * 4. AoE abilities hit all enemies and skip free hit mechanic
+ * 5. Continue until all enemies dead or hero dies
  *
  * DAMAGE FORMULAS (from design doc):
  * Physical: ATK² ÷ (ATK + target DEF)
@@ -90,6 +93,10 @@ class CombatAction {
         this.isCritical = data.isCritical || false;
         this.killed = data.killed || false;
         this.description = data.description || '';
+        // Duelist system flags
+        this.isAoE = data.isAoE || false;         // Hit multiple targets
+        this.isFreeHit = data.isFreeHit || false; // Free hit from previous kill
+        this.aoeDamage = data.aoeDamage || [];    // Array of { targetId, targetName, damage, killed }
     }
 }
 
@@ -172,17 +179,17 @@ class Combatant {
  */
 const CombatEngine = {
     /**
-     * Run a full encounter simulation
+     * Run a full encounter simulation using duelist system
      * @param {Hero} hero - The hero fighting
      * @param {Array} mobs - Array of mob instances
      * @returns {CombatResult}
      */
     runEncounter(hero, mobs) {
-        Utils.log('Starting combat encounter');
+        Utils.log('Starting combat encounter (duelist mode)');
 
         const result = new CombatResult();
 
-        // Create combatants
+        // Create hero combatant
         const heroCombatant = new Combatant({
             id: hero.id,
             name: hero.name,
@@ -193,84 +200,124 @@ const CombatEngine = {
             skills: hero.skills,
         }, true, false);
 
-        // Create hero summons if any
-        const summons = this.createSummons(hero);
+        // Create all enemies (for AoE tracking)
+        const allEnemies = mobs.map(mob => new Combatant(mob, false, false));
 
-        const enemies = mobs.map(mob => new Combatant(mob, false, false));
+        // Enemy queue for duelist system
+        const enemyQueue = [...allEnemies];
+        let pendingFreeHit = false; // Track if next enemy gets a free hit
 
-        // All combatants
-        let allCombatants = [heroCombatant, ...summons, ...enemies];
-
-        // Combat loop
         let roundNumber = 0;
-        const MAX_ROUNDS = 100; // Safety limit
+        const MAX_ROUNDS = 100;
 
-        while (roundNumber < MAX_ROUNDS) {
+        // Fight enemies one at a time
+        while (enemyQueue.length > 0 && heroCombatant.isAlive && roundNumber < MAX_ROUNDS) {
+            const currentEnemy = enemyQueue[0];
+            if (!currentEnemy.isAlive) {
+                enemyQueue.shift();
+                continue;
+            }
+
             roundNumber++;
             const round = new CombatRound(roundNumber);
 
-            // Get living combatants
-            const livingAllies = allCombatants.filter(c => (c.isHero || c.isSummon) && c.isAlive);
-            const livingEnemies = allCombatants.filter(c => c.isEnemy && c.isAlive);
+            // FREE HIT: Next enemy attacks first if previous enemy died
+            if (pendingFreeHit) {
+                const freeHitAction = this.executeFreeHit(currentEnemy, heroCombatant);
+                if (freeHitAction) {
+                    round.addAction(freeHitAction);
+                    result.totalDamageTaken += freeHitAction.damage || 0;
+                }
+                pendingFreeHit = false;
+            }
 
-            // Check win/loss conditions
-            if (livingEnemies.length === 0) {
-                result.victory = true;
-                result.heroSurvived = heroCombatant.isAlive;
+            // Check if hero still alive after free hit
+            if (!heroCombatant.isAlive) {
+                result.addRound(round);
                 break;
             }
 
-            if (!heroCombatant.isAlive && livingAllies.length === 0) {
-                result.victory = false;
-                result.heroSurvived = false;
-                break;
-            }
+            // DUEL: Determine who goes first (speed check with coin flip on ties)
+            const heroGoesFirst = this.resolveSpeedCheck(heroCombatant, currentEnemy);
+            const duelOrder = heroGoesFirst
+                ? [heroCombatant, currentEnemy]
+                : [currentEnemy, heroCombatant];
 
-            // Determine turn order (sort by SPD, descending)
-            const turnOrder = allCombatants
-                .filter(c => c.isAlive)
-                .sort((a, b) => b.spd - a.spd);
+            let heroUsedAoE = false;
 
-            // Execute turns
-            for (const actor of turnOrder) {
+            // Execute duel turns
+            for (const actor of duelOrder) {
                 if (!actor.isAlive) continue;
 
-                // Get valid targets
-                const targets = actor.isEnemy
-                    ? allCombatants.filter(c => (c.isHero || c.isSummon) && c.isAlive)
-                    : allCombatants.filter(c => c.isEnemy && c.isAlive);
+                if (actor.isHero) {
+                    // Hero attacks - check for AoE
+                    const livingEnemies = allEnemies.filter(e => e.isAlive);
+                    const action = this.executeAction(actor, [currentEnemy], livingEnemies, hero);
 
-                if (targets.length === 0) continue;
-
-                // Execute action
-                const action = this.executeAction(actor, targets, allCombatants, hero);
-                if (action) {
-                    round.addAction(action);
-
-                    // Track damage
-                    if (actor.isHero || actor.isSummon) {
+                    if (action) {
+                        round.addAction(action);
                         result.totalDamageDealt += action.damage || 0;
-                    } else {
+
+                        // Track if AoE was used
+                        if (action.isAoE) {
+                            heroUsedAoE = true;
+                            // Count all kills from AoE
+                            const aoeKills = action.aoeDamage.filter(d => d.killed).length;
+                            result.enemiesKilled += aoeKills;
+                            actor.killCount += aoeKills;
+                        } else {
+                            // Single target kill tracking
+                            if (action.killed) {
+                                result.enemiesKilled++;
+                                actor.killCount++;
+                            }
+                        }
+                    }
+
+                    // Check for triggered abilities
+                    const triggers = this.checkTriggers(actor, action, allEnemies, hero);
+                    triggers.forEach(t => {
+                        round.addAction(t);
+                        if (t.damage && t.actorIsHero) result.totalDamageDealt += t.damage;
+                    });
+                } else {
+                    // Enemy attacks hero
+                    const action = this.executeAction(actor, [heroCombatant], allEnemies, hero);
+
+                    if (action) {
+                        round.addAction(action);
                         result.totalDamageTaken += action.damage || 0;
                     }
 
-                    // Track kills
-                    if (action.killed && (actor.isHero || actor.isSummon)) {
-                        result.enemiesKilled++;
-                        actor.killCount++;
-                    }
+                    // Check for triggered abilities (thorns, etc.)
+                    const triggers = this.checkTriggers(heroCombatant, action, allEnemies, hero);
+                    triggers.forEach(t => round.addAction(t));
                 }
-
-                // Check for triggered abilities
-                const triggers = this.checkTriggers(actor, action, allCombatants, hero);
-                triggers.forEach(t => round.addAction(t));
             }
 
-            // End of round - tick cooldowns
-            allCombatants.forEach(c => c.tickCooldowns());
+            // Remove all dead enemies from queue (AoE can kill multiple)
+            while (enemyQueue.length > 0 && !enemyQueue[0].isAlive) {
+                enemyQueue.shift();
+            }
+
+            // Check if current enemy died and set up free hit for next enemy
+            if (!currentEnemy.isAlive && enemyQueue.length > 0) {
+                // Only grant free hit if hero used single-target attack (not AoE)
+                if (!heroUsedAoE) {
+                    pendingFreeHit = true;
+                }
+            }
+
+            // Tick cooldowns
+            heroCombatant.tickCooldowns();
+            allEnemies.forEach(e => e.tickCooldowns());
 
             result.addRound(round);
         }
+
+        // Victory check
+        result.victory = heroCombatant.isAlive && allEnemies.every(e => !e.isAlive);
+        result.heroSurvived = heroCombatant.isAlive;
 
         // Update hero's current HP
         hero.currentHp = heroCombatant.currentHp;
@@ -280,15 +327,75 @@ const CombatEngine = {
     },
 
     /**
-     * Execute a single action
+     * Resolve speed check between two combatants
+     * Faster goes first, ties resolved by coin flip
      */
-    executeAction(actor, targets, allCombatants, hero) {
-        // Select target (simple: lowest HP enemy)
+    resolveSpeedCheck(a, b) {
+        if (a.spd > b.spd) return true;
+        if (a.spd < b.spd) return false;
+        // Tie: coin flip
+        return Math.random() < 0.5;
+    },
+
+    /**
+     * Execute a free hit (enemy gets free attack when previous enemy dies)
+     * Does 50% damage and cannot kill (leaves hero at 1 HP minimum)
+     */
+    executeFreeHit(enemy, hero) {
+        // Calculate normal damage
+        let damage = Utils.calcPhysicalDamage(enemy.atk, hero.def);
+
+        // Apply free hit multiplier (50%)
+        damage = Math.floor(damage * CONFIG.FREE_HIT.DAMAGE_MULT);
+
+        // Cap damage so hero can't die (leave at minimum HP)
+        const maxDamage = hero.currentHp - CONFIG.FREE_HIT.MIN_HP_REMAINING;
+        if (damage > maxDamage) {
+            damage = Math.max(0, maxDamage);
+        }
+
+        // Apply damage
+        const { actual } = hero.takeDamage(damage);
+
+        // Ensure hero stays at minimum HP (safety check)
+        if (hero.currentHp < CONFIG.FREE_HIT.MIN_HP_REMAINING) {
+            hero.currentHp = CONFIG.FREE_HIT.MIN_HP_REMAINING;
+            hero.isAlive = true;
+        }
+
+        return new CombatAction({
+            type: CombatActionType.ATTACK,
+            actorId: enemy.id,
+            actorName: enemy.name,
+            actorIsHero: false,
+            targetId: hero.id,
+            targetName: hero.name,
+            damage: actual,
+            damageType: 'physical',
+            isFreeHit: true,
+            killed: false, // Free hits can never kill
+            description: `${enemy.name} capitalizes on the opening and strikes ${hero.name} for ${actual} damage!`,
+        });
+    },
+
+    /**
+     * Execute a single action
+     * @param {Combatant} actor - The attacking combatant
+     * @param {Array} targets - Primary targets (usually just the current duel opponent)
+     * @param {Array} allEnemies - All living enemies (for AoE/cleave)
+     * @param {Hero} hero - The hero object for skill lookups
+     */
+    executeAction(actor, targets, allEnemies, hero) {
+        // Select primary target
         const target = this.selectTarget(targets);
         if (!target) return null;
 
         // Choose skill or basic attack
         const { skillId, skillDef } = this.chooseSkill(actor, target, hero);
+
+        // Determine if this is an AoE/cleave attack
+        const isAoE = skillDef && (skillDef.target === SkillTarget.AOE);
+        const isCleave = skillDef && (skillDef.target === SkillTarget.CLEAVE);
 
         // Calculate damage
         let damage = 0;
@@ -312,15 +419,57 @@ const CombatEngine = {
             damage = Utils.calcPhysicalDamage(actor.atk, target.def);
         }
 
-        // Apply damage
-        const { actual, killed } = target.takeDamage(damage);
+        // Handle AoE/cleave multi-target damage
+        let aoeDamage = [];
+        let anyKilled = false;
 
-        // Lifesteal check
+        if ((isAoE || isCleave) && actor.isHero) {
+            // Get targets for AoE/cleave
+            let aoeTargets = allEnemies.filter(e => e.isAlive);
+            if (isCleave) {
+                // Cleave hits 2-3 targets (current + 1-2 more)
+                aoeTargets = aoeTargets.slice(0, Math.min(3, aoeTargets.length));
+            }
+
+            // Apply damage to all AoE targets
+            for (const aoeTarget of aoeTargets) {
+                // Calculate damage for each target
+                const dmgResult = skillDef
+                    ? this.calculateSkillDamage(actor, aoeTarget, skillDef, hero)
+                    : { damage: Utils.calcPhysicalDamage(actor.atk, aoeTarget.def), isCritical: false };
+
+                const { actual: aoeActual, killed: aoeKilled } = aoeTarget.takeDamage(dmgResult.damage);
+
+                aoeDamage.push({
+                    targetId: aoeTarget.id,
+                    targetName: aoeTarget.name,
+                    damage: aoeActual,
+                    killed: aoeKilled,
+                });
+
+                if (aoeKilled) anyKilled = true;
+            }
+
+            // Total damage for lifesteal
+            damage = aoeDamage.reduce((sum, d) => sum + d.damage, 0);
+        } else {
+            // Single target damage
+            const { actual, killed } = target.takeDamage(damage);
+            damage = actual;
+            anyKilled = killed;
+        }
+
+        // Lifesteal check (works on total damage for AoE)
         const leechValue = this.getPassiveValue(actor, 'leech', hero);
         if (leechValue > 0 && damage > 0) {
             const leechHeal = Math.floor(damage * leechValue);
             actor.heal(leechHeal);
         }
+
+        // Determine primary target killed status
+        const primaryKilled = isAoE || isCleave
+            ? aoeDamage.find(d => d.targetId === target.id)?.killed || false
+            : anyKilled;
 
         // Create action record
         return new CombatAction({
@@ -332,12 +481,14 @@ const CombatEngine = {
             targetName: target.name,
             skillId,
             skillName: skillDef?.name || 'Attack',
-            damage: actual,
+            damage: isAoE || isCleave ? aoeDamage.reduce((sum, d) => sum + d.damage, 0) : damage,
             damageType,
             healing,
             isCritical,
-            killed,
-            description: this.describeAction(actor, target, skillDef, actual, killed, isCritical),
+            killed: primaryKilled,
+            isAoE: isAoE || isCleave,
+            aoeDamage: aoeDamage,
+            description: this.describeAction(actor, target, skillDef, damage, primaryKilled, isCritical, isAoE || isCleave, aoeDamage),
         });
     },
 
@@ -568,11 +719,22 @@ const CombatEngine = {
     /**
      * Generate action description text
      */
-    describeAction(actor, target, skillDef, damage, killed, isCritical) {
+    describeAction(actor, target, skillDef, damage, killed, isCritical, isAoE = false, aoeDamage = []) {
         const critText = isCritical ? ' CRITICAL!' : '';
-        const killText = killed ? ` ${target.name} is slain!` : '';
         const skillName = skillDef?.name || 'attacks';
 
+        // AoE/cleave attack description
+        if (isAoE && aoeDamage.length > 0) {
+            const totalDamage = aoeDamage.reduce((sum, d) => sum + d.damage, 0);
+            const kills = aoeDamage.filter(d => d.killed).map(d => d.targetName);
+            const killText = kills.length > 0 ? ` ${kills.join(', ')} slain!` : '';
+            const targetNames = aoeDamage.map(d => d.targetName).join(', ');
+
+            return `${actor.name} uses ${skillName} hitting ${targetNames} for ${totalDamage} total damage!${critText}${killText}`;
+        }
+
+        // Single target attack
+        const killText = killed ? ` ${target.name} is slain!` : '';
         return `${actor.name} ${skillName} ${target.name} for ${damage} damage!${critText}${killText}`;
     },
 
@@ -602,8 +764,8 @@ const CombatEngine = {
         for (let i = 0; i < template.encounters.length; i++) {
             const encounter = template.encounters[i];
 
-            // Create mob instances
-            const mobs = encounter.mobs.map(mobId => Quests.createMobInstance(mobId));
+            // Create mob instances scaled to hero level
+            const mobs = encounter.mobs.map(mobId => Quests.createMobInstance(mobId, hero.level));
 
             // Run combat
             const combatResult = this.runEncounter(hero, mobs);
