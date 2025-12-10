@@ -186,9 +186,10 @@ const CombatEngine = {
      * @param {Hero} hero - The hero fighting
      * @param {Array} mobs - Array of mob instances
      * @param {Object} gearBonuses - Optional gear stat bonuses (e.g., { leech: 5 } for 5% lifesteal)
+     * @param {Object} questTriggers - Quest-level trigger tracking (for Second Wind, Undying)
      * @returns {CombatResult}
      */
-    runEncounter(hero, mobs, gearBonuses = {}) {
+    runEncounter(hero, mobs, gearBonuses = {}, questTriggers = null) {
         Utils.log('Starting combat encounter (duelist mode)');
 
         const result = new CombatResult();
@@ -280,7 +281,7 @@ const CombatEngine = {
                     }
 
                     // Check for triggered abilities
-                    const triggers = this.checkTriggers(actor, action, allEnemies, hero);
+                    const triggers = this.checkTriggers(actor, action, allEnemies, hero, questTriggers);
                     triggers.forEach(t => {
                         round.addAction(t);
                         if (t.damage && t.actorIsHero) result.totalDamageDealt += t.damage;
@@ -295,11 +296,11 @@ const CombatEngine = {
                     }
 
                     // Check for hero triggered abilities (thorns, second wind, etc.)
-                    const heroTriggers = this.checkTriggers(heroCombatant, action, allEnemies, hero);
+                    const heroTriggers = this.checkTriggers(heroCombatant, action, allEnemies, hero, questTriggers);
                     heroTriggers.forEach(t => round.addAction(t));
 
-                    // Check for enemy triggered abilities (second wind, etc.)
-                    const enemyTriggers = this.checkTriggers(actor, action, allEnemies, hero);
+                    // Check for enemy triggered abilities (second wind, etc.) - enemies don't use quest triggers
+                    const enemyTriggers = this.checkTriggers(actor, action, allEnemies, hero, null);
                     enemyTriggers.forEach(t => round.addAction(t));
                 }
             }
@@ -737,8 +738,13 @@ const CombatEngine = {
 
     /**
      * Check for triggered abilities (works for both heroes and enemies)
+     * @param {Combatant} actor - The combatant to check triggers for
+     * @param {CombatAction} lastAction - The last combat action
+     * @param {Array} allCombatants - All combatants in the fight
+     * @param {Hero} hero - The hero object (for skill ranks)
+     * @param {Object} questTriggers - Quest-level trigger tracking (for heroes only)
      */
-    checkTriggers(actor, lastAction, allCombatants, hero) {
+    checkTriggers(actor, lastAction, allCombatants, hero, questTriggers = null) {
         const triggers = [];
 
         // Helper to check if actor has a skill
@@ -758,17 +764,46 @@ const CombatEngine = {
             return 1; // Enemies use rank 1
         };
 
-        // Check for Second Wind (heal at low HP) - works for both heroes and enemies
+        // Check for Second Wind (heal at low HP)
+        // Heroes: Uses quest-level tracking with diminishing returns (100%, 50%, 25%, then stops)
+        // Enemies: Once per encounter
         if (actor.currentHp < actor.maxHp * 0.3 && actor.currentHp > 0) {
             const secondWindSkill = hasSkill('second_wind');
-            if (secondWindSkill && !actor.triggeredThisCombat['second_wind']) {
+
+            // Determine if Second Wind can trigger
+            let canTrigger = false;
+            let strengthMultiplier = 1.0;
+
+            if (actor.isHero && questTriggers) {
+                // Hero uses quest-level tracking with diminishing returns
+                const triggerCount = questTriggers.second_wind_count || 0;
+                if (triggerCount < 3 && !actor.triggeredThisCombat['second_wind']) {
+                    canTrigger = true;
+                    // Diminishing returns: 100% -> 50% -> 25%
+                    if (triggerCount === 0) strengthMultiplier = 1.0;
+                    else if (triggerCount === 1) strengthMultiplier = 0.5;
+                    else if (triggerCount === 2) strengthMultiplier = 0.25;
+                }
+            } else {
+                // Enemies: once per encounter (original behavior)
+                canTrigger = secondWindSkill && !actor.triggeredThisCombat['second_wind'];
+            }
+
+            if (secondWindSkill && canTrigger) {
                 const skillDef = Skills.get('second_wind');
                 const rank = getSkillRank('second_wind');
-                const healPercent = Skills.calcEffectValue(skillDef, rank);
+                const baseHealPercent = Skills.calcEffectValue(skillDef, rank);
+                const healPercent = baseHealPercent * strengthMultiplier;
                 const healing = Math.floor(actor.maxHp * healPercent);
                 actor.heal(healing);
                 actor.triggeredThisCombat['second_wind'] = true;
 
+                // Update quest-level tracking for heroes
+                if (actor.isHero && questTriggers) {
+                    questTriggers.second_wind_count++;
+                }
+
+                const strengthDesc = strengthMultiplier < 1 ? ` (${Math.round(strengthMultiplier * 100)}% strength)` : '';
                 triggers.push(new CombatAction({
                     type: CombatActionType.TRIGGER,
                     actorId: actor.id,
@@ -777,21 +812,40 @@ const CombatEngine = {
                     healing,
                     skillId: 'second_wind',
                     skillName: 'Second Wind',
-                    description: `${actor.name}'s Second Wind activates, healing for ${healing} HP!`,
+                    description: `${actor.name}'s Second Wind activates${strengthDesc}, healing for ${healing} HP!`,
                 }));
             }
         }
 
-        // Check for Undying (survive lethal) - works for both heroes and enemies
-        if (actor.currentHp <= 0 && !actor.triggeredThisCombat['undying']) {
+        // Check for Undying (survive lethal)
+        // Heroes: Once per quest (uses questTriggers)
+        // Enemies: Once per encounter
+        if (actor.currentHp <= 0) {
             const undyingSkill = hasSkill('undying');
-            if (undyingSkill) {
+
+            // Determine if Undying can trigger
+            let canTrigger = false;
+
+            if (actor.isHero && questTriggers) {
+                // Hero: once per quest
+                canTrigger = undyingSkill && !questTriggers.undying_used;
+            } else {
+                // Enemy: once per encounter
+                canTrigger = undyingSkill && !actor.triggeredThisCombat['undying'];
+            }
+
+            if (canTrigger) {
                 const skillDef = Skills.get('undying');
                 const rank = getSkillRank('undying');
                 const healPercent = Skills.calcEffectValue(skillDef, rank);
                 actor.currentHp = Math.floor(actor.maxHp * healPercent);
                 actor.isAlive = true;
                 actor.triggeredThisCombat['undying'] = true;
+
+                // Update quest-level tracking for heroes
+                if (actor.isHero && questTriggers) {
+                    questTriggers.undying_used = true;
+                }
 
                 triggers.push(new CombatAction({
                     type: CombatActionType.TRIGGER,
@@ -903,6 +957,14 @@ const CombatEngine = {
             return results;
         }
 
+        // Quest-level trigger tracking (persists across all encounters)
+        // - second_wind: count of times triggered (0-3, stops at 3)
+        // - undying: boolean, once per quest
+        const questTriggers = {
+            second_wind_count: 0,
+            undying_used: false,
+        };
+
         // Run each encounter
         for (let i = 0; i < encounters.length; i++) {
             const encounter = encounters[i];
@@ -910,8 +972,8 @@ const CombatEngine = {
             // Create mob instances scaled to hero level
             const mobs = encounter.mobs.map(mobId => Quests.createMobInstance(mobId, hero.level));
 
-            // Run combat with gear bonuses
-            const combatResult = this.runEncounter(hero, mobs, gearBonuses);
+            // Run combat with gear bonuses and quest-level trigger tracking
+            const combatResult = this.runEncounter(hero, mobs, gearBonuses, questTriggers);
 
             results.encounters.push({
                 index: i,

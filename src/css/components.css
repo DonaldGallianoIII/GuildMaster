@@ -2443,3 +2443,14 @@
     font-size: 0.7rem;
     color: var(--color-ink-faded);
 }
+
+/* ==================== QUEST RESULTS QUEUE ==================== */
+.queue-indicator {
+    font-size: 0.85rem;
+    color: var(--color-royal);
+    font-style: italic;
+    margin-right: auto;
+    padding: 0.25rem 0.5rem;
+    background: rgba(65, 105, 225, 0.1);
+    border-radius: var(--radius-sm);
+}

@@ -14,6 +14,10 @@ const Modals = {
     _inventoryExpanded: false,
     _inventorySort: 'slot', // 'slot', 'rarity', 'stats'
 
+    // Combat results queue (for when multiple quests complete at once)
+    _resultsQueue: [],
+    _showingResults: false,
+
     /**
      * Calculate total stat power of an item (for comparison)
      */
@@ -83,6 +87,12 @@ const Modals = {
         }
         this._current = null;
         document.removeEventListener('keydown', this._escHandler);
+
+        // If hiding combat results modal, check for more queued results
+        if (modalId === 'combat-modal' && this._showingResults) {
+            this._showingResults = false;
+            this._showNextResult();
+        }
     },
 
     /**
@@ -1026,9 +1036,31 @@ const Modals = {
     // ==================== COMBAT RESULTS MODAL ====================
 
     /**
-     * Show combat results
+     * Queue combat results (for when multiple quests complete at once)
      */
     showCombatResults(quest, results, hero) {
+        // Add to queue
+        this._resultsQueue.push({ quest, results, hero });
+
+        // If not already showing results, start showing
+        if (!this._showingResults) {
+            this._showNextResult();
+        }
+    },
+
+    /**
+     * Show next result from the queue
+     */
+    _showNextResult() {
+        if (this._resultsQueue.length === 0) {
+            this._showingResults = false;
+            return;
+        }
+
+        this._showingResults = true;
+        const { quest, results, hero } = this._resultsQueue.shift();
+        const queueCount = this._resultsQueue.length;
+
         const modal = document.getElementById('combat-modal');
         const content = modal.querySelector('.modal-content');
 
@@ -1096,7 +1128,8 @@ const Modals = {
                 </details>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary" onclick="Modals.hide('combat-modal')">Continue</button>
+                ${queueCount > 0 ? `<span class="queue-indicator">${queueCount} more result${queueCount > 1 ? 's' : ''} waiting</span>` : ''}
+                <button class="btn btn-primary" onclick="Modals.hide('combat-modal')">${queueCount > 0 ? 'Next' : 'Continue'}</button>
             </div>
         `;
 
