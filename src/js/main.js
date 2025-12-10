@@ -197,6 +197,8 @@ const App = {
         GameState.on('heroDied', () => this.renderHeroes());
         GameState.on('questStarted', () => this.renderHeroes());
         GameState.on('questCompleted', () => this.renderHeroes());
+        GameState.on('itemEquipped', () => this.renderHeroes());
+        GameState.on('itemUnequipped', () => this.renderHeroes());
         GameState.on('dataLoaded', () => {
             this.updatePlayerDisplay();
             this.refreshCurrentTab();
