@@ -192,7 +192,7 @@ const Modals = {
 
                 <div style="display: flex; gap: 1rem; margin: 1rem 0;">
                     ${UI.createDifficultyBadge(quest.difficulty).outerHTML}
-                    <span>⏱️ ${Utils.formatDuration(template?.duration || 0)}</span>
+                    <span>⏱️ ${Utils.formatDuration(quest.duration)}</span>
                 </div>
 
                 <h4>Select a Hero</h4>
