@@ -131,11 +131,26 @@ const QuestCard = {
         `;
         body.appendChild(peekArea);
 
-        // Hero HP (if we have hero reference)
+        // Hero HP (calculated based on quest progress)
         if (options.hero) {
-            const hpSection = Utils.createElement('div', { className: 'peek-hero-hp' });
+            const hpSection = Utils.createElement('div', {
+                className: 'peek-hero-hp',
+                dataset: { questId: quest.id, heroId: options.hero.id },
+            });
+
+            // Calculate current HP based on progress through combat
+            let displayHp = options.hero.currentHp;
+            const combatResults = quest.combatResults;
+            if (combatResults) {
+                const startHp = combatResults.heroStartingHp ?? options.hero.maxHp;
+                const endHp = combatResults.heroFinalHp ?? options.hero.currentHp;
+                const progress = quest.progressPercent / 100;
+                displayHp = Math.round(startHp + ((endHp - startHp) * progress));
+                displayHp = Math.max(0, Math.min(options.hero.maxHp, displayHp));
+            }
+
             hpSection.appendChild(UI.createStatBar(
-                options.hero.currentHp,
+                displayHp,
                 options.hero.maxHp,
                 'hp'
             ));

@@ -105,14 +105,10 @@ const QuestSystem = {
     },
 
     /**
-     * Show peek modal (expanded view)
+     * Show peek modal (expanded view with combat log)
      */
     showPeekModal(quest) {
-        // For now, just show hero detail
-        const hero = GameState.getHero(quest.heroId);
-        if (hero) {
-            Modals.showHeroDetail(hero);
-        }
+        Modals.showCombatLog(quest);
     },
 
     /**
