@@ -12,8 +12,8 @@
 const CONFIG = {
     // ==================== SUPABASE ====================
     // TODO: Replace with your Supabase project credentials
-    SUPABASE_URL: 'https://YOUR_PROJECT.supabase.co',
-    SUPABASE_ANON_KEY: 'YOUR_ANON_KEY',
+    SUPABASE_URL: 'https://galeswmxpkdysrvbkinm.supabase.co',
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhbGVzd214cGtkeXNydmJraW5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNTU2NDIsImV4cCI6MjA4MDkzMTY0Mn0.2pSJpXmpqrz8QxaJtQFJz6G3qpS71ffPDK295C45BKg',
 
     // ==================== GAME BALANCE ====================
 
