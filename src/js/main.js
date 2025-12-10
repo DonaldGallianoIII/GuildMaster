@@ -208,6 +208,7 @@ const App = {
         GameState.on('heroDied', () => this.renderHeroes());
         GameState.on('questStarted', () => this.renderHeroes());
         GameState.on('questCompleted', () => this.renderHeroes());
+        GameState.on('heroLevelUp', () => this.renderHeroes());
         // Only re-render heroes for equipment changes if modal is not open
         // (modal handles its own refresh)
         GameState.on('itemEquipped', () => {
