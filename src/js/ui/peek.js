@@ -270,15 +270,15 @@ const PeekSystem = {
 
         this._questHp[quest.id] = calculatedHp;
 
-        // Update the stat bar
-        const hpFill = hpSection.querySelector('.stat-bar-fill');
-        const hpText = hpSection.querySelector('.stat-bar-text');
+        // Update the stat bar (UI.createStatBar uses .hp-bar-fill and .hp-text)
+        const hpFill = hpSection.querySelector('.hp-bar-fill');
+        const hpText = hpSection.querySelector('.hp-text');
 
         if (hpFill) {
             hpFill.style.width = `${(calculatedHp / hero.maxHp) * 100}%`;
         }
         if (hpText) {
-            hpText.textContent = `${calculatedHp}/${hero.maxHp}`;
+            hpText.textContent = `${calculatedHp} / ${hero.maxHp}`;
         }
     },
 
