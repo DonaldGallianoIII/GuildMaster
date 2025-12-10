@@ -103,8 +103,8 @@ const PeekSystem = {
         // Check if quest is complete (time up OR hero died)
         if (quest.isReadyToComplete) {
             this.stopPeek(questId);
-            // Trigger quest completion
-            GameState.checkQuestCompletions();
+            // Trigger quest completion (async, but we don't need to wait)
+            GameState.checkQuestCompletions().catch(e => console.error('Quest completion error:', e));
         }
     },
 
