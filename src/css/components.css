@@ -1746,3 +1746,29 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
 }
+
+/* ==================== EQUIPMENT LOCKED STATE ==================== */
+.equipment-locked-badge {
+    display: inline-block;
+    background: var(--color-blood);
+    color: var(--color-parchment);
+    padding: 2px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    margin-left: var(--spacing-sm);
+}
+
+.equipment-grid.equipment-locked {
+    opacity: 0.7;
+    position: relative;
+}
+
+.equipment-grid.equipment-locked .equipment-slot {
+    cursor: not-allowed;
+}
+
+.equipment-grid.equipment-locked .equipment-slot:hover {
+    background: var(--color-parchment-light);
+    box-shadow: none;
+    transform: none;
+}
