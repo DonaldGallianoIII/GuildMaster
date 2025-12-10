@@ -397,6 +397,131 @@
     margin-right: var(--spacing-md);
 }
 
+/* ==================== QUEST ACCORDION ==================== */
+.quest-accordion {
+    margin-bottom: var(--spacing-md);
+    border: var(--border-thin);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: linear-gradient(135deg, var(--color-leather) 0%, var(--color-leather-dark) 100%);
+    color: var(--color-parchment);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease;
+}
+
+.accordion-header:hover {
+    background: linear-gradient(135deg, var(--color-leather-dark) 0%, var(--color-leather) 100%);
+}
+
+.accordion-title {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.accordion-icon {
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+}
+
+.bracket-level {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    font-family: var(--font-body);
+}
+
+.quest-count {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.accordion-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--color-parchment-light);
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.quest-accordion.collapsed .accordion-content {
+    display: none;
+}
+
+/* ==================== TIER BADGE ==================== */
+.tier-badge {
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    font-weight: bold;
+    border-radius: var(--radius-sm);
+    background: var(--color-leather);
+    color: var(--color-parchment);
+}
+
+.tier-badge.tier-1 {
+    background: var(--color-forest);
+}
+
+.tier-badge.tier-2 {
+    background: var(--color-gold);
+    color: var(--color-ink);
+}
+
+.tier-badge.tier-3 {
+    background: var(--color-blood);
+}
+
+/* ==================== DANGER RATING ==================== */
+.quest-badges {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.danger-rating {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 16px;
+    padding: 2px 4px;
+}
+
+.danger-bar {
+    width: 4px;
+    background: var(--color-ink-faded);
+    border-radius: 1px;
+    opacity: 0.3;
+}
+
+.danger-bar:nth-child(1) { height: 4px; }
+.danger-bar:nth-child(2) { height: 7px; }
+.danger-bar:nth-child(3) { height: 10px; }
+.danger-bar:nth-child(4) { height: 13px; }
+
+.danger-bar.active {
+    background: var(--color-forest);
+    opacity: 1;
+}
+
+.danger-bar.active.warning {
+    background: var(--color-gold);
+}
+
+.danger-bar.active.danger {
+    background: var(--color-blood);
+}
+
 /* ==================== ACTIVE QUEST CARD ==================== */
 /**
  * Shows quest in progress with:
