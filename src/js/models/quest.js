@@ -524,7 +524,7 @@ class Quest {
     getLatestEvent() {
         const current = this.getCurrentEvents();
         return current[current.length - 1] || null;
-    },
+    }
 
     /**
      * Complete the quest successfully
