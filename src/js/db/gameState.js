@@ -399,8 +399,11 @@ const GameState = {
             return null;
         }
 
-        // Start quest
-        quest.start(heroId);
+        // Pre-run combat simulation (result is predetermined but revealed over time)
+        const combatResults = CombatEngine.runQuest(hero, quest);
+
+        // Start quest with pre-calculated combat events
+        quest.start(heroId, combatResults);
         hero.startQuest(quest.id);
 
         // Save to database

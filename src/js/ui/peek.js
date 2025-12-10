@@ -114,6 +114,16 @@ const PeekSystem = {
                 }
                 return `${heroName} encounters ${mobs.length} enemies!`;
 
+            case 'combat_action':
+                // Real combat action with description
+                if (event.data.description) {
+                    return event.data.description;
+                }
+                if (event.data.killed) {
+                    return `${event.data.actorName} slays ${event.data.targetName}!`;
+                }
+                return `${event.data.actorName} attacks ${event.data.targetName}!`;
+
             case 'combat':
                 return `${heroName} is in combat...`;
 
@@ -121,13 +131,19 @@ const PeekSystem = {
                 return `${heroName} takes a hit!`;
 
             case 'encounter_end':
+                if (event.data.victory === false) {
+                    return `${heroName} struggles...`;
+                }
                 if (event.data.loot) {
-                    return `${heroName} found something!`;
+                    return `${heroName} found treasure!`;
                 }
                 return `${heroName} presses onward...`;
 
             case 'quest_complete':
-                return `${heroName} is returning...`;
+                if (event.data.success === false) {
+                    return `${heroName} has fallen...`;
+                }
+                return `${heroName} is returning victorious!`;
 
             default:
                 return `${heroName} is adventuring...`;
