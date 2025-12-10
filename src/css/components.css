@@ -402,10 +402,12 @@
     display: flex;
     flex-direction: column;
     gap: 0;
+    width: 100%;
 }
 
 /* Tier Bar (full-width horizontal bar) */
 .tier-bar {
+    width: 100%;
     border: 2px solid var(--color-leather-dark);
     border-radius: var(--radius-sm);
     margin-bottom: var(--spacing-xs);
@@ -416,6 +418,7 @@
 
 /* Tier Bar Header (clickable) */
 .tier-bar-header {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -462,7 +465,7 @@
 }
 
 .tier-bar.expanded .tier-quest-carousel {
-    max-height: 400px;
+    max-height: 500px;
     overflow-x: auto;
     overflow-y: hidden;
 }
@@ -471,16 +474,19 @@
 .carousel-track {
     display: flex;
     flex-direction: row;
+    flex-wrap: nowrap;
     gap: var(--spacing-md);
     padding: var(--spacing-md);
-    min-width: min-content;
+    overflow-x: auto;
+    overflow-y: hidden;
+    min-width: 100%;
 }
 
 /* Quest Cards in Carousel */
 .carousel-card {
-    flex: 0 0 300px;
-    min-width: 300px;
-    max-width: 300px;
+    flex: 0 0 280px;
+    min-width: 280px;
+    max-width: 280px;
     border: 2px solid var(--color-leather);
     background: #fff;
     box-shadow: var(--shadow-sm);
@@ -494,21 +500,25 @@
 }
 
 /* Scrollbar styling for carousel */
-.tier-quest-carousel::-webkit-scrollbar {
+.tier-quest-carousel::-webkit-scrollbar,
+.carousel-track::-webkit-scrollbar {
     height: 8px;
 }
 
-.tier-quest-carousel::-webkit-scrollbar-track {
+.tier-quest-carousel::-webkit-scrollbar-track,
+.carousel-track::-webkit-scrollbar-track {
     background: var(--color-parchment-dark);
     border-radius: 4px;
 }
 
-.tier-quest-carousel::-webkit-scrollbar-thumb {
+.tier-quest-carousel::-webkit-scrollbar-thumb,
+.carousel-track::-webkit-scrollbar-thumb {
     background: var(--color-leather);
     border-radius: 4px;
 }
 
-.tier-quest-carousel::-webkit-scrollbar-thumb:hover {
+.tier-quest-carousel::-webkit-scrollbar-thumb:hover,
+.carousel-track::-webkit-scrollbar-thumb:hover {
     background: var(--color-leather-dark);
 }
 

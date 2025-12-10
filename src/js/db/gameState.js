@@ -498,9 +498,11 @@ const GameState = {
 
     /**
      * Load quest board from Supabase, generate if empty or incomplete
-     * New system: 1 quest per bracket+tier combo (3 brackets × 3 tiers = 9 quests)
+     * New system: 3 quests per bracket+tier combo (3 brackets × 3 tiers × 3 = 27 quests)
      */
     async loadQuestBoard() {
+        const QUESTS_PER_TIER = 3;
+
         // Check if we have valid quests in the board
         const validQuests = this._state.questBoard.filter(q => {
             return q.encounters && q.encounters.length > 0 && !q.isExpired;
@@ -522,9 +524,12 @@ const GameState = {
 
         for (const bracket of brackets) {
             for (const tier of tiers) {
-                // Check if we already have a quest for this bracket+tier
-                const existing = validQuests.find(q => q.bracket === bracket && q.tier === tier);
-                if (!existing) {
+                // Count how many quests we already have for this bracket+tier
+                const existingCount = validQuests.filter(q => q.bracket === bracket && q.tier === tier).length;
+                const needed = QUESTS_PER_TIER - existingCount;
+
+                // Generate more quests if needed
+                for (let i = 0; i < needed; i++) {
                     const quest = this.generateQuestFromTheme(bracket, tier);
                     if (quest) {
                         newQuests.push(quest);
@@ -545,9 +550,11 @@ const GameState = {
 
     /**
      * Refresh quest board (regenerate all)
-     * New system: 1 quest per bracket+tier combo
+     * New system: 3 quests per bracket+tier combo
      */
     async refreshQuestBoard() {
+        const QUESTS_PER_TIER = 3;
+
         // Delete all current available quests
         await Promise.all(this._state.questBoard.map(q => DB.quests.delete(q.id)));
         this._state.questBoard = [];
@@ -559,8 +566,10 @@ const GameState = {
 
         for (const bracket of brackets) {
             for (const tier of tiers) {
-                const quest = this.generateQuestFromTheme(bracket, tier);
-                if (quest) newQuests.push(quest);
+                for (let i = 0; i < QUESTS_PER_TIER; i++) {
+                    const quest = this.generateQuestFromTheme(bracket, tier);
+                    if (quest) newQuests.push(quest);
+                }
             }
         }
 
