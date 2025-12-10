@@ -766,7 +766,12 @@ const GameState = {
             hero.completeQuest(false);
 
             // Add loot to inventory
-            for (const item of results.loot) {
+            for (const itemData of results.loot) {
+                // Reconstruct Gear instance if it's a plain object (from DB storage)
+                let item = itemData;
+                if (!(itemData instanceof Gear)) {
+                    item = new Gear(itemData);
+                }
                 item.userId = this._state.player.id;
                 await DB.items.save(item);
                 this._state.inventory.push(item);
