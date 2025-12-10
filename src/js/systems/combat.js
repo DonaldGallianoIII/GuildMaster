@@ -935,7 +935,8 @@ const CombatEngine = {
 
         // Calculate rewards if successful
         if (results.success) {
-            const rewards = template.rewards;
+            // Use quest.rewards (calculated from CONFIG based on difficulty)
+            const rewards = quest.rewards;
             results.totalXp = rewards.xp;
             results.totalGold = Utils.randomInt(rewards.gold.min, rewards.gold.max);
         }
