@@ -346,6 +346,43 @@ const GameState = {
         Utils.toast(`${hero.name} has fallen in battle. All equipment lost.`, 'error');
     },
 
+    /**
+     * Fire/dismiss a hero from the guild
+     * Equipment is unequipped and returned to inventory
+     */
+    async fireHero(heroId) {
+        const hero = this.getHero(heroId);
+        if (!hero) {
+            Utils.toast('Hero not found', 'error');
+            return false;
+        }
+
+        // Can't fire heroes on quest
+        if (hero.state === HeroState.ON_QUEST) {
+            Utils.toast(`${hero.name} is on a quest! Wait for them to return.`, 'warning');
+            return false;
+        }
+
+        // Unequip all gear first (returns to inventory)
+        const equippedItems = await this.getEquippedItems(heroId);
+        for (const item of equippedItems) {
+            item.unequip();
+            this._state.inventory.push(item);
+            await DB.items.save(item);
+        }
+        this._invalidateEquipmentCache(heroId);
+
+        // Remove hero from state
+        this._state.heroes = this._state.heroes.filter(h => h.id !== heroId);
+
+        // Delete hero from database
+        await DB.heroes.delete(heroId);
+
+        this.emit('heroFired', { hero });
+        Utils.toast(`${hero.name} has been dismissed from the guild.`, 'info');
+        return true;
+    },
+
     // ==================== RECRUITMENT ====================
 
     /**
@@ -958,6 +995,46 @@ const GameState = {
             if (item) return item;
         }
         return null;
+    },
+
+    /**
+     * Sell an inventory item for gold
+     * @param {string} itemId - ID of the item to sell
+     */
+    async sellItem(itemId) {
+        const item = this._state.inventory.find(i => i.id === itemId);
+        if (!item) {
+            Utils.toast('Item not found in inventory', 'error');
+            return false;
+        }
+
+        // Calculate sell price based on rarity and item level
+        const basePrice = CONFIG.SELL_PRICES[item.rarity] || CONFIG.SELL_PRICES.common;
+        const levelBonus = Math.floor((item.itemLevel - 1) * 5); // +5g per item level above 1
+        const sellPrice = basePrice + levelBonus;
+
+        // Remove from inventory
+        this._state.inventory = this._state.inventory.filter(i => i.id !== itemId);
+
+        // Delete from database
+        await DB.items.delete(itemId);
+
+        // Add gold
+        await this.addGold(sellPrice);
+
+        this.emit('itemSold', { item, sellPrice });
+        Utils.toast(`Sold ${item.displayName} for ${sellPrice}g`, 'success');
+        return true;
+    },
+
+    /**
+     * Get sell price for an item
+     * @param {Object} item - The item to get sell price for
+     */
+    getSellPrice(item) {
+        const basePrice = CONFIG.SELL_PRICES[item.rarity] || CONFIG.SELL_PRICES.common;
+        const levelBonus = Math.floor((item.itemLevel - 1) * 5);
+        return basePrice + levelBonus;
     },
 
     // ==================== EVENT SYSTEM ====================

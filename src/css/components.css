@@ -1513,6 +1513,25 @@
 .inventory-item-row.rarity-unique { border-left: 3px solid var(--rarity-unique); background: rgba(255, 69, 0, 0.03); }
 .inventory-item-row.rarity-heirloom { border-left: 3px solid var(--rarity-heirloom); background: rgba(153, 50, 204, 0.03); }
 
+/* Sell button in inventory */
+.item-sell-btn {
+    background: var(--color-gold);
+    color: var(--color-ink);
+    border: none;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.item-sell-btn:hover {
+    background: var(--color-gold-dark);
+    transform: scale(1.05);
+}
+
 /* ==================== GUILD HALL ==================== */
 
 /* Tab Navigation */
