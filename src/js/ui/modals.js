@@ -302,8 +302,8 @@ const Modals = {
                 <h4 style="margin-top: 1rem;">Stats (BST: ${hero.bst})</h4>
                 ${UI.createStatDisplay(hero.stats, hasBonuses ? equipmentBonuses : null).outerHTML}
 
-                <h4 style="margin-top: 1rem;">Equipment</h4>
-                <div class="equipment-grid">
+                <h4 style="margin-top: 1rem;">Equipment ${hero.state === HeroState.ON_QUEST ? '<span class="equipment-locked-badge">🔒 Locked</span>' : ''}</h4>
+                <div class="equipment-grid ${hero.state === HeroState.ON_QUEST ? 'equipment-locked' : ''}">
                     ${this._createEquipmentSlots(hero, equippedBySlot)}
                 </div>
 
@@ -382,6 +382,12 @@ const Modals = {
      * Handle equipment slot click
      */
     async _handleEquipmentSlotClick(hero, slotKey, equippedBySlot) {
+        // Prevent equipment changes while hero is on a quest
+        if (hero.state === HeroState.ON_QUEST) {
+            Utils.toast(`${hero.name} is on a quest! Equipment is locked until they return.`, 'warning');
+            return;
+        }
+
         const equippedItem = equippedBySlot[slotKey];
 
         if (equippedItem) {
@@ -400,6 +406,12 @@ const Modals = {
      * Show modal to equip item from inventory
      */
     _showEquipFromInventory(hero, slotKey) {
+        // Prevent equipment changes while hero is on a quest
+        if (hero.state === HeroState.ON_QUEST) {
+            Utils.toast(`${hero.name} is on a quest! Equipment is locked until they return.`, 'warning');
+            return;
+        }
+
         // Get inventory items that match this slot
         const slotMatch = slotKey.replace(/\d/, ''); // ring1/ring2 -> ring
         const availableItems = GameState.inventory.filter(item => {
