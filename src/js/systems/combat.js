@@ -122,6 +122,9 @@ class Combatant {
         // Skills
         this.skills = data.skills || [];
 
+        // Gear bonuses (for hero only - includes stats like leech from Vampiric affix)
+        this.gearBonuses = data.gearBonuses || {};
+
         // Combat state
         this.isAlive = true;
         this.buffs = [];
@@ -182,14 +185,15 @@ const CombatEngine = {
      * Run a full encounter simulation using duelist system
      * @param {Hero} hero - The hero fighting
      * @param {Array} mobs - Array of mob instances
+     * @param {Object} gearBonuses - Optional gear stat bonuses (e.g., { leech: 5 } for 5% lifesteal)
      * @returns {CombatResult}
      */
-    runEncounter(hero, mobs) {
+    runEncounter(hero, mobs, gearBonuses = {}) {
         Utils.log('Starting combat encounter (duelist mode)');
 
         const result = new CombatResult();
 
-        // Create hero combatant
+        // Create hero combatant with gear bonuses
         const heroCombatant = new Combatant({
             id: hero.id,
             name: hero.name,
@@ -198,6 +202,7 @@ const CombatEngine = {
             maxHp: hero.maxHp,
             currentHp: hero.currentHp,
             skills: hero.skills,
+            gearBonuses: gearBonuses,
         }, true, false);
 
         // Create all enemies (for AoE tracking)
@@ -289,9 +294,13 @@ const CombatEngine = {
                         result.totalDamageTaken += action.damage || 0;
                     }
 
-                    // Check for triggered abilities (thorns, etc.)
-                    const triggers = this.checkTriggers(heroCombatant, action, allEnemies, hero);
-                    triggers.forEach(t => round.addAction(t));
+                    // Check for hero triggered abilities (thorns, second wind, etc.)
+                    const heroTriggers = this.checkTriggers(heroCombatant, action, allEnemies, hero);
+                    heroTriggers.forEach(t => round.addAction(t));
+
+                    // Check for enemy triggered abilities (second wind, etc.)
+                    const enemyTriggers = this.checkTriggers(actor, action, allEnemies, hero);
+                    enemyTriggers.forEach(t => round.addAction(t));
                 }
             }
 
@@ -390,8 +399,8 @@ const CombatEngine = {
         const target = this.selectTarget(targets);
         if (!target) return null;
 
-        // Choose skill or basic attack
-        const { skillId, skillDef } = this.chooseSkill(actor, target, hero);
+        // Choose skill or basic attack (pass allEnemies for AoE/cleave decisions)
+        const { skillId, skillDef } = this.chooseSkill(actor, target, hero, allEnemies);
 
         // Determine if this is an AoE/cleave attack
         const isAoE = skillDef && (skillDef.target === SkillTarget.AOE);
@@ -460,10 +469,12 @@ const CombatEngine = {
         }
 
         // Lifesteal check (works on total damage for AoE)
+        let leechHealing = 0;
         const leechValue = this.getPassiveValue(actor, 'leech', hero);
         if (leechValue > 0 && damage > 0) {
-            const leechHeal = Math.floor(damage * leechValue);
-            actor.heal(leechHeal);
+            leechHealing = Math.floor(damage * leechValue);
+            actor.heal(leechHealing);
+            healing += leechHealing; // Add to action's healing for combat log
         }
 
         // Determine primary target killed status
@@ -504,10 +515,16 @@ const CombatEngine = {
     },
 
     /**
-     * Choose which skill to use
+     * Choose which skill to use - smarter AI selection
+     * Priorities:
+     * 1. Execute skills on low HP targets
+     * 2. AoE/Cleave when multiple enemies alive (handled by caller)
+     * 3. Highest damage skill available
+     * 4. Basic attack as fallback
      */
-    chooseSkill(actor, target, hero) {
-        // For now, simple logic: use first available active skill
+    chooseSkill(actor, target, hero, allEnemies = []) {
+        // Get all available active skills
+        const availableSkills = [];
         for (const skillRef of actor.skills) {
             const skillId = typeof skillRef === 'string' ? skillRef : skillRef.skillId;
             const skillDef = Skills.get(skillId);
@@ -516,16 +533,68 @@ const CombatEngine = {
             if (skillDef.activation !== SkillActivation.ACTIVE) continue;
             if (!actor.canUseSkill(skillId)) continue;
 
-            // Check cooldown-based skills
-            if (skillDef.cooldown) {
-                actor.putOnCooldown(skillId, skillDef.cooldown);
-            }
-
-            return { skillId, skillDef };
+            availableSkills.push({ skillId, skillDef, skillRef });
         }
 
-        // Fallback to basic attack
-        return { skillId: null, skillDef: null };
+        if (availableSkills.length === 0) {
+            return { skillId: null, skillDef: null };
+        }
+
+        // Calculate enemy HP percentage
+        const targetHpPercent = target.currentHp / target.maxHp;
+
+        // Count living enemies
+        const livingEnemies = allEnemies.filter(e => e.isAlive).length;
+
+        // Score each skill based on situation
+        let bestSkill = null;
+        let bestScore = -1;
+
+        for (const { skillId, skillDef, skillRef } of availableSkills) {
+            let score = skillDef.baseValue || 1;
+
+            // Bonus for execute skills when target is low HP
+            if (skillDef.executeBonus && targetHpPercent < 0.5) {
+                // Execute bonus scales inversely with HP - huge bonus at low HP
+                score += (1 - targetHpPercent) * 2;
+            }
+
+            // Bonus for AoE/Cleave when multiple enemies
+            if (skillDef.target === SkillTarget.AOE && livingEnemies > 1) {
+                score += livingEnemies * 0.5; // More enemies = more value
+            }
+            if (skillDef.target === SkillTarget.CLEAVE && livingEnemies > 1) {
+                score += Math.min(livingEnemies, 3) * 0.4;
+            }
+
+            // Bonus for high crit chance skills
+            if (skillDef.critBonus) {
+                score += skillDef.critBonus;
+            }
+
+            // Slight bonus for higher rank skills (more invested = more reliable)
+            const rank = skillRef?.rank || 1;
+            score += rank * 0.05;
+
+            // Prefer magical damage against low-WILL targets, physical against low-DEF
+            if (skillDef.damageType === DamageType.MAGICAL && target.will < target.def) {
+                score += 0.2;
+            } else if (skillDef.damageType === DamageType.PHYSICAL && target.def < target.will) {
+                score += 0.2;
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestSkill = { skillId, skillDef };
+            }
+        }
+
+        // Apply cooldown to chosen skill
+        if (bestSkill && bestSkill.skillDef.cooldown) {
+            actor.putOnCooldown(bestSkill.skillId, bestSkill.skillDef.cooldown);
+        }
+
+        return bestSkill || { skillId: null, skillDef: null };
     },
 
     /**
@@ -606,32 +675,75 @@ const CombatEngine = {
     },
 
     /**
-     * Get passive ability value
+     * Get passive ability value (from skills or gear bonuses)
+     * Works for both heroes and enemies
      */
     getPassiveValue(actor, passiveId, hero) {
-        if (!actor.isHero) return 0;
+        let totalValue = 0;
 
-        const skillRef = hero.skills.find(s => s.skillId === passiveId);
-        if (!skillRef) return 0;
+        // Check for skill-based passive (e.g., Leech skill)
+        if (actor.isHero && hero) {
+            // Hero: use hero object for rank info
+            const skillRef = hero.skills.find(s => s.skillId === passiveId);
+            if (skillRef) {
+                const skillDef = Skills.get(passiveId);
+                if (skillDef && skillDef.activation === SkillActivation.PASSIVE) {
+                    totalValue += Skills.calcEffectValue(skillDef, skillRef.rank);
+                }
+            }
+        } else {
+            // Enemy: check actor's skills (stored as string IDs)
+            const hasSkill = actor.skills.some(s =>
+                (typeof s === 'string' ? s : s.skillId) === passiveId
+            );
+            if (hasSkill) {
+                const skillDef = Skills.get(passiveId);
+                if (skillDef && skillDef.activation === SkillActivation.PASSIVE) {
+                    // Enemies use rank 1
+                    totalValue += Skills.calcEffectValue(skillDef, 1);
+                }
+            }
+        }
 
-        const skillDef = Skills.get(passiveId);
-        if (!skillDef || skillDef.activation !== SkillActivation.PASSIVE) return 0;
+        // Check for gear-based bonus (e.g., Vampiric affix gives 'leech' stat)
+        // Gear leech is stored as a percentage value (e.g., 5 means 5%)
+        if (actor.gearBonuses && actor.gearBonuses[passiveId]) {
+            totalValue += actor.gearBonuses[passiveId] / 100; // Convert from % to decimal
+        }
 
-        return Skills.calcEffectValue(skillDef, skillRef.rank);
+        return totalValue;
     },
 
     /**
-     * Check for triggered abilities
+     * Check for triggered abilities (works for both heroes and enemies)
      */
     checkTriggers(actor, lastAction, allCombatants, hero) {
         const triggers = [];
 
-        // Check for Second Wind (heal at low HP)
-        if (actor.isHero && actor.currentHp < actor.maxHp * 0.3) {
-            const secondWind = hero.skills.find(s => s.skillId === 'second_wind');
-            if (secondWind && !actor.triggeredThisCombat['second_wind']) {
+        // Helper to check if actor has a skill
+        const hasSkill = (skillId) => {
+            if (actor.isHero && hero) {
+                return hero.skills.find(s => s.skillId === skillId);
+            }
+            return actor.skills.some(s => (typeof s === 'string' ? s : s.skillId) === skillId);
+        };
+
+        // Helper to get skill rank
+        const getSkillRank = (skillId) => {
+            if (actor.isHero && hero) {
+                const ref = hero.skills.find(s => s.skillId === skillId);
+                return ref?.rank || 1;
+            }
+            return 1; // Enemies use rank 1
+        };
+
+        // Check for Second Wind (heal at low HP) - works for both heroes and enemies
+        if (actor.currentHp < actor.maxHp * 0.3 && actor.currentHp > 0) {
+            const secondWindSkill = hasSkill('second_wind');
+            if (secondWindSkill && !actor.triggeredThisCombat['second_wind']) {
                 const skillDef = Skills.get('second_wind');
-                const healPercent = Skills.calcEffectValue(skillDef, secondWind.rank);
+                const rank = getSkillRank('second_wind');
+                const healPercent = Skills.calcEffectValue(skillDef, rank);
                 const healing = Math.floor(actor.maxHp * healPercent);
                 actor.heal(healing);
                 actor.triggeredThisCombat['second_wind'] = true;
@@ -640,7 +752,7 @@ const CombatEngine = {
                     type: CombatActionType.TRIGGER,
                     actorId: actor.id,
                     actorName: actor.name,
-                    actorIsHero: true,
+                    actorIsHero: actor.isHero,
                     healing,
                     skillId: 'second_wind',
                     skillName: 'Second Wind',
@@ -649,12 +761,13 @@ const CombatEngine = {
             }
         }
 
-        // Check for Undying (survive lethal)
-        if (actor.isHero && actor.currentHp <= 0 && !actor.triggeredThisCombat['undying']) {
-            const undying = hero.skills.find(s => s.skillId === 'undying');
-            if (undying) {
+        // Check for Undying (survive lethal) - works for both heroes and enemies
+        if (actor.currentHp <= 0 && !actor.triggeredThisCombat['undying']) {
+            const undyingSkill = hasSkill('undying');
+            if (undyingSkill) {
                 const skillDef = Skills.get('undying');
-                const healPercent = Skills.calcEffectValue(skillDef, undying.rank);
+                const rank = getSkillRank('undying');
+                const healPercent = Skills.calcEffectValue(skillDef, rank);
                 actor.currentHp = Math.floor(actor.maxHp * healPercent);
                 actor.isAlive = true;
                 actor.triggeredThisCombat['undying'] = true;
@@ -663,7 +776,7 @@ const CombatEngine = {
                     type: CombatActionType.TRIGGER,
                     actorId: actor.id,
                     actorName: actor.name,
-                    actorIsHero: true,
+                    actorIsHero: actor.isHero,
                     healing: actor.currentHp,
                     skillId: 'undying',
                     skillName: 'Undying',
@@ -672,14 +785,14 @@ const CombatEngine = {
             }
         }
 
-        // Thorns damage (when hit)
+        // Thorns damage (when hero is hit by enemy)
         if (lastAction && lastAction.damage > 0 && !lastAction.actorIsHero) {
             const target = allCombatants.find(c => c.id === lastAction.targetId);
             if (target?.isHero) {
-                const thorns = hero.skills.find(s => s.skillId === 'thorns');
-                if (thorns) {
+                const thornsSkill = hero?.skills.find(s => s.skillId === 'thorns');
+                if (thornsSkill) {
                     const skillDef = Skills.get('thorns');
-                    const reflectPercent = Skills.calcEffectValue(skillDef, thorns.rank);
+                    const reflectPercent = Skills.calcEffectValue(skillDef, thornsSkill.rank);
                     const thornsDamage = Math.floor(lastAction.damage * reflectPercent);
 
                     const attacker = allCombatants.find(c => c.id === lastAction.actorId);
@@ -742,9 +855,10 @@ const CombatEngine = {
      * Run all encounters for a quest
      * @param {Hero} hero
      * @param {Quest} quest
+     * @param {Object} gearBonuses - Optional gear stat bonuses (e.g., { leech: 5 } for 5% lifesteal)
      * @returns {Object} Full quest results
      */
-    runQuest(hero, quest) {
+    runQuest(hero, quest, gearBonuses = {}) {
         const results = {
             success: true,
             heroSurvived: true,
@@ -767,8 +881,8 @@ const CombatEngine = {
             // Create mob instances scaled to hero level
             const mobs = encounter.mobs.map(mobId => Quests.createMobInstance(mobId, hero.level));
 
-            // Run combat
-            const combatResult = this.runEncounter(hero, mobs);
+            // Run combat with gear bonuses
+            const combatResult = this.runEncounter(hero, mobs, gearBonuses);
 
             results.encounters.push({
                 index: i,
