@@ -777,6 +777,15 @@ const GameState = {
                 this._state.inventory.push(item);
             }
 
+            // Save hero first to ensure state is persisted
+            await DB.heroes.save(hero);
+
+            // Force update the hero in state array to ensure UI gets fresh data
+            const heroIndex = this._state.heroes.findIndex(h => h.id === hero.id);
+            if (heroIndex >= 0) {
+                this._state.heroes[heroIndex] = hero;
+            }
+
             // Notify
             if (levelResult.leveled) {
                 Utils.toast(`${hero.name} leveled up to ${levelResult.newLevel}!`, 'success');
@@ -793,11 +802,8 @@ const GameState = {
             await this.killHero(hero.id);
         }
 
-        // Save updates
-        await Promise.all([
-            DB.quests.save(quest),
-            hero.isAlive ? DB.heroes.save(hero) : Promise.resolve(),
-        ]);
+        // Save quest updates
+        await DB.quests.save(quest);
 
         // Remove from active quests
         this._state.activeQuests = this._state.activeQuests.filter(
