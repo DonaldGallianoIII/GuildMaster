@@ -53,14 +53,14 @@ Object.freeze(QuestStatus);
  * ============================================
  */
 const MOB_DEFINITIONS = {
-    // ==================== FODDER MOBS (Easy kills) ====================
+    // ==================== FODDER MOBS (Easy kills - basic attacks only) ====================
     goblin: {
         id: 'goblin',
         name: 'Goblin',
         tier: 'fodder_trash',
         statDist: { atk: 0.4, will: 0, def: 0.2, spd: 0.4 },
         icon: '👺',
-        skills: ['strike'],
+        skills: [], // Basic attack only
     },
     rat: {
         id: 'rat',
@@ -68,7 +68,7 @@ const MOB_DEFINITIONS = {
         tier: 'fodder_trash',
         statDist: { atk: 0.3, will: 0, def: 0.1, spd: 0.6 },
         icon: '🐀',
-        skills: ['strike'],
+        skills: [], // Basic attack only
     },
     wolf: {
         id: 'wolf',
@@ -76,7 +76,7 @@ const MOB_DEFINITIONS = {
         tier: 'fodder',
         statDist: { atk: 0.5, will: 0, def: 0.1, spd: 0.4 },
         icon: '🐺',
-        skills: ['strike'],
+        skills: [], // Basic attack only
     },
     goblin_brute: {
         id: 'goblin_brute',
@@ -84,17 +84,17 @@ const MOB_DEFINITIONS = {
         tier: 'fodder_exalted',
         statDist: { atk: 0.4, will: 0, def: 0.4, spd: 0.2 },
         icon: '👹',
-        skills: ['strike', 'bash'],
+        skills: ['bash'], // Exalted goblin gets bash
     },
 
-    // ==================== STANDARD MOBS (Fair fights) ====================
+    // ==================== STANDARD MOBS (Fair fights - some skills) ====================
     bandit: {
         id: 'bandit',
         name: 'Bandit',
         tier: 'standard_weak',
         statDist: { atk: 0.4, will: 0, def: 0.3, spd: 0.3 },
         icon: '🥷',
-        skills: ['strike', 'backstab'],
+        skills: ['backstab'], // Sneaky bandit
     },
     skeleton: {
         id: 'skeleton',
@@ -102,7 +102,7 @@ const MOB_DEFINITIONS = {
         tier: 'standard_weak',
         statDist: { atk: 0.35, will: 0.15, def: 0.35, spd: 0.15 },
         icon: '💀',
-        skills: ['strike'],
+        skills: [], // Mindless undead
     },
     cave_spider: {
         id: 'cave_spider',
@@ -110,7 +110,7 @@ const MOB_DEFINITIONS = {
         tier: 'standard',
         statDist: { atk: 0.35, will: 0, def: 0.15, spd: 0.5 },
         icon: '🕷️',
-        skills: ['strike'],
+        skills: [], // Just bites
     },
     alpha_wolf: {
         id: 'alpha_wolf',
@@ -118,7 +118,7 @@ const MOB_DEFINITIONS = {
         tier: 'standard_exalted',
         statDist: { atk: 0.4, will: 0, def: 0.2, spd: 0.4 },
         icon: '🐕',
-        skills: ['strike', 'frenzy'],
+        skills: ['frenzy'], // Pack leader gets frenzy
     },
     skeleton_mage: {
         id: 'skeleton_mage',
@@ -126,17 +126,17 @@ const MOB_DEFINITIONS = {
         tier: 'standard_exalted',
         statDist: { atk: 0.1, will: 0.5, def: 0.25, spd: 0.15 },
         icon: '🧙',
-        skills: ['spark', 'fireball'],
+        skills: ['spark', 'fireball'], // Caster has spells
     },
 
-    // ==================== ELITE MOBS (Mini-boss) ====================
+    // ==================== ELITE MOBS (Mini-boss - multiple skills) ====================
     bandit_chief: {
         id: 'bandit_chief',
         name: 'Bandit Chief',
         tier: 'elite',
         statDist: { atk: 0.4, will: 0.1, def: 0.3, spd: 0.2 },
         icon: '🦹',
-        skills: ['strike', 'cleave', 'second_wind'],
+        skills: ['cleave', 'backstab', 'second_wind'],
     },
     wraith: {
         id: 'wraith',
@@ -163,14 +163,14 @@ const MOB_DEFINITIONS = {
         skills: ['cleave', 'fireball'],
     },
 
-    // ==================== BOSS MOBS (Major threats) ====================
+    // ==================== BOSS MOBS (Major threats - full kit) ====================
     dragon: {
         id: 'dragon',
         name: 'Ancient Dragon',
         tier: 'boss',
         statDist: { atk: 0.4, will: 0.3, def: 0.2, spd: 0.1 },
         icon: '🐉',
-        skills: ['cleave', 'meteor', 'frenzy'],
+        skills: ['cleave', 'meteor', 'fireball', 'frenzy'],
     },
 };
 
@@ -333,6 +333,9 @@ class Quest {
             items: [],
             xp: 0,
         };
+
+        // Combat results (pre-calculated when quest starts)
+        this.combatResults = data.combatResults || data.combat_results || null;
     }
 
     // ==================== COMPUTED PROPERTIES ====================
@@ -668,6 +671,7 @@ class Quest {
             events: this.events,
             encounter_results: this.encounterResults,
             loot: this.loot,
+            combat_results: this.combatResults,
         };
     }
 
@@ -689,6 +693,7 @@ class Quest {
             events: row.events,
             encounterResults: row.encounter_results,
             loot: row.loot,
+            combatResults: row.combat_results,
         });
     }
 

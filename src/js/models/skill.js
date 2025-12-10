@@ -79,7 +79,7 @@ const SKILL_DEFINITIONS = {
     strike: {
         id: 'strike',
         name: 'Strike',
-        description: 'A basic physical attack.',
+        description: 'A basic physical attack. Fast cooldown.',
         rarity: 'common',
         activation: SkillActivation.ACTIVE,
         target: SkillTarget.SINGLE,
@@ -87,6 +87,8 @@ const SKILL_DEFINITIONS = {
         scaling: ['atk'],
         baseValue: 1.0,          // 100% ATK
         rankBonus: 0.05,         // +5% per rank
+        cooldown: 2,
+        cooldownReduction: { 3: 1, 5: 0 }, // Rank 3: CD 1, Rank 5: CD 0
         icon: '⚔️',
     },
 
@@ -101,13 +103,14 @@ const SKILL_DEFINITIONS = {
         scaling: ['atk'],
         baseValue: 1.1,
         rankBonus: 0.08,
+        cooldown: 2,
         icon: '🔨',
     },
 
     spark: {
         id: 'spark',
         name: 'Spark',
-        description: 'A small bolt of magical energy.',
+        description: 'A small bolt of magical energy. Fast cooldown.',
         rarity: 'common',
         activation: SkillActivation.ACTIVE,
         target: SkillTarget.SINGLE,
@@ -115,6 +118,8 @@ const SKILL_DEFINITIONS = {
         scaling: ['will'],
         baseValue: 1.0,
         rankBonus: 0.05,
+        cooldown: 2,
+        cooldownReduction: { 3: 1, 5: 0 }, // Rank 3: CD 1, Rank 5: CD 0
         icon: '✨',
     },
 
@@ -161,6 +166,7 @@ const SKILL_DEFINITIONS = {
         scaling: ['atk'],
         baseValue: 0.8,                 // Slightly less per target
         rankBonus: 0.10,
+        cooldown: 2,
         icon: '🗡️',
     },
 
@@ -175,21 +181,24 @@ const SKILL_DEFINITIONS = {
         scaling: ['will'],
         baseValue: 1.3,
         rankBonus: 0.12,
+        cooldown: 2,
         icon: '🔥',
     },
 
     backstab: {
         id: 'backstab',
         name: 'Backstab',
-        description: 'Strike from the shadows. Higher crit chance.',
+        description: 'Strike from the shadows. Cooldown reduces with mastery.',
         rarity: 'uncommon',
         activation: SkillActivation.ACTIVE,
         target: SkillTarget.SINGLE,
         damageType: DamageType.PHYSICAL,
         scaling: ['atk', 'spd'],
         baseValue: 1.2,
-        rankBonus: 0.10,
+        rankBonus: 0.03,             // Lower damage scaling
         critBonus: 0.15,             // +15% crit chance
+        cooldown: 2,
+        cooldownReduction: { 2: 1, 4: 0 }, // Rank 2: CD 1, Rank 4: CD 0
         icon: '🗡️',
     },
 
@@ -244,16 +253,18 @@ const SKILL_DEFINITIONS = {
     execute: {
         id: 'execute',
         name: 'Execute',
-        description: 'Deal bonus damage to low HP targets.',
+        description: 'Deal bonus damage to low HP targets. Cooldown reduces with mastery.',
         rarity: 'rare',
         activation: SkillActivation.ACTIVE,
         target: SkillTarget.SINGLE,
         damageType: DamageType.PHYSICAL,
         scaling: ['atk'],
         baseValue: 1.0,
-        rankBonus: 0.10,
+        rankBonus: 0.05,
         // Bonus damage = (1 - target HP%) × 100%
         executeBonus: true,
+        cooldown: 2,
+        cooldownReduction: { 3: 1, 5: 0 }, // Master executioner
         icon: '💀',
     },
 
@@ -268,6 +279,7 @@ const SKILL_DEFINITIONS = {
         scaling: ['will'],
         baseValue: 1.5,
         rankBonus: 0.12,
+        cooldown: 2,
         icon: '👻',
     },
 
@@ -284,6 +296,7 @@ const SKILL_DEFINITIONS = {
         scalingWeights: { atk: 0.3, will: 0.3, def: 0.4 },
         baseValue: 1.0,
         rankBonus: 0.08,
+        cooldown: 2,
         icon: '✝️',
     },
 
@@ -299,6 +312,7 @@ const SKILL_DEFINITIONS = {
         scalingWeights: { will: 0.7, spd: 0.3 },
         baseValue: 0.8,            // Lower base for AOE
         rankBonus: 0.15,
+        cooldown: 2,
         icon: '☄️',
     },
 
@@ -372,14 +386,16 @@ const SKILL_DEFINITIONS = {
     whirlwind: {
         id: 'whirlwind',
         name: 'Whirlwind',
-        description: 'Spin and strike all enemies.',
+        description: 'Spin and strike all enemies. Cooldown reduces with mastery.',
         rarity: 'legendary',
         activation: SkillActivation.ACTIVE,
         target: SkillTarget.AOE,
         damageType: DamageType.PHYSICAL,
         scaling: ['atk'],
         baseValue: 0.9,
-        rankBonus: 0.12,
+        rankBonus: 0.08,
+        cooldown: 2,
+        cooldownReduction: { 3: 1, 5: 0 }, // Master spinner
         icon: '🌀',
     },
 
@@ -525,6 +541,32 @@ const Skills = {
         if (isTripled) return CONFIG.SKILLS.MAX_RANK_TRIPLED;
         if (isDoubled) return CONFIG.SKILLS.MAX_RANK_DOUBLED;
         return CONFIG.SKILLS.MAX_RANK_BASE;
+    },
+
+    /**
+     * Get cooldown for a skill at a specific rank
+     * @param {Object} skillDef - Skill definition
+     * @param {number} rank - Current rank
+     * @returns {number} Cooldown in rounds (0 = no cooldown)
+     */
+    getCooldownAtRank(skillDef, rank) {
+        if (!skillDef || skillDef.activation !== SkillActivation.ACTIVE) {
+            return 0; // Passives and triggers have no cooldown
+        }
+
+        let cooldown = skillDef.cooldown ?? 2; // Default cooldown is 2
+
+        // Check for cooldown reduction at this rank
+        if (skillDef.cooldownReduction) {
+            // Find the highest rank threshold we've reached
+            for (const [rankThreshold, newCooldown] of Object.entries(skillDef.cooldownReduction)) {
+                if (rank >= parseInt(rankThreshold)) {
+                    cooldown = newCooldown;
+                }
+            }
+        }
+
+        return cooldown;
     },
 
     /**

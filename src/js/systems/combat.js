@@ -517,11 +517,13 @@ const CombatEngine = {
 
     /**
      * Choose which skill to use - smarter AI selection
+     * Works for both heroes AND enemies
+     *
      * Priorities:
      * 1. Execute skills on low HP targets
-     * 2. AoE/Cleave when multiple enemies alive (handled by caller)
+     * 2. AoE/Cleave when multiple enemies alive
      * 3. Highest damage skill available
-     * 4. Basic attack as fallback
+     * 4. Basic attack as fallback (when all skills on cooldown)
      */
     chooseSkill(actor, target, hero, allEnemies = []) {
         // Get all available active skills
@@ -534,24 +536,30 @@ const CombatEngine = {
             if (skillDef.activation !== SkillActivation.ACTIVE) continue;
             if (!actor.canUseSkill(skillId)) continue;
 
-            availableSkills.push({ skillId, skillDef, skillRef });
+            // Get rank (heroes have rank info, enemies use rank 1)
+            const rank = actor.isHero && hero
+                ? (hero.skills.find(s => s.skillId === skillId)?.rank || 1)
+                : 1;
+
+            availableSkills.push({ skillId, skillDef, skillRef, rank });
         }
 
+        // If no skills available (all on cooldown or none exist), return null for basic attack
         if (availableSkills.length === 0) {
             return { skillId: null, skillDef: null };
         }
 
-        // Calculate enemy HP percentage
+        // Calculate target HP percentage
         const targetHpPercent = target.currentHp / target.maxHp;
 
-        // Count living enemies
+        // Count living enemies (for hero) or allies (for enemy - not used yet)
         const livingEnemies = allEnemies.filter(e => e.isAlive).length;
 
         // Score each skill based on situation
         let bestSkill = null;
         let bestScore = -1;
 
-        for (const { skillId, skillDef, skillRef } of availableSkills) {
+        for (const { skillId, skillDef, skillRef, rank } of availableSkills) {
             let score = skillDef.baseValue || 1;
 
             // Bonus for execute skills when target is low HP
@@ -560,12 +568,14 @@ const CombatEngine = {
                 score += (1 - targetHpPercent) * 2;
             }
 
-            // Bonus for AoE/Cleave when multiple enemies
-            if (skillDef.target === SkillTarget.AOE && livingEnemies > 1) {
-                score += livingEnemies * 0.5; // More enemies = more value
-            }
-            if (skillDef.target === SkillTarget.CLEAVE && livingEnemies > 1) {
-                score += Math.min(livingEnemies, 3) * 0.4;
+            // Bonus for AoE/Cleave when multiple enemies (for hero attacking)
+            if (actor.isHero) {
+                if (skillDef.target === SkillTarget.AOE && livingEnemies > 1) {
+                    score += livingEnemies * 0.5; // More enemies = more value
+                }
+                if (skillDef.target === SkillTarget.CLEAVE && livingEnemies > 1) {
+                    score += Math.min(livingEnemies, 3) * 0.4;
+                }
             }
 
             // Bonus for high crit chance skills
@@ -574,7 +584,6 @@ const CombatEngine = {
             }
 
             // Slight bonus for higher rank skills (more invested = more reliable)
-            const rank = skillRef?.rank || 1;
             score += rank * 0.05;
 
             // Prefer magical damage against low-WILL targets, physical against low-DEF
@@ -584,15 +593,26 @@ const CombatEngine = {
                 score += 0.2;
             }
 
+            // Prefer lower cooldown skills slightly (more usable)
+            const cooldown = Skills.getCooldownAtRank(skillDef, rank);
+            if (cooldown === 0) {
+                score += 0.3; // No cooldown is great
+            } else if (cooldown === 1) {
+                score += 0.1;
+            }
+
             if (score > bestScore) {
                 bestScore = score;
-                bestSkill = { skillId, skillDef };
+                bestSkill = { skillId, skillDef, rank };
             }
         }
 
-        // Apply cooldown to chosen skill
-        if (bestSkill && bestSkill.skillDef.cooldown) {
-            actor.putOnCooldown(bestSkill.skillId, bestSkill.skillDef.cooldown);
+        // Apply cooldown to chosen skill (using rank-based cooldown)
+        if (bestSkill) {
+            const cooldown = Skills.getCooldownAtRank(bestSkill.skillDef, bestSkill.rank);
+            if (cooldown > 0) {
+                actor.putOnCooldown(bestSkill.skillId, cooldown);
+            }
         }
 
         return bestSkill || { skillId: null, skillDef: null };
