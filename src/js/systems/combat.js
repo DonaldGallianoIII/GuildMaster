@@ -472,7 +472,7 @@ const CombatEngine = {
         let leechHealing = 0;
         const leechValue = this.getPassiveValue(actor, 'leech', hero);
         if (leechValue > 0 && damage > 0) {
-            leechHealing = Math.floor(damage * leechValue);
+            leechHealing = Math.round(damage * leechValue);
             actor.heal(leechHealing);
             healing += leechHealing; // Add to action's healing for combat log
         }
