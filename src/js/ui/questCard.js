@@ -268,7 +268,7 @@ const QuestCard = {
     },
 
     /**
-     * Render quest board with accordion sections
+     * Render quest board with horizontal bracket columns
      */
     renderBoard(container, quests, options = {}) {
         container.innerHTML = '';
@@ -280,9 +280,9 @@ const QuestCard = {
 
         // Group quests by bracket
         const brackets = {
-            novice: { name: 'Novice Contracts', levelRange: 'Lv 1-3', quests: [] },
-            journeyman: { name: 'Journeyman Contracts', levelRange: 'Lv 4-6', quests: [] },
-            expert: { name: 'Expert Contracts', levelRange: 'Lv 7+', quests: [] },
+            novice: { name: 'Novice', levelRange: 'Lv 1-3', quests: [] },
+            journeyman: { name: 'Journeyman', levelRange: 'Lv 4-6', quests: [] },
+            expert: { name: 'Expert', levelRange: 'Lv 7+', quests: [] },
         };
 
         for (const quest of quests) {
@@ -295,52 +295,62 @@ const QuestCard = {
         // Get highest hero level for danger rating
         const highestHeroLevel = options.heroLevel || 1;
 
-        // Create accordion for each bracket
-        for (const [bracketId, bracket] of Object.entries(brackets)) {
-            if (bracket.quests.length === 0) continue;
+        // Create horizontal grid wrapper
+        const gridWrapper = Utils.createElement('div', {
+            className: 'quest-board-grid',
+        });
 
+        // Create a column for each bracket
+        for (const [bracketId, bracket] of Object.entries(brackets)) {
             // Sort quests by tier
             bracket.quests.sort((a, b) => (a.tier || 1) - (b.tier || 1));
 
-            const accordion = Utils.createElement('div', {
-                className: 'quest-accordion',
+            const column = Utils.createElement('div', {
+                className: `quest-bracket-column bracket-${bracketId}`,
                 dataset: { bracket: bracketId },
             });
 
-            // Accordion header
+            // Column header (clickable to expand/collapse)
             const header = Utils.createElement('div', {
-                className: 'accordion-header',
+                className: 'bracket-header',
             });
             header.innerHTML = `
-                <span class="accordion-title">
-                    <span class="accordion-icon">▼</span>
-                    ${bracket.name}
-                    <span class="bracket-level">(${bracket.levelRange})</span>
-                </span>
-                <span class="quest-count">${bracket.quests.length} quests</span>
+                <div class="bracket-title">${bracket.name}</div>
+                <div class="bracket-level">${bracket.levelRange}</div>
+                <div class="bracket-count">${bracket.quests.length} quests</div>
+                <span class="bracket-toggle">▼</span>
             `;
 
-            // Toggle accordion on click
+            // Toggle column content on click
             header.addEventListener('click', () => {
-                accordion.classList.toggle('collapsed');
+                column.classList.toggle('collapsed');
+                const toggle = header.querySelector('.bracket-toggle');
+                toggle.textContent = column.classList.contains('collapsed') ? '▶' : '▼';
             });
 
-            accordion.appendChild(header);
+            column.appendChild(header);
 
-            // Accordion content
+            // Column content (quests stack vertically within each column)
             const content = Utils.createElement('div', {
-                className: 'accordion-content',
+                className: 'bracket-content',
             });
 
-            // Create cards for quests in this bracket
-            for (const quest of bracket.quests) {
-                const card = this.createBoardCard(quest, { ...options, heroLevel: highestHeroLevel });
-                if (card) content.appendChild(card);
+            if (bracket.quests.length === 0) {
+                content.appendChild(Utils.createElement('div', {
+                    className: 'bracket-empty',
+                }, 'No contracts'));
+            } else {
+                for (const quest of bracket.quests) {
+                    const card = this.createBoardCard(quest, { ...options, heroLevel: highestHeroLevel });
+                    if (card) content.appendChild(card);
+                }
             }
 
-            accordion.appendChild(content);
-            container.appendChild(accordion);
+            column.appendChild(content);
+            gridWrapper.appendChild(column);
         }
+
+        container.appendChild(gridWrapper);
     },
 
     /**
