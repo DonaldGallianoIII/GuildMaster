@@ -474,105 +474,10 @@ const GameState = {
     },
 
     /**
-     * Load quest board from localStorage
-     */
-    loadQuestBoard() {
-        const userId = this._state.player?.id;
-        if (!userId) {
-            this.generateQuestBoard();
-            return;
-        }
-
-        const storageKey = `guildmaster_questboard_${userId}`;
-        const saved = localStorage.getItem(storageKey);
-
-        if (saved) {
-            try {
-                const data = JSON.parse(saved);
-
-                // Validate data is an array
-                if (!Array.isArray(data) || data.length === 0) {
-                    Utils.log('Invalid quest board data, regenerating');
-                    this.generateQuestBoard();
-                    return;
-                }
-
-                // Convert plain objects back to Quest instances
-                // Also validate that they have encounters (migration from old system)
-                const validQuests = [];
-                for (const q of data) {
-                    // Skip invalid entries
-                    if (!q || !q.templateId) {
-                        continue;
-                    }
-
-                    const quest = new Quest(q);
-
-                    // Check if quest has valid encounters
-                    if (!quest.encounters || quest.encounters.length === 0) {
-                        // Old quest without selectedEncounters - regenerate it
-                        Utils.log('Regenerating quest without encounters:', quest.templateId);
-                        const replacement = this.generateRandomQuest(quest.difficulty);
-                        if (replacement) {
-                            validQuests.push(replacement);
-                        }
-                    } else {
-                        validQuests.push(quest);
-                    }
-                }
-
-                // If we ended up with no valid quests, regenerate the whole board
-                if (validQuests.length === 0) {
-                    Utils.log('No valid quests found, regenerating board');
-                    this.generateQuestBoard();
-                    return;
-                }
-
-                this._state.questBoard = validQuests;
-                Utils.log('Loaded quest board from localStorage:', this._state.questBoard.length);
-
-                // Check for any expired quests and replace them
-                this.checkQuestBoardExpiration();
-
-                // Save back in case we regenerated any quests
-                this.saveQuestBoard();
-                this.emit('questBoardRefreshed');
-            } catch (e) {
-                Utils.error('Failed to load quest board from localStorage:', e);
-                this.generateQuestBoard();
-            }
-        } else {
-            // First time - generate new quest board
-            this.generateQuestBoard();
-        }
-    },
-
-    /**
-     * Save quest board to localStorage
-     */
-    saveQuestBoard() {
-        const userId = this._state.player?.id;
-        if (!userId) return;
-
-        const storageKey = `guildmaster_questboard_${userId}`;
-        // Save raw data (Quest instances serialize properly)
-        const data = this._state.questBoard.map(q => ({
-            id: q.id,
-            templateId: q.templateId,
-            userId: q.userId,
-            status: q.status,
-            expiresAt: q.expiresAt,
-            selectedEncounters: q.selectedEncounters,
-            totalEncounters: q.totalEncounters,
-        }));
-        localStorage.setItem(storageKey, JSON.stringify(data));
-    },
-
-    /**
      * Generate fresh quest board
      * Board has: 2 easy, 2 medium, 2 hard quests
      */
-    generateQuestBoard() {
+    refreshQuestBoard() {
         const board = [];
 
         // Generate 2 of each difficulty
@@ -590,15 +495,7 @@ const GameState = {
         }
 
         this._state.questBoard = board;
-        this.saveQuestBoard();
         this.emit('questBoardRefreshed');
-    },
-
-    /**
-     * Refresh quest board (legacy - now just loads from storage)
-     */
-    refreshQuestBoard() {
-        this.loadQuestBoard();
     },
 
     /**
@@ -620,7 +517,6 @@ const GameState = {
         }
 
         if (replaced > 0) {
-            this.saveQuestBoard();
             this.emit('questBoardRefreshed');
             Utils.log(`Replaced ${replaced} expired quest(s)`);
         }
@@ -659,7 +555,6 @@ const GameState = {
         } else {
             this._state.questBoard.splice(boardIndex, 1);
         }
-        this.saveQuestBoard();
         this.emit('questBoardRefreshed');
 
         // Fetch equipped items and calculate gear bonuses for combat
