@@ -128,7 +128,12 @@ CREATE TABLE IF NOT EXISTS quests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES players(id) ON DELETE CASCADE,
     hero_id UUID REFERENCES heroes(id) ON DELETE SET NULL,
-    template_id TEXT NOT NULL,
+    template_id TEXT,
+    theme_id TEXT,  -- New: theme-based quest system
+
+    -- Bracket/Tier system (new)
+    bracket TEXT,  -- novice, journeyman, expert
+    tier INTEGER,  -- 1, 2, 3
 
     -- Status: available, active, completed, failed
     status TEXT DEFAULT 'available',
@@ -137,22 +142,29 @@ CREATE TABLE IF NOT EXISTS quests (
     started_at TIMESTAMP WITH TIME ZONE,
     ends_at TIMESTAMP WITH TIME ZONE,
     completed_at TIMESTAMP WITH TIME ZONE,
+    expires_at TIMESTAMP WITH TIME ZONE,  -- Quest board expiration
 
     -- Progress
     current_encounter INTEGER DEFAULT 0,
     total_encounters INTEGER DEFAULT 0,
+
+    -- Encounters (new: dynamically generated based on tier)
+    selected_encounters JSONB DEFAULT '[]',
 
     -- Pre-generated event timeline (for peek system)
     events JSONB DEFAULT '[]',
 
     -- Results
     encounter_results JSONB DEFAULT '[]',
-    loot JSONB DEFAULT '{"gold": 0, "items": [], "xp": 0}'
+    loot JSONB DEFAULT '{"gold": 0, "items": [], "xp": 0}',
+    combat_results JSONB  -- Pre-calculated combat outcome
 );
 
 CREATE INDEX IF NOT EXISTS idx_quests_user ON quests(user_id);
 CREATE INDEX IF NOT EXISTS idx_quests_hero ON quests(hero_id);
 CREATE INDEX IF NOT EXISTS idx_quests_status ON quests(status);
+CREATE INDEX IF NOT EXISTS idx_quests_bracket ON quests(bracket);
+CREATE INDEX IF NOT EXISTS idx_quests_expires ON quests(expires_at);
 
 -- ============================================
 -- INSCRIPTIONS TABLE
