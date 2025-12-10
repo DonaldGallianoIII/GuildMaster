@@ -409,7 +409,7 @@ const SKILL_DEFINITIONS = {
         damageType: DamageType.NONE,
         scaling: [],
         triggerCondition: 'on_death',
-        baseValue: 0.10,           // Revive at 10% HP
+        baseValue: 0.25,           // Revive at 25% HP
         rankBonus: 0.05,           // +5% HP per rank
         cooldown: 1,               // Once per quest
         icon: '♾️',
