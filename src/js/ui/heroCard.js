@@ -188,11 +188,11 @@ const HeroCard = {
             return;
         }
 
-        // Fetch equipment bonuses for all heroes BEFORE clearing container
+        // Fetch equipment bonuses for all heroes BEFORE clearing container (using cache)
         const heroEquipment = {};
         for (const hero of heroes) {
             try {
-                const equippedItems = await DB.items.getEquipped(hero.id);
+                const equippedItems = await GameState.getEquippedItems(hero.id);
                 const bonuses = { atk: 0, will: 0, def: 0, spd: 0 };
                 for (const item of equippedItems) {
                     const itemStats = item.totalStats;

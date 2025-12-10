@@ -24,6 +24,7 @@ const GameState = {
         activeQuests: [],
         recruits: [],
         questBoard: [],
+        equippedItems: {}, // Cache: heroId -> array of equipped items
     },
 
     // Event listeners
@@ -334,10 +335,12 @@ const GameState = {
         await this.updateHero(hero);
 
         // Remove equipped gear (lost on death)
-        const equippedItems = await DB.items.getEquipped(heroId);
+        const equippedItems = await this.getEquippedItems(heroId);
         for (const item of equippedItems) {
             await DB.items.delete(item.id);
         }
+        // Clear cache for this hero
+        this._invalidateEquipmentCache(heroId);
 
         this.emit('heroDied', { hero });
         Utils.toast(`${hero.name} has fallen in battle. All equipment lost.`, 'error');
@@ -651,10 +654,10 @@ const GameState = {
         }
         this.emit('questBoardRefreshed');
 
-        // Fetch equipped items and calculate gear bonuses for combat
+        // Fetch equipped items and calculate gear bonuses for combat (using cache)
         let gearBonuses = {};
         try {
-            const equippedItems = await DB.items.getEquipped(hero.id);
+            const equippedItems = await this.getEquippedItems(hero.id);
             for (const item of equippedItems) {
                 // Add regular stats (atk, will, def, spd, hp)
                 const itemStats = item.totalStats;
@@ -794,6 +797,27 @@ const GameState = {
     // ==================== INVENTORY ====================
 
     /**
+     * Get equipped items for a hero (cached)
+     * @param {string} heroId
+     * @param {boolean} forceRefresh - Force DB fetch and update cache
+     */
+    async getEquippedItems(heroId, forceRefresh = false) {
+        if (!forceRefresh && this._state.equippedItems[heroId]) {
+            return this._state.equippedItems[heroId];
+        }
+        const items = await DB.items.getEquipped(heroId);
+        this._state.equippedItems[heroId] = items;
+        return items;
+    },
+
+    /**
+     * Clear equipped items cache for a hero (call after equip/unequip)
+     */
+    _invalidateEquipmentCache(heroId) {
+        delete this._state.equippedItems[heroId];
+    },
+
+    /**
      * Equip item to hero
      */
     async equipItem(itemId, heroId) {
@@ -805,10 +829,19 @@ const GameState = {
             return false;
         }
 
-        // Unequip existing item in that slot
+        // Handle existing item in slot (swap) - do it silently to avoid double events
         const existingItemId = hero.equipment[item.slot];
+        let swappedItem = null;
         if (existingItemId) {
-            await this.unequipItem(existingItemId);
+            // Find the equipped item from cache
+            const equippedItems = await this.getEquippedItems(heroId);
+            swappedItem = equippedItems.find(i => i.id === existingItemId);
+            if (swappedItem) {
+                // Unequip silently (no event, no separate save)
+                swappedItem.unequip();
+                hero.equipment[item.slot] = null;
+                this._state.inventory.push(swappedItem);
+            }
         }
 
         // Equip new item
@@ -818,26 +851,53 @@ const GameState = {
         // Remove from inventory
         this._state.inventory = this._state.inventory.filter(i => i.id !== itemId);
 
-        // Save
-        await Promise.all([
+        // Invalidate cache
+        this._invalidateEquipmentCache(heroId);
+
+        // Save all changes in parallel
+        const savePromises = [
             DB.items.save(item),
             DB.heroes.save(hero),
-        ]);
+        ];
+        if (swappedItem) {
+            savePromises.push(DB.items.save(swappedItem));
+        }
+        await Promise.all(savePromises);
 
-        this.emit('itemEquipped', { item, hero });
+        // Emit single event (includes swapped item info if relevant)
+        this.emit('itemEquipped', { item, hero, swappedItem });
         return true;
     },
 
     /**
      * Unequip item from hero
+     * @param {string} itemId
+     * @param {string} heroId - Optional, if known (avoids lookup)
      */
-    async unequipItem(itemId) {
-        // Find item in equipped items
-        const item = await this.getEquippedItem(itemId);
-        if (!item) return false;
+    async unequipItem(itemId, heroId = null) {
+        let item = null;
+        let hero = null;
 
-        const hero = this.getHero(item.heroId);
-        if (!hero) return false;
+        // If heroId provided, use it directly (fast path)
+        if (heroId) {
+            hero = this.getHero(heroId);
+            if (hero) {
+                const equippedItems = await this.getEquippedItems(heroId);
+                item = equippedItems.find(i => i.id === itemId);
+            }
+        } else {
+            // Slow path: search through heroes (avoid if possible)
+            for (const h of this._state.heroes) {
+                const equippedItems = await this.getEquippedItems(h.id);
+                item = equippedItems.find(i => i.id === itemId);
+                if (item) {
+                    hero = h;
+                    break;
+                }
+            }
+        }
+
+        if (!item || !hero) return false;
 
         // Unequip
         item.unequip();
@@ -845,6 +905,9 @@ const GameState = {
 
         // Add to inventory
         this._state.inventory.push(item);
+
+        // Invalidate cache
+        this._invalidateEquipmentCache(hero.id);
 
         // Save
         await Promise.all([
@@ -857,11 +920,12 @@ const GameState = {
     },
 
     /**
-     * Get equipped item by ID
+     * Get equipped item by ID (uses cache)
+     * @deprecated Use getEquippedItems(heroId) instead when heroId is known
      */
     async getEquippedItem(itemId) {
         for (const hero of this._state.heroes) {
-            const items = await DB.items.getEquipped(hero.id);
+            const items = await this.getEquippedItems(hero.id);
             const item = items.find(i => i.id === itemId);
             if (item) return item;
         }
