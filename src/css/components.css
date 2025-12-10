@@ -1,0 +1,835 @@
+/**
+ * ============================================
+ * GUILD MASTER - Component Styles
+ * ============================================
+ * Cards, modals, and specialized UI components
+ * ============================================
+ */
+
+/* ==================== CARD BASE ==================== */
+.card {
+    background: var(--color-parchment-light);
+    border: var(--border-medium);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: all var(--transition-fast);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    padding: var(--spacing-md);
+    background: var(--color-parchment-dark);
+    border-bottom: var(--border-thin);
+}
+
+.card-body {
+    padding: var(--spacing-md);
+}
+
+.card-footer {
+    padding: var(--spacing-md);
+    background: var(--color-parchment-dark);
+    border-top: var(--border-thin);
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+}
+
+/* ==================== HERO CARD ==================== */
+/**
+ * Hero cards show:
+ * - Portrait, name, level
+ * - Current HP bar
+ * - 4 stats (ATK, WILL, DEF, SPD)
+ * - Skills (abbreviated)
+ * - Status badge (available, on quest, injured, etc.)
+ */
+.hero-card {
+    position: relative;
+}
+
+.hero-card.on-quest {
+    border-color: var(--color-royal);
+}
+
+.hero-card.injured {
+    border-color: var(--color-blood);
+    opacity: 0.8;
+}
+
+.hero-card.dead {
+    border-color: var(--color-ink-faded);
+    opacity: 0.5;
+    filter: grayscale(50%);
+}
+
+/* Hero Portrait */
+.hero-portrait {
+    width: 80px;
+    height: 80px;
+    background: var(--color-parchment-dark);
+    border: var(--border-medium);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    /* Placeholder emoji - will be replaced with actual portraits */
+}
+
+.hero-header {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+}
+
+.hero-info {
+    flex: 1;
+}
+
+.hero-name {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.hero-level {
+    color: var(--color-ink-faded);
+    font-size: 0.9rem;
+}
+
+/* Status Badge */
+.status-badge {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: var(--radius-sm);
+}
+
+.status-available {
+    background: var(--color-forest);
+    color: var(--color-parchment);
+}
+
+.status-quest {
+    background: var(--color-royal);
+    color: var(--color-parchment);
+}
+
+.status-injured {
+    background: var(--color-blood);
+    color: var(--color-parchment);
+}
+
+.status-retired {
+    background: var(--color-gold);
+    color: var(--color-ink);
+}
+
+/* HP Bar */
+.hp-bar-container {
+    margin: var(--spacing-sm) 0;
+}
+
+.hp-bar {
+    height: 8px;
+    background: var(--color-parchment-dark);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--color-ink-faded);
+}
+
+.hp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-blood) 0%, var(--stat-hp) 100%);
+    transition: width var(--transition-normal);
+}
+
+.hp-text {
+    font-size: 0.8rem;
+    color: var(--color-ink-faded);
+    text-align: right;
+}
+
+/* Stat Display */
+.hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-xs);
+    margin: var(--spacing-md) 0;
+}
+
+.stat-item {
+    text-align: center;
+    padding: var(--spacing-xs);
+    background: var(--color-parchment);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-ink-faded);
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+}
+
+.stat-atk .stat-label { color: var(--stat-atk); }
+.stat-will .stat-label { color: var(--stat-will); }
+.stat-def .stat-label { color: var(--stat-def); }
+.stat-spd .stat-label { color: var(--stat-spd); }
+
+/* Skills List */
+.hero-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+}
+
+.skill-tag {
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    background: var(--color-parchment);
+    border: 1px solid var(--color-ink-faded);
+    border-radius: var(--radius-sm);
+}
+
+.skill-tag.doubled {
+    border-color: var(--rarity-magic);
+    background: rgba(65, 105, 225, 0.1);
+}
+
+.skill-tag.tripled {
+    border-color: var(--rarity-rare);
+    background: rgba(218, 165, 32, 0.1);
+}
+
+/* ==================== RECRUIT CARD ==================== */
+/**
+ * Similar to hero card but with hire/pass buttons
+ * Shows skills that will be gained
+ */
+.recruit-card {
+    border-style: dashed;
+}
+
+.recruit-card .card-footer {
+    justify-content: space-between;
+}
+
+.hire-cost {
+    font-weight: 600;
+    color: var(--color-gold-dark);
+}
+
+/* ==================== QUEST CARD ==================== */
+/**
+ * Quest cards show:
+ * - Location name and difficulty
+ * - Duration
+ * - Enemy preview
+ * - Rewards
+ */
+.quest-card {
+    cursor: pointer;
+}
+
+.quest-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.quest-name {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.quest-difficulty {
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    text-transform: uppercase;
+    border-radius: var(--radius-sm);
+}
+
+.difficulty-easy {
+    background: var(--color-forest);
+    color: var(--color-parchment);
+}
+
+.difficulty-medium {
+    background: var(--color-gold);
+    color: var(--color-ink);
+}
+
+.difficulty-hard {
+    background: var(--color-blood);
+    color: var(--color-parchment);
+}
+
+.quest-duration {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--color-ink-faded);
+    font-size: 0.9rem;
+    margin: var(--spacing-sm) 0;
+}
+
+.quest-enemies {
+    margin: var(--spacing-md) 0;
+}
+
+.quest-enemies h4 {
+    font-size: 0.9rem;
+    color: var(--color-ink-faded);
+    margin-bottom: var(--spacing-xs);
+}
+
+.enemy-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+}
+
+.enemy-tag {
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    background: var(--color-parchment);
+    border: 1px solid var(--color-ink-faded);
+    border-radius: var(--radius-sm);
+}
+
+.quest-rewards {
+    padding: var(--spacing-sm);
+    background: var(--color-parchment);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+}
+
+.quest-rewards span {
+    margin-right: var(--spacing-md);
+}
+
+/* ==================== ACTIVE QUEST CARD ==================== */
+/**
+ * Shows quest in progress with:
+ * - Progress bar (time remaining)
+ * - Current encounter status
+ * - Flying event icons
+ * - Peek button
+ */
+.active-quest-card {
+    border-color: var(--color-royal);
+    position: relative;
+    overflow: visible;
+}
+
+.quest-progress-container {
+    margin: var(--spacing-md) 0;
+}
+
+.quest-progress-bar {
+    height: 12px;
+    background: var(--color-parchment-dark);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--color-ink-faded);
+}
+
+.quest-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-royal) 0%, var(--color-royal-light) 100%);
+    transition: width 1s linear;
+}
+
+.quest-time-remaining {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--color-ink-faded);
+    margin-top: var(--spacing-xs);
+}
+
+.quest-peek-area {
+    min-height: 80px;
+    background: var(--color-parchment);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    position: relative;
+}
+
+.peek-status {
+    font-style: italic;
+    color: var(--color-ink-faded);
+}
+
+.peek-hero-hp {
+    margin-top: var(--spacing-sm);
+}
+
+/* Flying Event Icons */
+.event-icons {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    display: flex;
+    gap: 4px;
+}
+
+.event-icon {
+    font-size: 1.2rem;
+    animation: flyoff 2s ease-out forwards;
+}
+
+@keyframes flyoff {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(30px, -30px) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* ==================== GEAR CARD ==================== */
+/**
+ * Shows item with:
+ * - Name and slot type
+ * - Rarity border
+ * - Stats/affixes
+ * - Generation if heirloom
+ */
+.gear-card {
+    position: relative;
+}
+
+.gear-card.rarity-common { border-color: var(--rarity-common); }
+.gear-card.rarity-magic { border-color: var(--rarity-magic); }
+.gear-card.rarity-rare { border-color: var(--rarity-rare); }
+.gear-card.rarity-unique { border-color: var(--rarity-unique); }
+.gear-card.rarity-heirloom {
+    border-color: var(--rarity-heirloom);
+    border-width: 3px;
+}
+
+.gear-icon {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.gear-name {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.gear-slot {
+    font-size: 0.8rem;
+    color: var(--color-ink-faded);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.gear-stats {
+    margin: var(--spacing-md) 0;
+}
+
+.gear-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    padding: 2px 0;
+}
+
+.gear-stat-positive {
+    color: var(--color-forest);
+}
+
+.gear-affixes {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: var(--border-thin);
+}
+
+.affix {
+    font-size: 0.85rem;
+    color: var(--rarity-magic);
+    margin-bottom: 2px;
+}
+
+.heirloom-info {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: rgba(153, 50, 204, 0.1);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.heirloom-generation {
+    font-weight: 600;
+    color: var(--rarity-heirloom);
+}
+
+.heirloom-lineage {
+    font-style: italic;
+    color: var(--color-ink-faded);
+}
+
+/* ==================== MODALS ==================== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(44, 24, 16, 0.7);
+}
+
+.modal-content {
+    position: relative;
+    background: var(--color-parchment);
+    border: var(--border-thick);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalIn var(--transition-normal);
+}
+
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-header {
+    padding: var(--spacing-lg);
+    border-bottom: var(--border-medium);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--color-ink-faded);
+    transition: color var(--transition-fast);
+}
+
+.modal-close:hover {
+    color: var(--color-ink);
+}
+
+.modal-body {
+    padding: var(--spacing-lg);
+}
+
+.modal-footer {
+    padding: var(--spacing-lg);
+    border-top: var(--border-thin);
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: flex-end;
+}
+
+/* ==================== STAT ALLOCATION (Recruitment) ==================== */
+/**
+ * When hiring, player allocates BST across stats
+ * Uses sliders or +/- buttons
+ */
+.stat-allocation {
+    max-width: 500px;
+}
+
+.allocation-info {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: var(--color-parchment-dark);
+    border-radius: var(--radius-sm);
+}
+
+.bst-remaining {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-gold-dark);
+}
+
+.stat-allocator {
+    margin-bottom: var(--spacing-lg);
+}
+
+.allocator-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--color-parchment-light);
+    border-radius: var(--radius-sm);
+}
+
+.allocator-label {
+    width: 80px;
+    font-weight: 600;
+}
+
+.allocator-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.allocator-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    background: var(--color-parchment);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.allocator-btn:hover:not(:disabled) {
+    background: var(--color-parchment-dark);
+}
+
+.allocator-value {
+    width: 50px;
+    text-align: center;
+    font-size: 1.3rem;
+    font-family: var(--font-mono);
+    font-weight: 600;
+}
+
+.allocator-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--color-parchment-dark);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.allocator-bar-fill {
+    height: 100%;
+    transition: width var(--transition-fast);
+}
+
+.allocator-row.stat-atk .allocator-bar-fill { background: var(--stat-atk); }
+.allocator-row.stat-will .allocator-bar-fill { background: var(--stat-will); }
+.allocator-row.stat-def .allocator-bar-fill { background: var(--stat-def); }
+.allocator-row.stat-spd .allocator-bar-fill { background: var(--stat-spd); }
+
+.calculated-hp {
+    text-align: center;
+    font-size: 1.2rem;
+    padding: var(--spacing-md);
+    background: var(--color-parchment-dark);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* ==================== COMBAT LOG ==================== */
+.combat-log {
+    max-width: 700px;
+}
+
+.combat-summary {
+    display: flex;
+    justify-content: space-around;
+    padding: var(--spacing-lg);
+    background: var(--color-parchment-dark);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.combat-result {
+    text-align: center;
+}
+
+.combat-result.victory h3 {
+    color: var(--color-forest);
+}
+
+.combat-result.defeat h3 {
+    color: var(--color-blood);
+}
+
+.combat-rounds {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm);
+}
+
+.combat-round {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: var(--border-thin);
+}
+
+.combat-round:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.round-header {
+    font-weight: 600;
+    color: var(--color-ink-faded);
+    margin-bottom: var(--spacing-xs);
+}
+
+.combat-action {
+    font-size: 0.9rem;
+    padding: 2px 0;
+}
+
+.action-damage {
+    color: var(--color-blood);
+}
+
+.action-heal {
+    color: var(--color-forest);
+}
+
+.action-status {
+    color: var(--color-royal);
+}
+
+/* ==================== LOOT DISPLAY ==================== */
+.loot-display {
+    margin-top: var(--spacing-lg);
+}
+
+.loot-header {
+    font-family: var(--font-heading);
+    margin-bottom: var(--spacing-md);
+}
+
+.loot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.loot-item {
+    padding: var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm);
+    text-align: center;
+}
+
+.loot-item.new {
+    animation: lootGlow 1s ease-out;
+}
+
+@keyframes lootGlow {
+    0% { box-shadow: 0 0 20px var(--color-gold); }
+    100% { box-shadow: none; }
+}
+
+/* ==================== LOADING STATES ==================== */
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--color-parchment-dark);
+    border-top-color: var(--color-ink);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ==================== SKILL DETAILS ==================== */
+.skill-detail {
+    padding: var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.skill-name {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.skill-rank {
+    font-size: 0.8rem;
+    color: var(--color-ink-faded);
+}
+
+.skill-description {
+    font-style: italic;
+    color: var(--color-ink-faded);
+    margin: var(--spacing-sm) 0;
+}
+
+.skill-scaling {
+    font-size: 0.85rem;
+}
