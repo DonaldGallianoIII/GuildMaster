@@ -99,9 +99,9 @@ const CONFIG = {
         },
         // Expiration timer per bracket (how long quest stays on board)
         EXPIRATION: {
-            novice: 10 * 60 * 1000,      // 10 min
-            journeyman: 15 * 60 * 1000,  // 15 min
-            expert: 20 * 60 * 1000,      // 20 min
+            novice: 24 * 60 * 60 * 1000,      // 24 hours
+            journeyman: 24 * 60 * 60 * 1000,  // 24 hours
+            expert: 24 * 60 * 60 * 1000,      // 24 hours
         },
         // Recommended level ranges per bracket
         LEVEL_RANGE: {
