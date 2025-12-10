@@ -33,15 +33,9 @@ const NotificationSystem = {
     },
 
     /**
-     * Create the notification bell UI in the header
+     * Create the notification bell UI (fixed bottom-right)
      */
     _createBellUI() {
-        const header = document.querySelector('.main-header') || document.querySelector('header');
-        if (!header) {
-            Utils.error('Could not find header for notification bell');
-            return;
-        }
-
         // Check if bell already exists
         if (document.getElementById('notification-bell')) return;
 
@@ -53,7 +47,7 @@ const NotificationSystem = {
 
         bellContainer.innerHTML = `
             <button class="bell-button" title="Notifications">
-                <span class="bell-icon">🔔</span>
+                <span class="bell-icon"></span>
                 <span class="unread-badge hidden">0</span>
             </button>
             <div class="notification-dropdown hidden">
@@ -67,13 +61,8 @@ const NotificationSystem = {
             </div>
         `;
 
-        // Insert before the player info or at the end of header
-        const playerInfo = header.querySelector('.player-info');
-        if (playerInfo) {
-            header.insertBefore(bellContainer, playerInfo);
-        } else {
-            header.appendChild(bellContainer);
-        }
+        // Append to body for fixed positioning
+        document.body.appendChild(bellContainer);
 
         // Bind events
         const bellButton = bellContainer.querySelector('.bell-button');
