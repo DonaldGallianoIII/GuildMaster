@@ -90,10 +90,8 @@ const GameState = {
         // Generate quest board
         this.refreshQuestBoard();
 
-        // Generate initial recruits if none
-        if (this._state.recruits.length === 0) {
-            this.generateRecruits();
-        }
+        // Load recruits from localStorage (persists between refreshes)
+        this.loadRecruits();
 
         this.emit('dataLoaded');
         Utils.log('Player data loaded', this._state);
@@ -215,10 +213,11 @@ const GameState = {
         // Add to state
         this._state.heroes.push(hero);
 
-        // Remove from recruits
+        // Remove from recruits and save
         this._state.recruits = this._state.recruits.filter(
             r => r.id !== recruitData.id
         );
+        this.saveRecruits();
 
         this.emit('heroHired', { hero });
         Utils.toast(`${hero.name} has joined your guild!`, 'success');
@@ -263,7 +262,48 @@ const GameState = {
     // ==================== RECRUITMENT ====================
 
     /**
-     * Generate new recruits for the tavern
+     * Load recruits from localStorage
+     */
+    loadRecruits() {
+        const userId = this._state.player?.id;
+        if (!userId) {
+            this.generateRecruits();
+            return;
+        }
+
+        const storageKey = `guildmaster_recruits_${userId}`;
+        const saved = localStorage.getItem(storageKey);
+
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                // Convert plain objects back to Hero instances
+                this._state.recruits = data.map(r => new Hero(r));
+                Utils.log('Loaded recruits from localStorage:', this._state.recruits.length);
+                this.emit('recruitsRefreshed');
+            } catch (e) {
+                Utils.error('Failed to load recruits from localStorage:', e);
+                this.generateRecruits();
+            }
+        } else {
+            // First time - generate new recruits
+            this.generateRecruits();
+        }
+    },
+
+    /**
+     * Save recruits to localStorage
+     */
+    saveRecruits() {
+        const userId = this._state.player?.id;
+        if (!userId) return;
+
+        const storageKey = `guildmaster_recruits_${userId}`;
+        localStorage.setItem(storageKey, JSON.stringify(this._state.recruits));
+    },
+
+    /**
+     * Generate new recruits (costs gold except first time)
      */
     generateRecruits() {
         this._state.recruits = [];
@@ -272,6 +312,9 @@ const GameState = {
             const recruit = this.generateRecruit();
             this._state.recruits.push(recruit);
         }
+
+        // Save to localStorage
+        this.saveRecruits();
 
         this.emit('recruitsRefreshed');
     },
@@ -356,8 +399,11 @@ const GameState = {
             return null;
         }
 
-        // Start quest
-        quest.start(heroId);
+        // Pre-run combat simulation (result is predetermined but revealed over time)
+        const combatResults = CombatEngine.runQuest(hero, quest);
+
+        // Start quest with pre-calculated combat events
+        quest.start(heroId, combatResults);
         hero.startQuest(quest.id);
 
         // Save to database

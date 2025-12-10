@@ -437,8 +437,9 @@ class Quest {
     /**
      * Start the quest with a hero
      * @param {string} heroId
+     * @param {Object} combatResults - Pre-calculated combat results (optional)
      */
-    start(heroId) {
+    start(heroId, combatResults = null) {
         this.heroId = heroId;
         this.status = QuestStatus.ACTIVE;
         this.startedAt = Utils.now();
@@ -446,14 +447,98 @@ class Quest {
         this.currentEncounter = 0;
         this.totalEncounters = this.encounters.length;
 
-        // Generate event timeline for peek system
-        this.generateEvents();
+        // Store pre-calculated combat results
+        this.combatResults = combatResults;
+
+        // Generate event timeline for peek system (using actual combat if available)
+        if (combatResults && combatResults.encounters) {
+            this.generateEventsFromCombat(combatResults);
+        } else {
+            this.generateEvents();
+        }
 
         Utils.log(`Quest started: ${this.name}`);
     }
 
     /**
-     * Generate timeline of events for peek system
+     * Generate timeline of events from actual combat results
+     * Shows real combat actions instead of placeholders
+     */
+    generateEventsFromCombat(combatResults) {
+        const events = [];
+        const encounterDuration = this.duration / this.totalEncounters;
+
+        for (let i = 0; i < combatResults.encounters.length; i++) {
+            const encResult = combatResults.encounters[i];
+            const combatData = encResult.result;
+            const encounterStart = i * encounterDuration;
+
+            // Encounter start event
+            events.push({
+                time: encounterStart,
+                type: 'encounter_start',
+                data: {
+                    encounterIndex: i,
+                    mobs: this.encounters[i]?.mobs.map(mobId => MOB_DEFINITIONS[mobId]?.name || mobId) || [],
+                },
+            });
+
+            // Add actual combat actions as events
+            if (combatData && combatData.rounds) {
+                const roundDuration = (encounterDuration - 200) / Math.max(combatData.rounds.length, 1);
+
+                for (let r = 0; r < combatData.rounds.length; r++) {
+                    const round = combatData.rounds[r];
+                    const roundTime = encounterStart + (r * roundDuration) + 100;
+
+                    for (const action of round.actions) {
+                        events.push({
+                            time: roundTime + (Math.random() * roundDuration * 0.3),
+                            type: 'combat_action',
+                            data: {
+                                encounterIndex: i,
+                                description: action.description,
+                                damage: action.damage,
+                                healing: action.healing,
+                                killed: action.killed,
+                                actorName: action.actorName,
+                                targetName: action.targetName,
+                                actorIsHero: action.actorIsHero,
+                            },
+                        });
+                    }
+                }
+            }
+
+            // Encounter end event
+            events.push({
+                time: encounterStart + encounterDuration - 50,
+                type: 'encounter_end',
+                data: {
+                    encounterIndex: i,
+                    victory: combatData?.victory ?? true,
+                    loot: i === combatResults.encounters.length - 1 && combatResults.loot?.length > 0,
+                },
+            });
+        }
+
+        // Quest complete event
+        events.push({
+            time: this.duration,
+            type: 'quest_complete',
+            data: {
+                success: combatResults.success,
+                totalGold: combatResults.totalGold,
+                totalXp: combatResults.totalXp,
+                lootCount: combatResults.loot?.length || 0,
+            },
+        });
+
+        this.events = events.sort((a, b) => a.time - b.time);
+    }
+
+    /**
+     * Generate timeline of placeholder events for peek system (fallback)
      * Events are pre-calculated so they can be revealed over time
      */
     generateEvents() {
