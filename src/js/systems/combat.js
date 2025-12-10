@@ -499,7 +499,7 @@ const CombatEngine = {
             killed: primaryKilled,
             isAoE: isAoE || isCleave,
             aoeDamage: aoeDamage,
-            description: this.describeAction(actor, target, skillDef, damage, primaryKilled, isCritical, isAoE || isCleave, aoeDamage),
+            description: this.describeAction(actor, target, skillDef, damage, primaryKilled, isCritical, isAoE || isCleave, aoeDamage, healing),
         });
     },
 
@@ -832,9 +832,10 @@ const CombatEngine = {
     /**
      * Generate action description text
      */
-    describeAction(actor, target, skillDef, damage, killed, isCritical, isAoE = false, aoeDamage = []) {
+    describeAction(actor, target, skillDef, damage, killed, isCritical, isAoE = false, aoeDamage = [], healing = 0) {
         const critText = isCritical ? ' CRITICAL!' : '';
         const skillName = skillDef?.name || 'attacks';
+        const healText = healing > 0 ? ` Leeches ${healing} HP!` : '';
 
         // AoE/cleave attack description
         if (isAoE && aoeDamage.length > 0) {
@@ -843,12 +844,12 @@ const CombatEngine = {
             const killText = kills.length > 0 ? ` ${kills.join(', ')} slain!` : '';
             const targetNames = aoeDamage.map(d => d.targetName).join(', ');
 
-            return `${actor.name} uses ${skillName} hitting ${targetNames} for ${totalDamage} total damage!${critText}${killText}`;
+            return `${actor.name} uses ${skillName} hitting ${targetNames} for ${totalDamage} total damage!${critText}${killText}${healText}`;
         }
 
         // Single target attack
         const killText = killed ? ` ${target.name} is slain!` : '';
-        return `${actor.name} ${skillName} ${target.name} for ${damage} damage!${critText}${killText}`;
+        return `${actor.name} ${skillName} ${target.name} for ${damage} damage!${critText}${killText}${healText}`;
     },
 
     /**
