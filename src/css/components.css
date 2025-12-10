@@ -398,6 +398,11 @@
 }
 
 /* ==================== QUEST TIER ACCORDION ==================== */
+/* Override parent grid layout to allow full-width tier bars */
+.quest-board:has(.quest-tier-accordion) {
+    display: block;
+}
+
 .quest-tier-accordion {
     display: flex;
     flex-direction: column;
@@ -466,8 +471,7 @@
 
 .tier-bar.expanded .tier-quest-carousel {
     max-height: 500px;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: visible;
 }
 
 /* Carousel Track (horizontal scroll) */
@@ -475,18 +479,20 @@
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    gap: var(--spacing-md);
+    align-items: stretch;
+    gap: 1rem;
     padding: var(--spacing-md);
     overflow-x: auto;
     overflow-y: hidden;
-    min-width: 100%;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Quest Cards in Carousel */
 .carousel-card {
-    flex: 0 0 280px;
-    min-width: 280px;
-    max-width: 280px;
+    flex: 0 0 300px;
+    flex-shrink: 0;
+    min-width: 300px;
+    width: 300px;
     border: 2px solid var(--color-leather);
     background: #fff;
     box-shadow: var(--shadow-sm);
