@@ -228,9 +228,16 @@ const Modals = {
     /**
      * Show hero detail modal
      */
-    showHeroDetail(hero) {
+    async showHeroDetail(hero) {
         const modal = document.getElementById('hero-modal');
         const content = modal.querySelector('.modal-content');
+
+        // Get equipped items for this hero
+        const equippedItems = await DB.items.getEquipped(hero.id);
+        const equippedBySlot = {};
+        for (const item of equippedItems) {
+            equippedBySlot[item.slot] = item;
+        }
 
         content.innerHTML = `
             <div class="modal-header">
@@ -252,6 +259,11 @@ const Modals = {
                 <h4 style="margin-top: 1rem;">Stats (BST: ${hero.bst})</h4>
                 ${UI.createStatDisplay(hero.stats).outerHTML}
 
+                <h4 style="margin-top: 1rem;">Equipment</h4>
+                <div class="equipment-grid">
+                    ${this._createEquipmentSlots(hero, equippedBySlot)}
+                </div>
+
                 <h4 style="margin-top: 1rem;">Skills</h4>
                 <div class="skills-detail">
                     ${hero.skills.map(s => this._createSkillDetail(s)).join('')}
@@ -262,7 +274,146 @@ const Modals = {
             </div>
         `;
 
+        // Bind equipment slot click handlers
+        content.querySelectorAll('.equipment-slot').forEach(slot => {
+            slot.addEventListener('click', () => this._handleEquipmentSlotClick(hero, slot.dataset.slot, equippedBySlot));
+        });
+
         this.show('hero-modal');
+    },
+
+    /**
+     * Create equipment slots HTML
+     */
+    _createEquipmentSlots(hero, equippedBySlot) {
+        const slots = [
+            { key: 'weapon', label: 'Weapon', icon: '⚔️' },
+            { key: 'helmet', label: 'Head', icon: '⛑️' },
+            { key: 'chest', label: 'Chest', icon: '🥋' },
+            { key: 'gloves', label: 'Hands', icon: '🧤' },
+            { key: 'boots', label: 'Feet', icon: '👢' },
+            { key: 'amulet', label: 'Amulet', icon: '📿' },
+            { key: 'ring1', label: 'Ring 1', icon: '💍' },
+            { key: 'ring2', label: 'Ring 2', icon: '💍' },
+        ];
+
+        return slots.map(slot => {
+            const item = equippedBySlot[slot.key];
+            if (item) {
+                // Equipped item
+                const rarityClass = UI.getRarityClass(item.rarity);
+                const stats = item.totalStats;
+                const statsText = Object.entries(stats)
+                    .filter(([_, v]) => v !== 0)
+                    .map(([stat, value]) => `${value > 0 ? '+' : ''}${value} ${stat.toUpperCase()}`)
+                    .join(', ');
+
+                return `
+                    <div class="equipment-slot equipped ${rarityClass}" data-slot="${slot.key}" title="Click to unequip">
+                        <div class="slot-icon">${item.icon}</div>
+                        <div class="slot-info">
+                            <div class="slot-name">${item.displayName}</div>
+                            <div class="slot-stats">${statsText || 'No stats'}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Empty slot
+                return `
+                    <div class="equipment-slot empty" data-slot="${slot.key}" title="Click to equip from inventory">
+                        <div class="slot-icon">${slot.icon}</div>
+                        <div class="slot-info">
+                            <div class="slot-label">${slot.label}</div>
+                            <div class="slot-empty">Empty</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
+    },
+
+    /**
+     * Handle equipment slot click
+     */
+    async _handleEquipmentSlotClick(hero, slotKey, equippedBySlot) {
+        const equippedItem = equippedBySlot[slotKey];
+
+        if (equippedItem) {
+            // Unequip the item
+            await GameState.unequipItem(equippedItem.id);
+            Utils.toast(`${equippedItem.displayName} unequipped!`, 'info');
+            // Refresh modal
+            this.showHeroDetail(hero);
+        } else {
+            // Show inventory items that can go in this slot
+            this._showEquipFromInventory(hero, slotKey);
+        }
+    },
+
+    /**
+     * Show modal to equip item from inventory
+     */
+    _showEquipFromInventory(hero, slotKey) {
+        // Get inventory items that match this slot
+        const slotMatch = slotKey.replace(/\d/, ''); // ring1/ring2 -> ring
+        const availableItems = GameState.inventory.filter(item => {
+            if (slotKey === 'ring1' || slotKey === 'ring2') {
+                return item.slot === 'ring1' || item.slot === 'ring2';
+            }
+            return item.slot === slotKey;
+        });
+
+        if (availableItems.length === 0) {
+            Utils.toast(`No ${slotKey} items in inventory!`, 'warning');
+            return;
+        }
+
+        const modal = document.getElementById('hero-modal');
+        const content = modal.querySelector('.modal-content');
+
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>Equip ${Utils.capitalize(slotKey)} for ${hero.name}</h2>
+                <button class="modal-close" onclick="Modals.showHeroDetail(GameState.getHero('${hero.id}'))">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="inventory-equip-list">
+                    ${availableItems.map(item => {
+                        const rarityClass = UI.getRarityClass(item.rarity);
+                        const stats = item.totalStats;
+                        const statsText = Object.entries(stats)
+                            .filter(([_, v]) => v !== 0)
+                            .map(([stat, value]) => `${value > 0 ? '+' : ''}${value} ${stat.toUpperCase()}`)
+                            .join(', ');
+
+                        return `
+                            <div class="inventory-item ${rarityClass}" data-item-id="${item.id}">
+                                <div class="item-icon">${item.icon}</div>
+                                <div class="item-info">
+                                    <div class="item-name">${item.displayName}</div>
+                                    <div class="item-stats">${statsText || 'No stats'}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Modals.showHeroDetail(GameState.getHero('${hero.id}'))">Back</button>
+            </div>
+        `;
+
+        // Bind click handlers for inventory items
+        content.querySelectorAll('.inventory-item').forEach(itemEl => {
+            itemEl.addEventListener('click', async () => {
+                const itemId = itemEl.dataset.itemId;
+                await GameState.equipItem(itemId, hero.id);
+                const item = GameState.inventory.find(i => i.id === itemId) || { displayName: 'Item' };
+                Utils.toast(`Equipped ${item.displayName || 'item'}!`, 'success');
+                // Refresh to show updated equipment
+                this.showHeroDetail(hero);
+            });
+        });
     },
 
     /**
@@ -394,6 +545,15 @@ const Modals = {
         }
 
         const updateLog = () => {
+            // Guard: if quest was cleaned up, stop updating
+            if (!this._seenLogEvents[quest.id]) {
+                if (this._combatLogInterval) {
+                    clearInterval(this._combatLogInterval);
+                    this._combatLogInterval = null;
+                }
+                return;
+            }
+
             const currentEvents = quest.getCurrentEvents();
             const progress = quest.progressPercent;
 
