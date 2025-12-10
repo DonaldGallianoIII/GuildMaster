@@ -254,6 +254,17 @@ const CONFIG = {
     },
 
     /**
+     * SELL PRICES (gold per item rarity)
+     */
+    SELL_PRICES: {
+        common: 10,
+        magic: 30,
+        rare: 100,
+        unique: 300,
+        heirloom: 500,
+    },
+
+    /**
      * UI SETTINGS
      */
     UI: {
@@ -293,4 +304,5 @@ Object.freeze(CONFIG.FREE_HIT);
 Object.freeze(CONFIG.INHERITANCE);
 Object.freeze(CONFIG.ALIGNMENT);
 Object.freeze(CONFIG.SUMMONS);
+Object.freeze(CONFIG.SELL_PRICES);
 Object.freeze(CONFIG.UI);

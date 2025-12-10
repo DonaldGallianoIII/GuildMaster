@@ -22,6 +22,7 @@ const InventorySystem = {
         GameState.on('itemEquipped', () => this.render());
         GameState.on('itemUnequipped', () => this.render());
         GameState.on('questCompleted', () => this.render());
+        GameState.on('itemSold', () => this.render());
     },
 
     /**
@@ -187,12 +188,21 @@ const InventorySystem = {
 
         card.appendChild(body);
 
-        // Footer with equip button
+        // Footer with equip and sell buttons
         const footer = Utils.createElement('div', { className: 'card-footer' });
         const equipBtn = UI.createButton('Equip', 'primary', () => {
             this.showEquipModal(item);
         });
         footer.appendChild(equipBtn);
+
+        const sellPrice = GameState.getSellPrice(item);
+        const sellBtn = UI.createButton(`Sell (${sellPrice}g)`, 'secondary', async () => {
+            if (confirm(`Sell ${item.displayName} for ${sellPrice}g?`)) {
+                await GameState.sellItem(item.id);
+                this.render();
+            }
+        });
+        footer.appendChild(sellBtn);
         card.appendChild(footer);
 
         return card;

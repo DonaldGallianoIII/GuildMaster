@@ -389,9 +389,25 @@ const Modals = {
                 </div>
             </div>
             <div class="modal-footer">
+                <button class="btn btn-danger" id="dismiss-hero-btn" ${hero.state === HeroState.ON_QUEST ? 'disabled' : ''}>Dismiss Hero</button>
                 <button class="btn btn-secondary" onclick="Modals.hide('hero-modal')">Close</button>
             </div>
         `;
+
+        // Bind dismiss hero button
+        const dismissBtn = content.querySelector('#dismiss-hero-btn');
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', async () => {
+                if (hero.state === HeroState.ON_QUEST) {
+                    Utils.toast(`${hero.name} is on a quest! Wait for them to return.`, 'warning');
+                    return;
+                }
+                if (confirm(`Are you sure you want to dismiss ${hero.name}? Their equipment will be returned to your inventory.`)) {
+                    await GameState.fireHero(hero.id);
+                    this.hide('hero-modal');
+                }
+            });
+        }
 
         // Bind equipment slot click handlers
         content.querySelectorAll('.equipment-slot').forEach(slot => {
@@ -424,9 +440,12 @@ const Modals = {
             });
         }
 
-        // Bind inventory item click handlers
+        // Bind inventory item click handlers (for equipping)
         content.querySelectorAll('.inventory-item-row').forEach(itemEl => {
-            itemEl.addEventListener('click', async () => {
+            itemEl.addEventListener('click', async (e) => {
+                // Don't equip if clicking the sell button
+                if (e.target.closest('.item-sell-btn')) return;
+
                 if (hero.state === HeroState.ON_QUEST) {
                     Utils.toast(`${hero.name} is on a quest! Equipment is locked.`, 'warning');
                     return;
@@ -448,6 +467,21 @@ const Modals = {
                     }
                     await GameState.equipItem(itemId, hero.id, targetSlot);
                     Utils.toast(`Equipped ${item.displayName}!`, 'success');
+                    this.showHeroDetail(hero);
+                }
+            });
+        });
+
+        // Bind sell button click handlers
+        content.querySelectorAll('.item-sell-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const itemId = btn.dataset.itemId;
+                const itemName = btn.dataset.itemName;
+                const sellPrice = btn.dataset.sellPrice;
+
+                if (confirm(`Sell ${itemName} for ${sellPrice}g?`)) {
+                    await GameState.sellItem(itemId);
                     this.showHeroDetail(hero);
                 }
             });
@@ -490,6 +524,7 @@ const Modals = {
                 .map(([stat, value]) => `${value > 0 ? '+' : ''}${value} ${stat.toUpperCase()}`)
                 .join(', ');
             const power = Math.round(this._getItemPower(item));
+            const sellPrice = GameState.getSellPrice(item);
 
             return `
                 <div class="inventory-item-row ${rarityClass}" data-item-id="${item.id}" title="Click to equip">
@@ -498,6 +533,7 @@ const Modals = {
                     <span class="item-slot">${Utils.capitalize(item.slot.replace(/\d/, ''))}</span>
                     <span class="item-stats">${statsText || 'No stats'}</span>
                     <span class="item-power">${power} pwr</span>
+                    <button class="item-sell-btn" data-item-id="${item.id}" data-item-name="${item.displayName}" data-sell-price="${sellPrice}" title="Sell for ${sellPrice}g">💰 ${sellPrice}g</button>
                 </div>
             `;
         }).join('');
