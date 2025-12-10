@@ -4,6 +4,8 @@
  * ============================================
  * Manages farming, fishing, shop, crafting,
  * consumables inventory, and passive healing
+ *
+ * All data is stored in Supabase for security
  * ============================================
  */
 
@@ -13,6 +15,7 @@ const GuildHallSystem = {
     _consumables: [], // Player's consumable inventory
     _farmPlots: [],   // Player's farm plots
     _updateInterval: null,
+    _loading: false,
 
     // Configuration
     config: {
@@ -25,13 +28,13 @@ const GuildHallSystem = {
 
     // ==================== INITIALIZATION ====================
 
-    init() {
+    async init() {
         if (this._initialized) return;
 
         Utils.log('Initializing Guild Hall system...');
 
-        // Load consumables and farm data
-        this.loadData();
+        // Load consumables and farm data from database
+        await this.loadData();
 
         // Start passive healing and farm update timer
         this._updateInterval = setInterval(() => {
@@ -42,90 +45,91 @@ const GuildHallSystem = {
     },
 
     /**
-     * Load consumables and farm data from localStorage
+     * Load consumables and farm data from database
      */
-    loadData() {
+    async loadData() {
         const userId = GameState.player?.id;
         if (!userId) return;
 
-        // Load consumables
-        const consumablesKey = `guildmaster_consumables_${userId}`;
-        const savedConsumables = localStorage.getItem(consumablesKey);
-        if (savedConsumables) {
-            try {
-                const data = JSON.parse(savedConsumables);
-                this._consumables = data.map(c => new Consumable(c));
-            } catch (e) {
-                Utils.error('Failed to load consumables:', e);
-                this._consumables = [];
+        this._loading = true;
+
+        try {
+            // Load consumables from database
+            const consumables = await DB.consumables.getAll(userId);
+            this._consumables = consumables;
+
+            // If no consumables, give starter items
+            if (this._consumables.length === 0) {
+                await this.giveStarterItems();
             }
-        } else {
-            // First time - give starter items
-            this.giveStarterItems();
+
+            // Load farm plots from database
+            const plots = await DB.farmPlots.getAll(userId);
+
+            if (plots.length === 0) {
+                // First time - create starter plots
+                await this.initFarmPlots();
+            } else {
+                this._farmPlots = plots;
+            }
+
+            Utils.log('Guild Hall data loaded from database');
+        } catch (e) {
+            Utils.error('Failed to load Guild Hall data:', e);
         }
 
-        // Load farm plots
-        const plotsKey = `guildmaster_farmplots_${userId}`;
-        const savedPlots = localStorage.getItem(plotsKey);
-        if (savedPlots) {
-            try {
-                const data = JSON.parse(savedPlots);
-                this._farmPlots = data.map(p => new FarmPlot(p));
-            } catch (e) {
-                Utils.error('Failed to load farm plots:', e);
-                this.initFarmPlots();
-            }
-        } else {
-            this.initFarmPlots();
-        }
+        this._loading = false;
     },
 
     /**
      * Give new players some starter items
      */
-    giveStarterItems() {
-        this.addConsumable('wheat_seeds', 5);
-        this.addConsumable('bread', 2);
+    async giveStarterItems() {
+        await this.addConsumable('wheat_seeds', 5);
+        await this.addConsumable('bread', 2);
         Utils.log('Gave starter items to new player');
     },
 
     /**
      * Initialize farm plots for new player
      */
-    initFarmPlots() {
+    async initFarmPlots() {
         const userId = GameState.player?.id;
         this._farmPlots = [];
 
         for (let i = 0; i < this.config.STARTING_PLOTS; i++) {
-            this._farmPlots.push(new FarmPlot({
+            const plot = new FarmPlot({
                 userId,
                 plotIndex: i,
-            }));
+            });
+            this._farmPlots.push(plot);
         }
 
-        this.savePlots();
+        await this.savePlots();
     },
 
     /**
-     * Save consumables to localStorage
+     * Save a single consumable to database
      */
-    saveConsumables() {
-        const userId = GameState.player?.id;
-        if (!userId) return;
-
-        const key = `guildmaster_consumables_${userId}`;
-        localStorage.setItem(key, JSON.stringify(this._consumables));
+    async saveConsumable(consumable) {
+        if (!consumable) return;
+        await DB.consumables.save(consumable);
     },
 
     /**
-     * Save farm plots to localStorage
+     * Save all farm plots to database
      */
-    savePlots() {
-        const userId = GameState.player?.id;
-        if (!userId) return;
+    async savePlots() {
+        if (this._farmPlots.length === 0) return;
+        await DB.farmPlots.saveAll(this._farmPlots);
+    },
 
-        const key = `guildmaster_farmplots_${userId}`;
-        localStorage.setItem(key, JSON.stringify(this._farmPlots));
+    /**
+     * Save a single farm plot to database
+     */
+    async savePlot(plot) {
+        if (!plot) return;
+        await DB.farmPlots.save(plot);
     },
 
     // ==================== UPDATE LOOP ====================
@@ -134,8 +138,10 @@ const GuildHallSystem = {
      * Main update loop - handles passive healing and farm growth
      */
     async update() {
+        if (this._loading) return;
+
         // Update farm plots
-        this.updateFarmPlots();
+        await this.updateFarmPlots();
 
         // Process passive healing for idle heroes
         await this.processPassiveHealing();
@@ -144,7 +150,7 @@ const GuildHallSystem = {
     /**
      * Update farm plot states
      */
-    updateFarmPlots() {
+    async updateFarmPlots() {
         let changed = false;
 
         for (const plot of this._farmPlots) {
@@ -155,7 +161,7 @@ const GuildHallSystem = {
         }
 
         if (changed) {
-            this.savePlots();
+            await this.savePlots();
             GameState.emit('farmUpdated');
         }
     },
@@ -206,7 +212,7 @@ const GuildHallSystem = {
     /**
      * Add consumable to inventory
      */
-    addConsumable(itemId, count = 1) {
+    async addConsumable(itemId, count = 1) {
         let stack = this.getConsumable(itemId);
 
         if (stack) {
@@ -220,7 +226,7 @@ const GuildHallSystem = {
             this._consumables.push(stack);
         }
 
-        this.saveConsumables();
+        await this.saveConsumable(stack);
         GameState.emit('consumablesChanged');
         return stack;
     },
@@ -229,7 +235,7 @@ const GuildHallSystem = {
      * Remove consumable from inventory
      * @returns {boolean} Success
      */
-    removeConsumable(itemId, count = 1) {
+    async removeConsumable(itemId, count = 1) {
         const stack = this.getConsumable(itemId);
         if (!stack || stack.count < count) {
             return false;
@@ -240,9 +246,11 @@ const GuildHallSystem = {
         // Remove empty stacks
         if (stack.count <= 0) {
             this._consumables = this._consumables.filter(c => c.itemId !== itemId);
+            await DB.consumables.delete(stack.id);
+        } else {
+            await this.saveConsumable(stack);
         }
 
-        this.saveConsumables();
         GameState.emit('consumablesChanged');
         return true;
     },
@@ -263,7 +271,7 @@ const GuildHallSystem = {
     /**
      * Plant a seed in a plot
      */
-    plantSeed(plotIndex, seedId) {
+    async plantSeed(plotIndex, seedId) {
         const plot = this._farmPlots[plotIndex];
         if (!plot) {
             Utils.toast('Invalid plot!', 'error');
@@ -283,8 +291,8 @@ const GuildHallSystem = {
 
         // Plant the seed
         if (plot.plant(seedId)) {
-            this.removeConsumable(seedId, 1);
-            this.savePlots();
+            await this.removeConsumable(seedId, 1);
+            await this.savePlot(plot);
             GameState.emit('farmUpdated');
 
             const seedData = ConsumableData[seedId];
@@ -298,7 +306,7 @@ const GuildHallSystem = {
     /**
      * Harvest a ready plot
      */
-    harvestPlot(plotIndex) {
+    async harvestPlot(plotIndex) {
         const plot = this._farmPlots[plotIndex];
         if (!plot) {
             Utils.toast('Invalid plot!', 'error');
@@ -317,14 +325,14 @@ const GuildHallSystem = {
         }
 
         // Add harvested crops
-        this.addConsumable(result.crop, result.count);
+        await this.addConsumable(result.crop, result.count);
 
         // Add returned seed if any
         if (result.seedReturned && result.seedId) {
-            this.addConsumable(result.seedId, 1);
+            await this.addConsumable(result.seedId, 1);
         }
 
-        this.savePlots();
+        await this.savePlot(plot);
         GameState.emit('farmUpdated');
 
         const cropData = ConsumableData[result.crop];
@@ -343,7 +351,7 @@ const GuildHallSystem = {
      * Go fishing (instant for now, can add timer later)
      * @returns {Object} { itemId, name, icon } or null
      */
-    goFishing() {
+    async goFishing() {
         // Roll for catch
         const totalWeight = FishingData.catches.reduce((sum, c) => sum + c.weight, 0);
         let roll = Math.random() * totalWeight;
@@ -362,7 +370,7 @@ const GuildHallSystem = {
         }
 
         // Add to inventory
-        this.addConsumable(caught, 1);
+        await this.addConsumable(caught, 1);
 
         const fishData = ConsumableData[caught];
         Utils.toast(`Caught a ${fishData?.name || 'fish'}! ${fishData?.icon || '🐟'}`, 'success');
@@ -410,7 +418,7 @@ const GuildHallSystem = {
             return false;
         }
 
-        this.addConsumable(itemId, count);
+        await this.addConsumable(itemId, count);
         Utils.toast(`Bought ${count}x ${data.name}!`, 'success');
         return true;
     },
@@ -431,7 +439,7 @@ const GuildHallSystem = {
         }
 
         const totalValue = (data.sellPrice || 1) * count;
-        this.removeConsumable(itemId, count);
+        await this.removeConsumable(itemId, count);
         await GameState.addGold(totalValue);
 
         Utils.toast(`Sold ${count}x ${data.name} for ${totalValue}g!`, 'success');
@@ -466,7 +474,7 @@ const GuildHallSystem = {
     /**
      * Craft an item
      */
-    craft(recipeId) {
+    async craft(recipeId) {
         const recipe = CraftingRecipes[recipeId];
         if (!recipe) {
             Utils.toast('Invalid recipe!', 'error');
@@ -480,11 +488,11 @@ const GuildHallSystem = {
 
         // Remove ingredients
         for (const ingredient of recipe.ingredients) {
-            this.removeConsumable(ingredient.itemId, ingredient.count);
+            await this.removeConsumable(ingredient.itemId, ingredient.count);
         }
 
         // Add result
-        this.addConsumable(recipe.result, recipe.resultCount);
+        await this.addConsumable(recipe.result, recipe.resultCount);
 
         const resultData = ConsumableData[recipe.result];
         Utils.toast(`Crafted ${recipe.resultCount}x ${resultData?.name || recipe.name}!`, 'success');
@@ -523,7 +531,7 @@ const GuildHallSystem = {
         const healAmount = stack.calcHealAmount(hero.maxHp);
 
         // Use the food
-        this.removeConsumable(itemId, 1);
+        await this.removeConsumable(itemId, 1);
 
         // Heal the hero
         const actualHealed = hero.heal(healAmount);
@@ -845,9 +853,9 @@ const GuildHallSystem = {
         });
 
         container.querySelectorAll('.farm-plot.empty').forEach(plot => {
-            plot.addEventListener('click', () => {
+            plot.addEventListener('click', async () => {
                 if (selectedSeed) {
-                    this.plantSeed(parseInt(plot.dataset.plot), selectedSeed);
+                    await this.plantSeed(parseInt(plot.dataset.plot), selectedSeed);
                     this.render();
                 } else {
                     Utils.toast('Select a seed first!', 'info');
@@ -857,16 +865,16 @@ const GuildHallSystem = {
 
         // Harvest buttons
         container.querySelectorAll('.harvest-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                this.harvestPlot(parseInt(btn.dataset.plot));
+                await this.harvestPlot(parseInt(btn.dataset.plot));
                 this.render();
             });
         });
 
         // Fishing
-        container.querySelector('.go-fishing-btn')?.addEventListener('click', () => {
-            this.goFishing();
+        container.querySelector('.go-fishing-btn')?.addEventListener('click', async () => {
+            await this.goFishing();
             this.render();
         });
 
@@ -880,8 +888,8 @@ const GuildHallSystem = {
 
         // Craft buttons
         container.querySelectorAll('.craft-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.craft(btn.dataset.recipe);
+            btn.addEventListener('click', async () => {
+                await this.craft(btn.dataset.recipe);
                 this.render();
             });
         });

@@ -179,13 +179,13 @@ const App = {
     /**
      * Initialize all game systems
      */
-    initSystems() {
+    async initSystems() {
         RecruitmentSystem.init();
         QuestSystem.init();
         InventorySystem.init();
         PeekSystem.init();
         DevPanel.init();
-        GuildHallSystem.init();
+        await GuildHallSystem.init();
     },
 
     // Update interval for hero cards showing quest progress
