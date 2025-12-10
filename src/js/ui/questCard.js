@@ -35,20 +35,29 @@ const QuestCard = {
         header.appendChild(headerContent);
         card.appendChild(header);
 
+        // Expiration timer bar
+        const expirationSection = Utils.createElement('div', { className: 'quest-expiration' });
+        const expirationTime = Utils.formatTime(quest.expirationTimeRemaining);
+        expirationSection.innerHTML = `
+            <span class="expiration-label">⏰ Expires in:</span>
+            <span class="expiration-time" data-quest-id="${quest.templateId}">${expirationTime}</span>
+        `;
+        card.appendChild(expirationSection);
+
         // Body
         const body = Utils.createElement('div', { className: 'card-body' });
 
         // Description
         body.innerHTML = `<p style="color: var(--color-ink-faded); font-style: italic;">${template.description}</p>`;
 
-        // Enemy preview
+        // Enemy preview (use quest.encounters which returns selectedEncounters)
         const enemies = Utils.createElement('div', { className: 'quest-enemies' });
         enemies.innerHTML = `<h4>Enemies</h4>`;
         const enemyList = Utils.createElement('div', { className: 'enemy-list' });
 
-        // Get unique enemies
+        // Get unique enemies from selected encounters
         const mobCounts = {};
-        for (const encounter of template.encounters) {
+        for (const encounter of quest.encounters) {
             for (const mobId of encounter.mobs) {
                 mobCounts[mobId] = (mobCounts[mobId] || 0) + 1;
             }
@@ -65,11 +74,12 @@ const QuestCard = {
         enemies.appendChild(enemyList);
         body.appendChild(enemies);
 
-        // Rewards preview
+        // Rewards preview (use quest.rewards which gets from CONFIG based on difficulty)
+        const questRewards = quest.rewards;
         const rewards = Utils.createElement('div', { className: 'quest-rewards' });
         rewards.innerHTML = `
-            <span>💰 ${template.rewards.gold.min}-${template.rewards.gold.max}g</span>
-            <span>✨ ${template.rewards.xp} XP</span>
+            <span>💰 ${questRewards.gold.min}-${questRewards.gold.max}g</span>
+            <span>✨ ${questRewards.xp} XP</span>
         `;
         body.appendChild(rewards);
 
