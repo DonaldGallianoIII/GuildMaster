@@ -896,9 +896,16 @@ const CombatEngine = {
             return results;
         }
 
+        // Use quest.encounters (selected variant) not template.encounters
+        const encounters = quest.encounters;
+        if (!encounters || encounters.length === 0) {
+            Utils.error('Quest has no encounters');
+            return results;
+        }
+
         // Run each encounter
-        for (let i = 0; i < template.encounters.length; i++) {
-            const encounter = template.encounters[i];
+        for (let i = 0; i < encounters.length; i++) {
+            const encounter = encounters[i];
 
             // Create mob instances scaled to hero level
             const mobs = encounter.mobs.map(mobId => Quests.createMobInstance(mobId, hero.level));
