@@ -482,11 +482,25 @@ const GameState = {
             return null;
         }
 
+        // Fetch equipped items and calculate gear bonuses for combat
+        let gearBonuses = {};
+        try {
+            const equippedItems = await DB.items.getEquipped(hero.id);
+            for (const item of equippedItems) {
+                const itemStats = item.totalStats;
+                for (const [stat, value] of Object.entries(itemStats)) {
+                    gearBonuses[stat] = (gearBonuses[stat] || 0) + value;
+                }
+            }
+        } catch (e) {
+            Utils.error('Failed to fetch gear bonuses:', e);
+        }
+
         // Save hero's starting HP before combat simulation
         const startingHp = hero.currentHp;
 
-        // Pre-run combat simulation (result is predetermined but revealed over time)
-        const combatResults = CombatEngine.runQuest(hero, quest);
+        // Pre-run combat simulation with gear bonuses (result is predetermined but revealed over time)
+        const combatResults = CombatEngine.runQuest(hero, quest, gearBonuses);
 
         // Store the final HP for later, but restore hero to starting HP
         // (HP will be revealed progressively during quest and applied at completion)
