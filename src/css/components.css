@@ -1426,8 +1426,8 @@
 }
 
 .sort-select option {
-    background: var(--color-leather-dark);
-    color: white;
+    background: white;
+    color: #000;
 }
 
 .inventory-accordion-content {
