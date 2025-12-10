@@ -138,6 +138,10 @@ const Utils = {
      * Format milliseconds to MM:SS
      */
     formatTime(ms) {
+        // Handle invalid values
+        if (!Number.isFinite(ms) || ms < 0) {
+            return '--:--';
+        }
         const totalSeconds = Math.floor(ms / 1000);
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
