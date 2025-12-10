@@ -6,6 +6,9 @@
  * ============================================
  */
 
+// Track render version outside frozen object to prevent race conditions
+let _heroCardRenderVersion = 0;
+
 const HeroCard = {
     /**
      * Create a hero card element
@@ -169,15 +172,12 @@ const HeroCard = {
         return card;
     },
 
-    // Track active render to prevent race conditions
-    _renderVersion: 0,
-
     /**
      * Render hero list to container (async to fetch equipment)
      */
     async renderList(container, heroes, options = {}) {
         // Increment version to invalidate any in-progress renders
-        const thisRenderVersion = ++this._renderVersion;
+        const thisRenderVersion = ++_heroCardRenderVersion;
 
         container.innerHTML = '';
 
@@ -209,7 +209,7 @@ const HeroCard = {
         }
 
         // Check if this render was superseded by a newer one
-        if (thisRenderVersion !== this._renderVersion) {
+        if (thisRenderVersion !== _heroCardRenderVersion) {
             return; // Abort - a newer render is in progress
         }
 
@@ -224,7 +224,7 @@ const HeroCard = {
         }
 
         // Final check before appending
-        if (thisRenderVersion !== this._renderVersion) {
+        if (thisRenderVersion !== _heroCardRenderVersion) {
             return; // Abort - a newer render started during quest lookup
         }
 
