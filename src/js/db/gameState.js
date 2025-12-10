@@ -60,21 +60,32 @@ const GameState = {
         Utils.log('Loading player data for:', userId);
 
         // Load in parallel
-        const [player, heroes, inventory, activeQuests] = await Promise.all([
+        let [player, heroes, inventory, activeQuests] = await Promise.all([
             DB.players.get(userId),
             DB.heroes.getAll(userId),
             DB.items.getInventory(userId),
             DB.quests.getActive(userId),
         ]);
 
-        this._state.player = player || {
-            id: userId,
-            gold: 500,
-            username: 'Adventurer',
-        };
-        this._state.heroes = heroes;
-        this._state.inventory = inventory;
-        this._state.activeQuests = activeQuests;
+        // If player doesn't exist in database, create them
+        if (!player) {
+            Utils.log('Player not found in database, creating profile...');
+            const user = await Auth.getUser();
+            const newPlayer = {
+                id: userId,
+                email: user?.email || 'unknown',
+                username: user?.user_metadata?.username || user?.email?.split('@')[0] || 'Adventurer',
+                gold: 500,
+            };
+            await DB.players.create(newPlayer);
+            player = newPlayer;
+            Utils.log('Player profile created:', player);
+        }
+
+        this._state.player = player;
+        this._state.heroes = heroes || [];
+        this._state.inventory = inventory || [];
+        this._state.activeQuests = activeQuests || [];
 
         // Generate quest board
         this.refreshQuestBoard();
