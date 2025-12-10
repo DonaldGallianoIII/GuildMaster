@@ -25,7 +25,9 @@ const GuildHallSystem = {
         PASSIVE_HEAL_INTERVAL: 5000, // Check every 5 seconds
         PASSIVE_HEAL_PERCENT: 0.04,  // 4% per minute
         PASSIVE_HEAL_TICK: 60,       // seconds between heals
+        FARM_UPDATE_INTERVAL: 1000,  // Update farm display every second
     },
+    _farmUpdateInterval: null,
 
     // ==================== INITIALIZATION ====================
 
@@ -41,6 +43,11 @@ const GuildHallSystem = {
         this._updateInterval = setInterval(() => {
             this.update();
         }, this.config.PASSIVE_HEAL_INTERVAL);
+
+        // Start farm display update timer (faster updates for smooth progress)
+        this._farmUpdateInterval = setInterval(() => {
+            this.updateFarmDisplay();
+        }, this.config.FARM_UPDATE_INTERVAL);
 
         this._initialized = true;
     },
@@ -164,6 +171,42 @@ const GuildHallSystem = {
         if (changed) {
             await this.savePlots();
             GameState.emit('farmUpdated');
+        }
+    },
+
+    /**
+     * Update farm display in real time (progress bars and timers)
+     * Called every second for smooth updates without full re-render
+     */
+    updateFarmDisplay() {
+        // Only update if we're on the farm tab
+        if (this._currentTab !== 'farm') return;
+
+        for (const plot of this._farmPlots) {
+            if (plot.state !== PlotState.GROWING) continue;
+
+            const plotEl = document.querySelector(`.farm-plot[data-plot="${plot.plotIndex}"]`);
+            if (!plotEl) continue;
+
+            // Update progress bar
+            const progressFill = plotEl.querySelector('.plot-progress-fill');
+            if (progressFill) {
+                progressFill.style.width = `${plot.growthProgress}%`;
+            }
+
+            // Update time remaining
+            const timeEl = plotEl.querySelector('.plot-time');
+            if (timeEl) {
+                const timeLeft = Math.ceil(plot.timeRemaining);
+                timeEl.textContent = Utils.formatTime(timeLeft * 1000);
+            }
+
+            // Check if just became ready (for immediate visual update)
+            if (plot.isReady && !plotEl.classList.contains('ready')) {
+                // Trigger re-render to show harvest button
+                this.render();
+                return; // Exit early since we re-rendered
+            }
         }
     },
 
