@@ -10,6 +10,49 @@ const Modals = {
     // Active modal reference
     _current: null,
 
+    // Inventory accordion state
+    _inventoryExpanded: false,
+    _inventorySort: 'slot', // 'slot', 'rarity', 'stats'
+
+    /**
+     * Calculate total stat power of an item (for comparison)
+     */
+    _getItemPower(item) {
+        if (!item) return 0;
+        const stats = item.totalStats;
+        // Weight stats: ATK and WILL are offensive, DEF is defensive, SPD is utility
+        return (stats.atk || 0) * 1.5 +
+               (stats.will || 0) * 1.5 +
+               (stats.def || 0) * 1.2 +
+               (stats.spd || 0) * 1.0 +
+               (stats.hp || 0) * 0.1;
+    },
+
+    /**
+     * Find best inventory item for a slot
+     */
+    _findBestUpgrade(slotKey, equippedItem, inventory) {
+        const equippedPower = this._getItemPower(equippedItem);
+        let bestItem = null;
+        let bestPower = equippedPower;
+
+        for (const item of inventory) {
+            // Check if item fits the slot (handle rings specially)
+            const fitsSlot = (slotKey === 'ring1' || slotKey === 'ring2')
+                ? (item.slot === 'ring1' || item.slot === 'ring2')
+                : item.slot === slotKey;
+
+            if (fitsSlot) {
+                const power = this._getItemPower(item);
+                if (power > bestPower) {
+                    bestPower = power;
+                    bestItem = item;
+                }
+            }
+        }
+        return bestItem;
+    },
+
     /**
      * Show a modal
      */
@@ -268,6 +311,9 @@ const Modals = {
             equippedBySlot[item.slot] = item;
         }
 
+        // Get inventory for upgrade comparison
+        const inventory = GameState.inventory || [];
+
         // Calculate equipment stat bonuses
         const equipmentBonuses = { atk: 0, will: 0, def: 0, spd: 0 };
         for (const item of equippedItems) {
@@ -304,7 +350,27 @@ const Modals = {
 
                 <h4 style="margin-top: 1rem;">Equipment ${hero.state === HeroState.ON_QUEST ? '<span class="equipment-locked-badge">🔒 Locked</span>' : ''}</h4>
                 <div class="equipment-grid ${hero.state === HeroState.ON_QUEST ? 'equipment-locked' : ''}">
-                    ${this._createEquipmentSlots(hero, equippedBySlot)}
+                    ${this._createEquipmentSlots(hero, equippedBySlot, inventory)}
+                </div>
+
+                <!-- Inventory Accordion -->
+                <div class="inventory-accordion">
+                    <div class="inventory-accordion-header" id="inventory-accordion-toggle">
+                        <h4>
+                            <span class="accordion-arrow">${this._inventoryExpanded ? '▼' : '▶'}</span>
+                            Inventory (${inventory.length} items)
+                        </h4>
+                        <div class="inventory-sort-controls">
+                            <select id="inventory-sort-select" class="sort-select">
+                                <option value="slot" ${this._inventorySort === 'slot' ? 'selected' : ''}>By Slot</option>
+                                <option value="rarity" ${this._inventorySort === 'rarity' ? 'selected' : ''}>By Rarity</option>
+                                <option value="stats" ${this._inventorySort === 'stats' ? 'selected' : ''}>By Power</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="inventory-accordion-content ${this._inventoryExpanded ? 'expanded' : ''}">
+                        ${this._createInventoryList(hero, inventory)}
+                    </div>
                 </div>
 
                 <h4 style="margin-top: 1rem;">Skills ${hero.skillPoints > 0 ? `<span class="skill-points-badge">${hero.skillPoints} points</span>` : ''}</h4>
@@ -322,6 +388,55 @@ const Modals = {
             slot.addEventListener('click', () => this._handleEquipmentSlotClick(hero, slot.dataset.slot, equippedBySlot));
         });
 
+        // Bind inventory accordion toggle
+        const accordionToggle = content.querySelector('#inventory-accordion-toggle');
+        if (accordionToggle) {
+            accordionToggle.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'SELECT') {
+                    this._inventoryExpanded = !this._inventoryExpanded;
+                    this.showHeroDetail(hero);
+                }
+            });
+        }
+
+        // Bind sort select
+        const sortSelect = content.querySelector('#inventory-sort-select');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', (e) => {
+                this._inventorySort = e.target.value;
+                this.showHeroDetail(hero);
+            });
+        }
+
+        // Bind inventory item click handlers
+        content.querySelectorAll('.inventory-item-row').forEach(itemEl => {
+            itemEl.addEventListener('click', async () => {
+                if (hero.state === HeroState.ON_QUEST) {
+                    Utils.toast(`${hero.name} is on a quest! Equipment is locked.`, 'warning');
+                    return;
+                }
+                const itemId = itemEl.dataset.itemId;
+                const item = inventory.find(i => i.id === itemId);
+                if (item) {
+                    // Determine target slot (use item.slot, or for rings pick the empty/weaker one)
+                    let targetSlot = item.slot;
+                    if (item.slot === 'ring1' || item.slot === 'ring2') {
+                        // Prefer empty slot, then weaker slot
+                        if (!equippedBySlot['ring1']) targetSlot = 'ring1';
+                        else if (!equippedBySlot['ring2']) targetSlot = 'ring2';
+                        else {
+                            const r1Power = this._getItemPower(equippedBySlot['ring1']);
+                            const r2Power = this._getItemPower(equippedBySlot['ring2']);
+                            targetSlot = r1Power <= r2Power ? 'ring1' : 'ring2';
+                        }
+                    }
+                    await GameState.equipItem(itemId, hero.id, targetSlot);
+                    Utils.toast(`Equipped ${item.displayName}!`, 'success');
+                    this.showHeroDetail(hero);
+                }
+            });
+        });
+
         // Bind skill upgrade handlers
         this._bindSkillUpgradeHandlers(hero);
 
@@ -329,9 +444,53 @@ const Modals = {
     },
 
     /**
-     * Create equipment slots HTML
+     * Create inventory list HTML for accordion
      */
-    _createEquipmentSlots(hero, equippedBySlot) {
+    _createInventoryList(hero, inventory) {
+        if (inventory.length === 0) {
+            return '<div class="inventory-empty">No items in inventory</div>';
+        }
+
+        // Sort inventory based on current sort
+        const sortedInventory = [...inventory].sort((a, b) => {
+            switch (this._inventorySort) {
+                case 'rarity':
+                    const rarityOrder = { common: 0, magic: 1, rare: 2, unique: 3, heirloom: 4 };
+                    return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
+                case 'stats':
+                    return this._getItemPower(b) - this._getItemPower(a);
+                case 'slot':
+                default:
+                    const slotOrder = { weapon: 0, helmet: 1, chest: 2, gloves: 3, boots: 4, amulet: 5, ring1: 6, ring2: 6 };
+                    return (slotOrder[a.slot] || 99) - (slotOrder[b.slot] || 99);
+            }
+        });
+
+        return sortedInventory.map(item => {
+            const rarityClass = UI.getRarityClass(item.rarity);
+            const stats = item.totalStats;
+            const statsText = Object.entries(stats)
+                .filter(([_, v]) => v !== 0)
+                .map(([stat, value]) => `${value > 0 ? '+' : ''}${value} ${stat.toUpperCase()}`)
+                .join(', ');
+            const power = Math.round(this._getItemPower(item));
+
+            return `
+                <div class="inventory-item-row ${rarityClass}" data-item-id="${item.id}" title="Click to equip">
+                    <span class="item-icon">${item.icon}</span>
+                    <span class="item-name">${item.displayName}</span>
+                    <span class="item-slot">${Utils.capitalize(item.slot.replace(/\d/, ''))}</span>
+                    <span class="item-stats">${statsText || 'No stats'}</span>
+                    <span class="item-power">${power} pwr</span>
+                </div>
+            `;
+        }).join('');
+    },
+
+    /**
+     * Create equipment slots HTML with upgrade indicators
+     */
+    _createEquipmentSlots(hero, equippedBySlot, inventory = []) {
         const slots = [
             { key: 'weapon', label: 'Weapon', icon: '⚔️' },
             { key: 'helmet', label: 'Head', icon: '⛑️' },
@@ -345,6 +504,10 @@ const Modals = {
 
         return slots.map(slot => {
             const item = equippedBySlot[slot.key];
+            // Check for upgrade in inventory
+            const upgrade = this._findBestUpgrade(slot.key, item, inventory);
+            const hasUpgrade = upgrade !== null;
+
             if (item) {
                 // Equipped item
                 const rarityClass = UI.getRarityClass(item.rarity);
@@ -355,7 +518,8 @@ const Modals = {
                     .join(', ');
 
                 return `
-                    <div class="equipment-slot equipped ${rarityClass}" data-slot="${slot.key}" title="Click to unequip">
+                    <div class="equipment-slot equipped ${rarityClass} ${hasUpgrade ? 'has-upgrade' : ''}" data-slot="${slot.key}" title="Click to unequip">
+                        ${hasUpgrade ? '<div class="upgrade-indicator" title="Better item in inventory!">▲</div>' : ''}
                         <div class="slot-icon">${item.icon}</div>
                         <div class="slot-info">
                             <div class="slot-name">${item.displayName}</div>
@@ -366,11 +530,12 @@ const Modals = {
             } else {
                 // Empty slot
                 return `
-                    <div class="equipment-slot empty" data-slot="${slot.key}" title="Click to equip from inventory">
+                    <div class="equipment-slot empty ${hasUpgrade ? 'has-upgrade' : ''}" data-slot="${slot.key}" title="Click to equip from inventory">
+                        ${hasUpgrade ? '<div class="upgrade-indicator" title="Item available in inventory!">▲</div>' : ''}
                         <div class="slot-icon">${slot.icon}</div>
                         <div class="slot-info">
                             <div class="slot-label">${slot.label}</div>
-                            <div class="slot-empty">Empty</div>
+                            <div class="slot-empty">${hasUpgrade ? 'Item available!' : 'Empty'}</div>
                         </div>
                     </div>
                 `;

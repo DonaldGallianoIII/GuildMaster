@@ -780,6 +780,8 @@ const GameState = {
             // Notify
             if (levelResult.leveled) {
                 Utils.toast(`${hero.name} leveled up to ${levelResult.newLevel}!`, 'success');
+                // Emit level up event to ensure UI refreshes
+                this.emit('heroLevelUp', { hero, newLevel: levelResult.newLevel });
             }
             Utils.toast(
                 `${hero.name} returned with ${results.totalGold}g and ${results.loot.length} items!`,
