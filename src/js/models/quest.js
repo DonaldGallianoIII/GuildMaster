@@ -399,15 +399,47 @@ class Quest {
     }
 
     /**
-     * Check if hero was defeated (pre-calculated combat showed failure)
-     * This allows showing failure immediately instead of waiting for timer
+     * Get the time (in ms from quest start) when the hero dies
+     * Returns null if hero doesn't die
      */
-    get heroDefeated() {
-        return this.combatResults && this.combatResults.success === false;
+    get heroDeathTime() {
+        if (!this.combatResults || this.combatResults.success !== false) {
+            return null;
+        }
+
+        // Find the last encounter that had combat (where hero died)
+        if (this.events && this.events.length > 0) {
+            // Look for encounter_end with victory: false to find when hero died
+            for (const event of this.events) {
+                if (event.type === 'encounter_end' && event.data.victory === false) {
+                    return event.time;
+                }
+            }
+        }
+
+        // Fallback: return full duration if we can't determine exact time
+        return this.duration;
     }
 
     /**
-     * Check if quest should be completed (either time is up OR hero died)
+     * Check if hero was defeated AND enough time has passed to reveal it
+     * This shows failure only when the quest timeline reaches the death moment
+     */
+    get heroDefeated() {
+        if (!this.combatResults || this.combatResults.success !== false) {
+            return false;
+        }
+
+        // Check if enough time has elapsed to reveal the death
+        const deathTime = this.heroDeathTime;
+        if (deathTime === null) return false;
+
+        const elapsed = Date.now() - new Date(this.startedAt).getTime();
+        return elapsed >= deathTime;
+    }
+
+    /**
+     * Check if quest should be completed (either time is up OR hero died AND time has passed)
      */
     get isReadyToComplete() {
         return this.isTimeComplete || this.heroDefeated;
