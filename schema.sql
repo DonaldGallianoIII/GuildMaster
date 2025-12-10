@@ -198,6 +198,35 @@ CREATE INDEX IF NOT EXISTS idx_market_seller ON market_listings(seller_id);
 CREATE INDEX IF NOT EXISTS idx_market_item ON market_listings(item_id);
 
 -- ============================================
+-- NOTIFICATIONS TABLE
+-- ============================================
+-- Persistent notification history for players
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES players(id) ON DELETE CASCADE,
+
+    -- Notification type: quest_complete, quest_failed, level_up, loot_drop, hero_died, etc.
+    type TEXT NOT NULL,
+
+    -- Title and message
+    title TEXT NOT NULL,
+    message TEXT,
+
+    -- Optional metadata (JSON for flexibility)
+    data JSONB DEFAULT '{}',
+
+    -- Read status
+    is_read BOOLEAN DEFAULT FALSE,
+
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
+
+-- ============================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================
 -- Enable RLS on all tables
@@ -208,6 +237,7 @@ ALTER TABLE items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE market_listings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- Players: users can only see/edit their own profile
 CREATE POLICY "Users can view own profile" ON players
@@ -272,6 +302,13 @@ CREATE POLICY "Anyone can view market listings" ON market_listings
 
 CREATE POLICY "Sellers can manage own listings" ON market_listings
     FOR ALL USING (auth.uid() = seller_id);
+
+-- Notifications: users can only see/manage their own notifications
+CREATE POLICY "Users can view own notifications" ON notifications
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can manage own notifications" ON notifications
+    FOR ALL USING (auth.uid() = user_id);
 
 -- ============================================
 -- FUNCTIONS

@@ -751,6 +751,131 @@ const DB = {
             return data;
         },
     },
+
+    /**
+     * Notification operations
+     */
+    notifications: {
+        async getAll(userId, limit = 50) {
+            const { data, error } = await getSupabase()
+                .from('notifications')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(limit);
+
+            if (error) {
+                Utils.error('Failed to get notifications:', error);
+                return [];
+            }
+            return data;
+        },
+
+        async getUnread(userId) {
+            const { data, error } = await getSupabase()
+                .from('notifications')
+                .select('*')
+                .eq('user_id', userId)
+                .eq('is_read', false)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                Utils.error('Failed to get unread notifications:', error);
+                return [];
+            }
+            return data;
+        },
+
+        async getUnreadCount(userId) {
+            const { count, error } = await getSupabase()
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId)
+                .eq('is_read', false);
+
+            if (error) {
+                Utils.error('Failed to get unread count:', error);
+                return 0;
+            }
+            return count || 0;
+        },
+
+        async create(notification) {
+            const { data, error } = await getSupabase()
+                .from('notifications')
+                .insert({
+                    user_id: notification.userId,
+                    type: notification.type,
+                    title: notification.title,
+                    message: notification.message || null,
+                    data: notification.data || {},
+                    is_read: false,
+                });
+
+            if (error) {
+                Utils.error('Failed to create notification:', error);
+                return null;
+            }
+            return data;
+        },
+
+        async markAsRead(notificationId) {
+            const { error } = await getSupabase()
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('id', notificationId);
+
+            if (error) {
+                Utils.error('Failed to mark notification as read:', error);
+                return false;
+            }
+            return true;
+        },
+
+        async markAllAsRead(userId) {
+            const { error } = await getSupabase()
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('user_id', userId)
+                .eq('is_read', false);
+
+            if (error) {
+                Utils.error('Failed to mark all notifications as read:', error);
+                return false;
+            }
+            return true;
+        },
+
+        async delete(notificationId) {
+            const { error } = await getSupabase()
+                .from('notifications')
+                .delete()
+                .eq('id', notificationId);
+
+            if (error) {
+                Utils.error('Failed to delete notification:', error);
+                return false;
+            }
+            return true;
+        },
+
+        async deleteOld(userId, olderThanDays = 30) {
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+
+            const { error } = await getSupabase()
+                .from('notifications')
+                .delete()
+                .eq('user_id', userId)
+                .lt('created_at', cutoffDate.toISOString());
+
+            if (error) {
+                Utils.error('Failed to delete old notifications:', error);
+                return false;
+            }
+            return true;
+        },
+    },
 };
 
 Object.freeze(Auth);
