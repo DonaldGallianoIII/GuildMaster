@@ -338,6 +338,9 @@ class Hero {
             skillPointsGained += CONFIG.SKILLS.POINTS_PER_LEVEL;
             leveled = true;
 
+            // Heal to full HP on level up
+            this._currentHp = null;  // Will return maxHp (full health)
+
             Utils.log(`${this.name} leveled up to ${this.level}!`);
         }
 

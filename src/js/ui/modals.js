@@ -465,9 +465,10 @@ const Modals = {
         content.querySelectorAll('.inventory-item').forEach(itemEl => {
             itemEl.addEventListener('click', async () => {
                 const itemId = itemEl.dataset.itemId;
-                await GameState.equipItem(itemId, hero.id);
-                const item = GameState.inventory.find(i => i.id === itemId) || { displayName: 'Item' };
-                Utils.toast(`Equipped ${item.displayName || 'item'}!`, 'success');
+                const item = GameState.inventory.find(i => i.id === itemId);
+                // Pass target slot for rings so they equip to the correct slot
+                await GameState.equipItem(itemId, hero.id, slotKey);
+                Utils.toast(`Equipped ${item?.displayName || 'item'}!`, 'success');
                 // Refresh to show updated equipment
                 this.showHeroDetail(hero);
             });

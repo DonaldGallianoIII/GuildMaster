@@ -448,7 +448,6 @@
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     padding: var(--spacing-md) var(--spacing-lg);
     background: linear-gradient(90deg, #5d4037 0%, #4e342e 50%, #5d4037 100%);
     color: #fff;
@@ -462,6 +461,7 @@
 }
 
 .tier-bar-name {
+    flex: 0 0 180px;  /* Fixed width for alignment */
     font-family: var(--font-heading);
     font-size: 1.2rem;
     font-weight: 700;
@@ -471,14 +471,21 @@
 }
 
 .tier-bar-count {
+    flex: 1;
+    text-align: center;
     font-size: 0.85rem;
     opacity: 0.8;
+}
+
+.tier-bar-count span {
     background: rgba(255, 255, 255, 0.15);
     padding: 4px 12px;
     border-radius: var(--radius-sm);
 }
 
 .tier-bar-arrow {
+    flex: 0 0 30px;
+    text-align: right;
     font-size: 1rem;
     transition: transform 0.3s ease;
 }

@@ -355,7 +355,7 @@ const QuestCard = {
             });
             header.innerHTML = `
                 <span class="tier-bar-name">${tierInfo.name}</span>
-                <span class="tier-bar-count">${tierQuests.length} contracts</span>
+                <span class="tier-bar-count"><span>${tierQuests.length} contracts</span></span>
                 <span class="tier-bar-arrow">▶</span>
             `;
 

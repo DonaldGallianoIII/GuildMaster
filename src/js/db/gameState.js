@@ -766,7 +766,12 @@ const GameState = {
             hero.completeQuest(false);
 
             // Add loot to inventory
-            for (const item of results.loot) {
+            for (const itemData of results.loot) {
+                // Reconstruct Gear instance if it's a plain object (from DB storage)
+                let item = itemData;
+                if (!(itemData instanceof Gear)) {
+                    item = new Gear(itemData);
+                }
                 item.userId = this._state.player.id;
                 await DB.items.save(item);
                 this._state.inventory.push(item);
@@ -826,8 +831,11 @@ const GameState = {
 
     /**
      * Equip item to hero
+     * @param {string} itemId
+     * @param {string} heroId
+     * @param {string} targetSlot - Optional: specific slot to equip to (for rings)
      */
-    async equipItem(itemId, heroId) {
+    async equipItem(itemId, heroId, targetSlot = null) {
         const item = this._state.inventory.find(i => i.id === itemId);
         const hero = this.getHero(heroId);
 
@@ -836,8 +844,12 @@ const GameState = {
             return false;
         }
 
+        // Determine actual slot - use targetSlot for rings, otherwise use item.slot
+        const isRing = item.slot === 'ring1' || item.slot === 'ring2';
+        const actualSlot = (isRing && targetSlot) ? targetSlot : item.slot;
+
         // Handle existing item in slot (swap) - do it silently to avoid double events
-        const existingItemId = hero.equipment[item.slot];
+        const existingItemId = hero.equipment[actualSlot];
         let swappedItem = null;
         if (existingItemId) {
             // Find the equipped item from cache
@@ -846,14 +858,15 @@ const GameState = {
             if (swappedItem) {
                 // Unequip silently (no event, no separate save)
                 swappedItem.unequip();
-                hero.equipment[item.slot] = null;
+                hero.equipment[actualSlot] = null;
                 this._state.inventory.push(swappedItem);
             }
         }
 
-        // Equip new item
+        // Equip new item to the actual slot
         item.equip(heroId);
-        hero.equipment[item.slot] = item.id;
+        item.slot = actualSlot;  // Update item's slot to match where it's equipped
+        hero.equipment[actualSlot] = item.id;
 
         // Remove from inventory
         this._state.inventory = this._state.inventory.filter(i => i.id !== itemId);
