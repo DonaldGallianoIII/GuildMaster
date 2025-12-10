@@ -298,6 +298,7 @@ const Modals = {
      * Show live combat log for active quest
      */
     _combatLogInterval: null,
+    _seenLogEvents: new Set(),
 
     showCombatLog(quest) {
         const modal = document.getElementById('combat-modal');
@@ -314,72 +315,105 @@ const Modals = {
             clearInterval(this._combatLogInterval);
         }
 
+        // Reset seen events for this viewing
+        this._seenLogEvents = new Set();
+
+        const combatResults = quest.combatResults;
+        const startHp = combatResults?.heroStartingHp ?? hero.maxHp;
+
+        // Build initial HTML structure once
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>⚔️ ${quest.name} - Combat Log</h2>
+                <button class="modal-close" onclick="Modals.hideCombatLog()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="combat-log-hero">
+                    ${UI.createPortrait(hero.portraitId).outerHTML}
+                    <div class="combat-log-hero-info">
+                        <div class="hero-name">${hero.name}</div>
+                        <div class="hero-level">Level ${hero.level}</div>
+                        <div class="combat-hp-bar">
+                            <div class="hp-bar-fill" id="combat-hp-fill" style="width: ${(startHp / hero.maxHp) * 100}%"></div>
+                            <span class="hp-text" id="combat-hp-text">${startHp} / ${hero.maxHp} HP</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="combat-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="combat-progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text" id="combat-progress-text">0% - ${Utils.formatTime(quest.timeRemaining)} remaining</div>
+                </div>
+
+                <div class="combat-log-scroll" id="combat-log-entries">
+                    <div class="combat-log-entry narrative">
+                        <span class="log-icon">🚶</span>
+                        <span class="log-text">${hero.name} sets out on the quest...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Modals.hideCombatLog()">Close</button>
+            </div>
+        `;
+
+        // Get references to elements we'll update
+        const hpFill = content.querySelector('#combat-hp-fill');
+        const hpText = content.querySelector('#combat-hp-text');
+        const progressFill = content.querySelector('#combat-progress-fill');
+        const progressText = content.querySelector('#combat-progress-text');
+        const logEntries = content.querySelector('#combat-log-entries');
+
+        // Track current HP based on revealed damage events
+        let currentDisplayHp = startHp;
+
         const updateLog = () => {
             const events = quest.getCurrentEvents();
             const progress = quest.progressPercent;
-            const combatResults = quest.combatResults;
 
-            // Calculate current HP based on progress through combat
-            let displayHp = hero.currentHp;
-            if (combatResults) {
-                const startHp = combatResults.heroStartingHp ?? hero.maxHp;
-                const endHp = combatResults.heroFinalHp ?? hero.currentHp;
-                displayHp = Math.round(startHp + ((endHp - startHp) * (progress / 100)));
-                displayHp = Math.max(0, Math.min(hero.maxHp, displayHp));
+            // Update progress bar (no flicker - just update values)
+            progressFill.style.width = `${progress}%`;
+            progressText.textContent = `${Math.round(progress)}% - ${Utils.formatTime(quest.timeRemaining)} remaining`;
+
+            // Process new events only
+            for (const event of events) {
+                const eventKey = `${event.time}-${event.type}`;
+                if (this._seenLogEvents.has(eventKey)) continue;
+                this._seenLogEvents.add(eventKey);
+
+                // Update HP based on combat actions
+                if (event.type === 'combat_action' && event.data) {
+                    // Hero took damage
+                    if (!event.data.actorIsHero && event.data.damage) {
+                        currentDisplayHp = Math.max(0, currentDisplayHp - event.data.damage);
+                    }
+                    // Hero healed
+                    if (event.data.actorIsHero && event.data.healing) {
+                        currentDisplayHp = Math.min(hero.maxHp, currentDisplayHp + event.data.healing);
+                    }
+                }
+
+                // Format and add new log entry
+                const formatted = this._formatCombatEvent(event, hero);
+                if (formatted) {
+                    const entry = document.createElement('div');
+                    entry.className = `combat-log-entry ${formatted.type}`;
+                    entry.innerHTML = `
+                        <span class="log-icon">${formatted.icon}</span>
+                        <span class="log-text">${formatted.text}</span>
+                    `;
+                    logEntries.appendChild(entry);
+                }
             }
 
-            // Generate narrative combat log entries
-            const logEntries = events.map(event => this._formatCombatEvent(event, hero)).filter(Boolean);
-
-            content.innerHTML = `
-                <div class="modal-header">
-                    <h2>⚔️ ${quest.name} - Combat Log</h2>
-                    <button class="modal-close" onclick="Modals.hideCombatLog()">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="combat-log-hero">
-                        ${UI.createPortrait(hero.portraitId).outerHTML}
-                        <div class="combat-log-hero-info">
-                            <div class="hero-name">${hero.name}</div>
-                            <div class="hero-level">Level ${hero.level}</div>
-                            <div class="combat-hp-bar">
-                                <div class="hp-bar-fill" style="width: ${(displayHp / hero.maxHp) * 100}%"></div>
-                                <span class="hp-text">${displayHp} / ${hero.maxHp} HP</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="combat-progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${progress}%"></div>
-                        </div>
-                        <div class="progress-text">${Math.round(progress)}% - ${Utils.formatTime(quest.timeRemaining)} remaining</div>
-                    </div>
-
-                    <div class="combat-log-scroll" id="combat-log-entries">
-                        ${logEntries.length > 0 ? logEntries.map(entry => `
-                            <div class="combat-log-entry ${entry.type}">
-                                <span class="log-icon">${entry.icon}</span>
-                                <span class="log-text">${entry.text}</span>
-                            </div>
-                        `).join('') : `
-                            <div class="combat-log-entry narrative">
-                                <span class="log-icon">🚶</span>
-                                <span class="log-text">${hero.name} sets out on the quest...</span>
-                            </div>
-                        `}
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="Modals.hideCombatLog()">Close</button>
-                </div>
-            `;
+            // Update HP display
+            hpFill.style.width = `${(currentDisplayHp / hero.maxHp) * 100}%`;
+            hpText.textContent = `${currentDisplayHp} / ${hero.maxHp} HP`;
 
             // Auto-scroll to bottom
-            const logScroll = content.querySelector('#combat-log-entries');
-            if (logScroll) {
-                logScroll.scrollTop = logScroll.scrollHeight;
-            }
+            logEntries.scrollTop = logEntries.scrollHeight;
 
             // Stop updating if quest is complete
             if (quest.isTimeComplete) {
@@ -387,7 +421,7 @@ const Modals = {
             }
         };
 
-        // Initial render
+        // Initial update
         updateLog();
         this.show('combat-modal');
 
