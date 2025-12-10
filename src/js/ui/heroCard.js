@@ -11,6 +11,8 @@ const HeroCard = {
      * Create a hero card element
      * @param {Hero} hero
      * @param {Object} options
+     * @param {Object} options.equipmentBonuses - Pre-calculated equipment stat bonuses
+     * @param {Object} options.activeQuest - Active quest if hero is on one
      */
     create(hero, options = {}) {
         const card = Utils.createElement('div', {
@@ -42,11 +44,69 @@ const HeroCard = {
         // Body
         const body = Utils.createElement('div', { className: 'card-body' });
 
-        // HP Bar
-        body.appendChild(UI.createStatBar(hero.currentHp, hero.maxHp, 'hp'));
+        // If on quest, show quest progress
+        const activeQuest = options.activeQuest;
+        if (hero.state === HeroState.ON_QUEST && activeQuest) {
+            // Quest name
+            const questInfo = Utils.createElement('div', { className: 'hero-quest-info' });
+            questInfo.innerHTML = `
+                <div class="quest-name-small">${activeQuest.template?.icon || '⚔️'} ${activeQuest.name}</div>
+            `;
+            body.appendChild(questInfo);
 
-        // Stats
-        body.appendChild(UI.createStatDisplay(hero.stats));
+            // Quest progress bar
+            const progressContainer = Utils.createElement('div', { className: 'quest-progress-container' });
+            const progressBar = Utils.createElement('div', { className: 'quest-progress-bar' });
+            const progressFill = Utils.createElement('div', {
+                className: 'quest-progress-fill',
+                dataset: { questId: activeQuest.id },
+                style: `width: ${activeQuest.progressPercent}%`,
+            });
+            progressBar.appendChild(progressFill);
+            progressContainer.appendChild(progressBar);
+
+            const timeRemaining = Utils.createElement('div', {
+                className: 'quest-time-remaining',
+                dataset: { questId: activeQuest.id },
+            }, Utils.formatTime(activeQuest.timeRemaining));
+            progressContainer.appendChild(timeRemaining);
+            body.appendChild(progressContainer);
+
+            // HP Bar (real-time based on combat events)
+            const combatResults = activeQuest.combatResults;
+            const startHp = combatResults?.heroStartingHp ?? hero.maxHp;
+            let displayHp = startHp;
+
+            // Calculate HP from revealed events
+            if (activeQuest.getCurrentEvents) {
+                const events = activeQuest.getCurrentEvents();
+                for (const event of events) {
+                    if (event.type === 'combat_action' && event.data) {
+                        if (!event.data.actorIsHero && event.data.damage) {
+                            displayHp = Math.max(0, displayHp - event.data.damage);
+                        }
+                        if (event.data.actorIsHero && event.data.healing) {
+                            displayHp = Math.min(hero.maxHp, displayHp + event.data.healing);
+                        }
+                    }
+                }
+            }
+
+            const hpSection = Utils.createElement('div', {
+                className: 'hero-card-hp',
+                dataset: { heroId: hero.id, questId: activeQuest.id },
+            });
+            hpSection.appendChild(UI.createStatBar(displayHp, hero.maxHp, 'hp'));
+            body.appendChild(hpSection);
+        } else {
+            // Normal HP Bar
+            body.appendChild(UI.createStatBar(hero.currentHp, hero.maxHp, 'hp'));
+        }
+
+        // Stats with equipment bonuses
+        const equipBonuses = options.equipmentBonuses;
+        const hasBonuses = equipBonuses && Object.values(equipBonuses).some(v => v !== 0);
+        body.appendChild(UI.createStatDisplay(hero.stats, hasBonuses ? equipBonuses : null));
 
         // Skills
         body.appendChild(UI.createSkillList(hero.skills));
@@ -68,6 +128,16 @@ const HeroCard = {
             footer.appendChild(detailBtn);
 
             card.appendChild(footer);
+        } else if (options.showActions && hero.state === HeroState.ON_QUEST) {
+            // Show peek button for heroes on quest
+            const footer = Utils.createElement('div', { className: 'card-footer' });
+            const peekBtn = UI.createButton('View Quest', 'secondary', () => {
+                if (options.onPeekClick && options.activeQuest) {
+                    options.onPeekClick(options.activeQuest);
+                }
+            });
+            footer.appendChild(peekBtn);
+            card.appendChild(footer);
         }
 
         // Click handler for whole card
@@ -84,9 +154,9 @@ const HeroCard = {
     },
 
     /**
-     * Render hero list to container
+     * Render hero list to container (async to fetch equipment)
      */
-    renderList(container, heroes, options = {}) {
+    async renderList(container, heroes, options = {}) {
         container.innerHTML = '';
 
         if (heroes.length === 0) {
@@ -96,8 +166,43 @@ const HeroCard = {
             return;
         }
 
+        // Fetch equipment bonuses for all heroes
+        const heroEquipment = {};
         for (const hero of heroes) {
-            container.appendChild(this.create(hero, options));
+            try {
+                const equippedItems = await DB.items.getEquipped(hero.id);
+                const bonuses = { atk: 0, will: 0, def: 0, spd: 0 };
+                for (const item of equippedItems) {
+                    const itemStats = item.totalStats;
+                    for (const stat of ['atk', 'will', 'def', 'spd']) {
+                        if (itemStats[stat]) {
+                            bonuses[stat] += itemStats[stat];
+                        }
+                    }
+                }
+                heroEquipment[hero.id] = bonuses;
+            } catch (e) {
+                heroEquipment[hero.id] = { atk: 0, will: 0, def: 0, spd: 0 };
+            }
+        }
+
+        // Get active quests for heroes
+        const heroQuests = {};
+        if (GameState.activeQuests) {
+            for (const quest of GameState.activeQuests) {
+                if (quest.heroId) {
+                    heroQuests[quest.heroId] = quest;
+                }
+            }
+        }
+
+        for (const hero of heroes) {
+            const cardOptions = {
+                ...options,
+                equipmentBonuses: heroEquipment[hero.id],
+                activeQuest: heroQuests[hero.id],
+            };
+            container.appendChild(this.create(hero, cardOptions));
         }
     },
 };
