@@ -129,6 +129,9 @@ const QuestSystem = {
         // Check for completions (time-based)
         GameState.checkQuestCompletions();
 
+        // Check for expired quest board quests
+        GameState.checkQuestBoardExpiration();
+
         // Check for newly defeated heroes and re-render if needed
         let needsRerender = false;
         for (const quest of GameState.activeQuests) {
@@ -166,6 +169,32 @@ const QuestSystem = {
             );
             if (timeText) {
                 timeText.textContent = Utils.formatTime(quest.timeRemaining);
+            }
+        }
+
+        // Update quest board expiration timers
+        this.updateQuestBoardTimers();
+    },
+
+    /**
+     * Update expiration timers on quest board
+     */
+    updateQuestBoardTimers() {
+        for (const quest of GameState.questBoard) {
+            const timeEl = document.querySelector(`.expiration-time[data-quest-id="${quest.templateId}"]`);
+            if (timeEl) {
+                const remaining = quest.expirationTimeRemaining;
+                timeEl.textContent = Utils.formatTime(remaining);
+
+                // Add urgent class if under 2 minutes
+                const expirationSection = timeEl.closest('.quest-expiration');
+                if (expirationSection) {
+                    if (remaining < 2 * 60 * 1000) {
+                        expirationSection.classList.add('urgent');
+                    } else {
+                        expirationSection.classList.remove('urgent');
+                    }
+                }
             }
         }
     },

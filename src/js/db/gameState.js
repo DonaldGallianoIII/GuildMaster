@@ -450,19 +450,78 @@ const GameState = {
     // ==================== QUESTS ====================
 
     /**
-     * Generate quest board options
+     * Generate a random quest from available templates
+     * @param {string} difficulty - 'easy', 'medium', or 'hard'
+     * @returns {Quest|null}
+     */
+    generateRandomQuest(difficulty = null) {
+        const templates = Quests.getAllTemplates();
+        let available = templates;
+
+        // Filter by difficulty if specified
+        if (difficulty) {
+            available = templates.filter(t => t.difficulty === difficulty);
+        }
+
+        // Filter out templates already on the board
+        const boardTemplateIds = this._state.questBoard.map(q => q.templateId);
+        available = available.filter(t => !boardTemplateIds.includes(t.id));
+
+        if (available.length === 0) return null;
+
+        const template = Utils.randomChoice(available);
+        return Quest.fromTemplate(template.id, this._state.player?.id);
+    },
+
+    /**
+     * Generate quest board with rotating quests
+     * Board has: 2 easy, 2 medium, 2 hard quests
      */
     refreshQuestBoard() {
-        this._state.questBoard = [
-            Quest.fromTemplate('goblin_warren', this._state.player?.id),
-            Quest.fromTemplate('wolf_den', this._state.player?.id),
-            Quest.fromTemplate('bandit_camp', this._state.player?.id),
-            Quest.fromTemplate('abandoned_mine', this._state.player?.id),
-            Quest.fromTemplate('cursed_forest', this._state.player?.id),
-            Quest.fromTemplate('dragons_hollow', this._state.player?.id),
-        ].filter(Boolean);
+        const board = [];
 
+        // Generate 2 of each difficulty
+        for (let i = 0; i < 2; i++) {
+            const easy = this.generateRandomQuest(QuestDifficulty.EASY);
+            if (easy) board.push(easy);
+        }
+        for (let i = 0; i < 2; i++) {
+            const medium = this.generateRandomQuest(QuestDifficulty.MEDIUM);
+            if (medium) board.push(medium);
+        }
+        for (let i = 0; i < 2; i++) {
+            const hard = this.generateRandomQuest(QuestDifficulty.HARD);
+            if (hard) board.push(hard);
+        }
+
+        this._state.questBoard = board;
         this.emit('questBoardRefreshed');
+    },
+
+    /**
+     * Check for expired quests and replace them
+     */
+    checkQuestBoardExpiration() {
+        let replaced = 0;
+
+        for (let i = 0; i < this._state.questBoard.length; i++) {
+            const quest = this._state.questBoard[i];
+            if (quest.isExpired) {
+                // Generate replacement of same difficulty
+                const replacement = this.generateRandomQuest(quest.difficulty);
+                if (replacement) {
+                    this._state.questBoard[i] = replacement;
+                    replaced++;
+                }
+            }
+        }
+
+        if (replaced > 0) {
+            this.emit('questBoardRefreshed');
+            Utils.log(`Replaced ${replaced} expired quest(s)`);
+        }
+
+        return replaced;
     },
 
     /**
