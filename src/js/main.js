@@ -184,6 +184,9 @@ const App = {
         DevPanel.init();
     },
 
+    // Update interval for hero cards showing quest progress
+    _heroUpdateInterval: null,
+
     /**
      * Bind state event handlers
      */
@@ -192,10 +195,79 @@ const App = {
         GameState.on('heroHired', () => this.renderHeroes());
         GameState.on('heroUpdated', () => this.renderHeroes());
         GameState.on('heroDied', () => this.renderHeroes());
+        GameState.on('questStarted', () => this.renderHeroes());
+        GameState.on('questCompleted', () => this.renderHeroes());
         GameState.on('dataLoaded', () => {
             this.updatePlayerDisplay();
             this.refreshCurrentTab();
         });
+
+        // Start hero update interval for quest progress on hero cards
+        this._heroUpdateInterval = setInterval(() => {
+            if (this._currentTab === 'heroes') {
+                this.updateHeroQuestProgress();
+            }
+        }, 1000);
+    },
+
+    /**
+     * Update quest progress on hero cards (lightweight, no full re-render)
+     */
+    updateHeroQuestProgress() {
+        const heroesOnQuest = GameState.heroes.filter(h => h.state === HeroState.ON_QUEST);
+        if (heroesOnQuest.length === 0) return;
+
+        for (const hero of heroesOnQuest) {
+            const quest = GameState.activeQuests.find(q => q.heroId === hero.id);
+            if (!quest) continue;
+
+            // Update progress bar
+            const progressFill = document.querySelector(
+                `.hero-card[data-hero-id="${hero.id}"] .quest-progress-fill`
+            );
+            if (progressFill) {
+                progressFill.style.width = `${quest.progressPercent}%`;
+            }
+
+            // Update time remaining
+            const timeText = document.querySelector(
+                `.hero-card[data-hero-id="${hero.id}"] .quest-time-remaining`
+            );
+            if (timeText) {
+                timeText.textContent = Utils.formatTime(quest.timeRemaining);
+            }
+
+            // Update HP based on revealed events
+            const hpSection = document.querySelector(
+                `.hero-card[data-hero-id="${hero.id}"] .hero-card-hp`
+            );
+            if (hpSection && quest.getCurrentEvents) {
+                const combatResults = quest.combatResults;
+                const startHp = combatResults?.heroStartingHp ?? hero.maxHp;
+                let displayHp = startHp;
+
+                const events = quest.getCurrentEvents();
+                for (const event of events) {
+                    if (event.type === 'combat_action' && event.data) {
+                        if (!event.data.actorIsHero && event.data.damage) {
+                            displayHp = Math.max(0, displayHp - event.data.damage);
+                        }
+                        if (event.data.actorIsHero && event.data.healing) {
+                            displayHp = Math.min(hero.maxHp, displayHp + event.data.healing);
+                        }
+                    }
+                }
+
+                const hpFill = hpSection.querySelector('.hp-bar-fill');
+                const hpText = hpSection.querySelector('.hp-text');
+                if (hpFill) {
+                    hpFill.style.width = `${(displayHp / hero.maxHp) * 100}%`;
+                }
+                if (hpText) {
+                    hpText.textContent = `${displayHp} / ${hero.maxHp}`;
+                }
+            }
+        }
     },
 
     /**
@@ -216,14 +288,14 @@ const App = {
     /**
      * Render heroes tab
      */
-    renderHeroes() {
+    async renderHeroes() {
         const container = document.getElementById('heroes-grid');
         if (!container) return;
 
         // Filter out dead heroes for main display
         const livingHeroes = GameState.heroes.filter(h => h.state !== HeroState.DEAD);
 
-        HeroCard.renderList(container, livingHeroes, {
+        await HeroCard.renderList(container, livingHeroes, {
             showActions: true,
             onQuestClick: (hero) => {
                 // Switch to quests tab
@@ -234,6 +306,9 @@ const App = {
             },
             onClick: (hero) => {
                 Modals.showHeroDetail(hero);
+            },
+            onPeekClick: (quest) => {
+                Modals.showCombatLog(quest);
             },
         });
     },

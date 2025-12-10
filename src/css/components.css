@@ -68,6 +68,27 @@
     filter: grayscale(50%);
 }
 
+/* Hero Card Quest Info (when on quest) */
+.hero-quest-info {
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--color-royal);
+    border-radius: var(--radius-sm);
+    color: var(--color-parchment);
+}
+
+.quest-name-small {
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hero-card-hp {
+    margin-bottom: var(--spacing-sm);
+}
+
 /* Hero Portrait */
 .hero-portrait {
     width: 80px;
