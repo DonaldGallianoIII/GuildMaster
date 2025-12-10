@@ -487,11 +487,21 @@ const GameState = {
         try {
             const equippedItems = await DB.items.getEquipped(hero.id);
             for (const item of equippedItems) {
+                // Add regular stats (atk, will, def, spd, hp)
                 const itemStats = item.totalStats;
                 for (const [stat, value] of Object.entries(itemStats)) {
                     gearBonuses[stat] = (gearBonuses[stat] || 0) + value;
                 }
+                // Add special effects (leech, etc.)
+                if (item.specialEffects) {
+                    for (const effect of item.specialEffects) {
+                        if (effect.stat && effect.value) {
+                            gearBonuses[effect.stat] = (gearBonuses[effect.stat] || 0) + effect.value;
+                        }
+                    }
+                }
             }
+            Utils.log('Gear bonuses for combat:', gearBonuses);
         } catch (e) {
             Utils.error('Failed to fetch gear bonuses:', e);
         }
