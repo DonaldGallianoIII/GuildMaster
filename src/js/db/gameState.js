@@ -452,36 +452,57 @@ const GameState = {
     // ==================== QUESTS ====================
 
     /**
-     * Generate a random quest from available templates
+     * Generate a random quest from theme for a specific bracket and tier
+     * @param {string} bracket - 'novice', 'journeyman', or 'expert'
+     * @param {number} tier - 1, 2, or 3
+     * @returns {Quest|null}
+     */
+    generateQuestFromTheme(bracket, tier) {
+        // Get themes available for this bracket
+        const themes = Object.values(QUEST_THEMES).filter(t => t.brackets.includes(bracket));
+
+        // Filter out themes already on the board for this bracket+tier combo
+        const boardThemeIds = this._state.questBoard
+            .filter(q => q.bracket === bracket && q.tier === tier)
+            .map(q => q.themeId);
+        const available = themes.filter(t => !boardThemeIds.includes(t.id));
+
+        if (available.length === 0) {
+            // Fall back to any theme for this bracket
+            if (themes.length === 0) return null;
+            const theme = Utils.randomChoice(themes);
+            return Quest.fromTheme(theme.id, bracket, tier, this._state.player?.id);
+        }
+
+        const theme = Utils.randomChoice(available);
+        return Quest.fromTheme(theme.id, bracket, tier, this._state.player?.id);
+    },
+
+    /**
+     * Generate a random quest (legacy compatibility)
      * @param {string} difficulty - 'easy', 'medium', or 'hard'
      * @returns {Quest|null}
      */
     generateRandomQuest(difficulty = null) {
-        const templates = Quests.getAllTemplates();
-        let available = templates;
+        // Map legacy difficulty to bracket
+        const bracketMap = {
+            [QuestDifficulty.EASY]: QuestBracket.NOVICE,
+            [QuestDifficulty.MEDIUM]: QuestBracket.JOURNEYMAN,
+            [QuestDifficulty.HARD]: QuestBracket.EXPERT,
+        };
+        const bracket = bracketMap[difficulty] || QuestBracket.NOVICE;
+        const tier = Utils.randomInt(1, 3);
 
-        // Filter by difficulty if specified
-        if (difficulty) {
-            available = templates.filter(t => t.difficulty === difficulty);
-        }
-
-        // Filter out templates already on the board
-        const boardTemplateIds = this._state.questBoard.map(q => q.templateId);
-        available = available.filter(t => !boardTemplateIds.includes(t.id));
-
-        if (available.length === 0) return null;
-
-        const template = Utils.randomChoice(available);
-        return Quest.fromTemplate(template.id, this._state.player?.id);
+        return this.generateQuestFromTheme(bracket, tier);
     },
 
     /**
      * Load quest board from Supabase, generate if empty or incomplete
+     * New system: 1 quest per bracket+tier combo (3 brackets × 3 tiers = 9 quests)
      */
     async loadQuestBoard() {
-        // Check if we have valid quests in the board (already loaded from Supabase)
+        // Check if we have valid quests in the board
         const validQuests = this._state.questBoard.filter(q => {
-            // Check quest has encounters and isn't expired
             return q.encounters && q.encounters.length > 0 && !q.isExpired;
         });
 
@@ -494,22 +515,21 @@ const GameState = {
 
         this._state.questBoard = validQuests;
 
-        // Generate more quests if we don't have enough
-        const targetCounts = { easy: 2, medium: 2, hard: 2 };
-        const currentCounts = {
-            easy: validQuests.filter(q => q.difficulty === QuestDifficulty.EASY).length,
-            medium: validQuests.filter(q => q.difficulty === QuestDifficulty.MEDIUM).length,
-            hard: validQuests.filter(q => q.difficulty === QuestDifficulty.HARD).length,
-        };
-
+        // Generate quests for each bracket+tier combo
+        const brackets = [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN, QuestBracket.EXPERT];
+        const tiers = [1, 2, 3];
         const newQuests = [];
-        for (const [difficulty, target] of Object.entries(targetCounts)) {
-            const needed = target - currentCounts[difficulty];
-            for (let i = 0; i < needed; i++) {
-                const quest = this.generateRandomQuest(difficulty);
-                if (quest) {
-                    newQuests.push(quest);
-                    this._state.questBoard.push(quest);
+
+        for (const bracket of brackets) {
+            for (const tier of tiers) {
+                // Check if we already have a quest for this bracket+tier
+                const existing = validQuests.find(q => q.bracket === bracket && q.tier === tier);
+                if (!existing) {
+                    const quest = this.generateQuestFromTheme(bracket, tier);
+                    if (quest) {
+                        newQuests.push(quest);
+                        this._state.questBoard.push(quest);
+                    }
                 }
             }
         }
@@ -525,25 +545,23 @@ const GameState = {
 
     /**
      * Refresh quest board (regenerate all)
+     * New system: 1 quest per bracket+tier combo
      */
     async refreshQuestBoard() {
         // Delete all current available quests
         await Promise.all(this._state.questBoard.map(q => DB.quests.delete(q.id)));
         this._state.questBoard = [];
 
-        // Generate fresh board
+        // Generate fresh board with all bracket+tier combos
+        const brackets = [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN, QuestBracket.EXPERT];
+        const tiers = [1, 2, 3];
         const newQuests = [];
-        for (let i = 0; i < 2; i++) {
-            const easy = this.generateRandomQuest(QuestDifficulty.EASY);
-            if (easy) newQuests.push(easy);
-        }
-        for (let i = 0; i < 2; i++) {
-            const medium = this.generateRandomQuest(QuestDifficulty.MEDIUM);
-            if (medium) newQuests.push(medium);
-        }
-        for (let i = 0; i < 2; i++) {
-            const hard = this.generateRandomQuest(QuestDifficulty.HARD);
-            if (hard) newQuests.push(hard);
+
+        for (const bracket of brackets) {
+            for (const tier of tiers) {
+                const quest = this.generateQuestFromTheme(bracket, tier);
+                if (quest) newQuests.push(quest);
+            }
         }
 
         // Save to Supabase
@@ -566,8 +584,8 @@ const GameState = {
                 // Delete expired quest from database
                 savePromises.push(DB.quests.delete(quest.id));
 
-                // Generate replacement of same difficulty
-                const replacement = this.generateRandomQuest(quest.difficulty);
+                // Generate replacement of same bracket+tier
+                const replacement = this.generateQuestFromTheme(quest.bracket, quest.tier);
                 if (replacement) {
                     this._state.questBoard[i] = replacement;
                     savePromises.push(DB.quests.save(replacement));
@@ -596,7 +614,11 @@ const GameState = {
         }
 
         // Find the quest on the board (use existing instance, not new one)
-        const boardIndex = this._state.questBoard.findIndex(q => q.templateId === questTemplateId);
+        // Try by id first, then by templateId for compatibility
+        let boardIndex = this._state.questBoard.findIndex(q => q.id === questTemplateId);
+        if (boardIndex === -1) {
+            boardIndex = this._state.questBoard.findIndex(q => q.templateId === questTemplateId);
+        }
         if (boardIndex === -1) {
             Utils.toast('Quest no longer available', 'error');
             return null;
@@ -609,8 +631,8 @@ const GameState = {
             return null;
         }
 
-        // Remove from board and generate replacement
-        const replacement = this.generateRandomQuest(quest.difficulty);
+        // Remove from board and generate replacement of same bracket+tier
+        const replacement = this.generateQuestFromTheme(quest.bracket, quest.tier);
         if (replacement) {
             this._state.questBoard[boardIndex] = replacement;
             // Save replacement to Supabase

@@ -84,28 +84,114 @@ const CONFIG = {
     },
 
     /**
-     * QUEST SETTINGS
+     * QUEST SETTINGS - Bracket/Tier System
      */
     QUESTS: {
+        // Duration per bracket (ms)
         DURATION: {
+            novice: 2 * 60 * 1000,       // 2 min
+            journeyman: 5 * 60 * 1000,   // 5 min
+            expert: 10 * 60 * 1000,      // 10 min
+            // Legacy fallbacks
             easy: 2 * 60 * 1000,
-            medium: 8 * 60 * 1000,
-            hard: 20 * 60 * 1000,
+            medium: 5 * 60 * 1000,
+            hard: 10 * 60 * 1000,
         },
+        // Expiration timer per bracket (how long quest stays on board)
+        EXPIRATION: {
+            novice: 10 * 60 * 1000,      // 10 min
+            journeyman: 15 * 60 * 1000,  // 15 min
+            expert: 20 * 60 * 1000,      // 20 min
+        },
+        // Recommended level ranges per bracket
+        LEVEL_RANGE: {
+            novice: { min: 1, max: 3 },
+            journeyman: { min: 4, max: 6 },
+            expert: { min: 7, max: 99 },
+        },
+        // Base gold rewards per bracket (modified by tier)
         GOLD_REWARDS: {
-            easy: { min: 50, max: 100 },
-            medium: { min: 150, max: 300 },
-            hard: { min: 400, max: 800 },
+            novice: { min: 30, max: 60 },
+            journeyman: { min: 80, max: 150 },
+            expert: { min: 200, max: 400 },
+            // Legacy fallbacks
+            easy: { min: 30, max: 60 },
+            medium: { min: 80, max: 150 },
+            hard: { min: 200, max: 400 },
         },
+        // Base XP per bracket (modified by tier)
         XP_REWARDS: {
-            easy: 25,
-            medium: 75,
-            hard: 200,
+            novice: 15,
+            journeyman: 50,
+            expert: 120,
+            // Legacy
+            easy: 15,
+            medium: 50,
+            hard: 120,
         },
+        // Tier multipliers for rewards
+        TIER_MULTIPLIER: {
+            1: 1.0,   // Tier I - base rewards
+            2: 1.5,   // Tier II - 50% more
+            3: 2.0,   // Tier III - double
+        },
+        // Number of encounters per tier
         ENCOUNTERS: {
-            easy: 4,
-            medium: 6,
-            hard: 10,
+            1: 2,  // Tier I - 2 encounters
+            2: 3,  // Tier II - 3 encounters
+            3: 4,  // Tier III - 4 encounters
+            // Legacy
+            easy: 2,
+            medium: 3,
+            hard: 4,
+        },
+    },
+
+    /**
+     * PER-ENEMY LOOT DROPS
+     * Each mob killed rolls for loot based on tier
+     */
+    ENEMY_LOOT: {
+        // Gold drop per mob tier
+        GOLD: {
+            fodder_trash: { min: 1, max: 3 },
+            fodder: { min: 2, max: 5 },
+            fodder_exalted: { min: 4, max: 8 },
+            standard_weak: { min: 6, max: 12 },
+            standard: { min: 8, max: 15 },
+            standard_strong: { min: 12, max: 20 },
+            elite_lesser: { min: 15, max: 30 },
+            elite: { min: 25, max: 50 },
+            elite_greater: { min: 40, max: 80 },
+            boss_mini: { min: 50, max: 100 },
+            boss: { min: 80, max: 150 },
+            boss_lord: { min: 150, max: 300 },
+        },
+        // Gear drop chance per mob tier (0-1)
+        GEAR_CHANCE: {
+            fodder_trash: 0,
+            fodder: 0.02,        // 2%
+            fodder_exalted: 0.05, // 5%
+            standard_weak: 0.08,
+            standard: 0.12,      // 12%
+            standard_strong: 0.18,
+            elite_lesser: 0.25,
+            elite: 0.35,         // 35%
+            elite_greater: 0.50,
+            boss_mini: 0.60,
+            boss: 0.80,          // 80%
+            boss_lord: 1.0,      // Guaranteed
+        },
+        // Gear rarity weights per mob tier
+        GEAR_RARITY: {
+            fodder: { common: 95, magic: 5, rare: 0, unique: 0 },
+            fodder_exalted: { common: 80, magic: 18, rare: 2, unique: 0 },
+            standard: { common: 60, magic: 35, rare: 5, unique: 0 },
+            standard_strong: { common: 40, magic: 45, rare: 14, unique: 1 },
+            elite: { common: 20, magic: 50, rare: 27, unique: 3 },
+            elite_greater: { common: 10, magic: 40, rare: 42, unique: 8 },
+            boss: { common: 0, magic: 30, rare: 55, unique: 15 },
+            boss_lord: { common: 0, magic: 10, rare: 60, unique: 30 },
         },
     },
 
@@ -192,9 +278,16 @@ Object.freeze(CONFIG.GEAR_RARITY_WEIGHTS);
 Object.freeze(CONFIG.RECRUITMENT);
 Object.freeze(CONFIG.QUESTS);
 Object.freeze(CONFIG.QUESTS.DURATION);
+Object.freeze(CONFIG.QUESTS.EXPIRATION);
+Object.freeze(CONFIG.QUESTS.LEVEL_RANGE);
 Object.freeze(CONFIG.QUESTS.GOLD_REWARDS);
 Object.freeze(CONFIG.QUESTS.XP_REWARDS);
+Object.freeze(CONFIG.QUESTS.TIER_MULTIPLIER);
 Object.freeze(CONFIG.QUESTS.ENCOUNTERS);
+Object.freeze(CONFIG.ENEMY_LOOT);
+Object.freeze(CONFIG.ENEMY_LOOT.GOLD);
+Object.freeze(CONFIG.ENEMY_LOOT.GEAR_CHANCE);
+Object.freeze(CONFIG.ENEMY_LOOT.GEAR_RARITY);
 Object.freeze(CONFIG.MOB_TIERS);
 Object.freeze(CONFIG.FREE_HIT);
 Object.freeze(CONFIG.INHERITANCE);

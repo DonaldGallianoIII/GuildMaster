@@ -5,21 +5,43 @@
  * Quests are timed missions heroes can be sent on.
  *
  * QUEST STRUCTURE:
- * - Duration (2-20+ minutes)
- * - Series of encounters (rooms)
- * - Each encounter has mobs to fight
- * - Combat sim runs for each encounter
- * - Loot generated on completion
+ * - Brackets: Novice (Lv 1-3), Journeyman (Lv 4-6), Expert (Lv 7+)
+ * - Tiers: I (solo), II (geared), III (challenge)
+ * - Pack size scales with tier, not mob stats
+ * - Duration based on bracket
+ * - Loot rolls per enemy killed
  *
  * ROTATION SYSTEM:
  * - Quests appear on the board with expiration timers
- * - When expired, quest is replaced with a new one
- * - Encounter compositions are randomized from variants
+ * - Accordion UI organized by bracket
+ * - Each bracket shows I/II/III tier quests
  * ============================================
  */
 
 /**
- * Quest difficulty levels
+ * Quest brackets (level ranges)
+ * @readonly
+ * @enum {string}
+ */
+const QuestBracket = {
+    NOVICE: 'novice',           // Lv 1-3
+    JOURNEYMAN: 'journeyman',   // Lv 4-6
+    EXPERT: 'expert',           // Lv 7+
+};
+
+/**
+ * Quest tiers (difficulty within bracket)
+ * @readonly
+ * @enum {number}
+ */
+const QuestTier = {
+    I: 1,    // Solo/ungeared - 1-2 fodder per encounter
+    II: 2,   // Basic gear - 2-3 fodder per encounter
+    III: 3,  // Good gear - 3-4 fodder + standard per encounter
+};
+
+/**
+ * Quest difficulty levels (legacy, mapped from bracket)
  * @readonly
  * @enum {string}
  */
@@ -41,16 +63,39 @@ const QuestStatus = {
     FAILED: 'failed',          // Hero died or retreated
 };
 
+Object.freeze(QuestBracket);
+Object.freeze(QuestTier);
 Object.freeze(QuestDifficulty);
 Object.freeze(QuestStatus);
 
 /**
- * Quest expiration times (how long quest stays on board)
+ * Quest expiration times (how long quest stays on board) - legacy, use CONFIG.QUESTS.EXPIRATION
  */
 const QUEST_EXPIRATION = {
-    easy: 10 * 60 * 1000,      // 10 minutes
-    medium: 15 * 60 * 1000,    // 15 minutes
-    hard: 20 * 60 * 1000,      // 20 minutes
+    easy: 10 * 60 * 1000,
+    medium: 15 * 60 * 1000,
+    hard: 20 * 60 * 1000,
+    novice: 10 * 60 * 1000,
+    journeyman: 15 * 60 * 1000,
+    expert: 20 * 60 * 1000,
+};
+
+/**
+ * Tier display names
+ */
+const TIER_NAMES = {
+    1: 'I',
+    2: 'II',
+    3: 'III',
+};
+
+/**
+ * Bracket display names
+ */
+const BRACKET_NAMES = {
+    novice: 'Novice Contracts',
+    journeyman: 'Journeyman Contracts',
+    expert: 'Expert Contracts',
 };
 
 /**
@@ -356,14 +401,272 @@ Object.freeze(MOB_DEFINITIONS);
 
 /**
  * ============================================
- * QUEST TEMPLATES (50 total)
+ * QUEST THEMES - Tier-Based System
  * ============================================
- * Templates with encounter variants for randomization.
- * When a quest spawns, one variant is randomly selected.
+ * Themes define flavor (name, icon, mob pools).
+ * Encounters are generated based on bracket + tier.
+ *
+ * Tier Pack Sizes:
+ * - Tier I:   1-2 fodder per encounter (2 encounters)
+ * - Tier II:  2-3 fodder per encounter (3 encounters)
+ * - Tier III: 2-3 fodder + 1 standard per encounter (4 encounters)
+ * ============================================
+ */
+const QUEST_THEMES = {
+    // ==================== NOVICE THEMES ====================
+    goblin_tunnel: {
+        id: 'goblin_tunnel',
+        name: 'Goblin Tunnels',
+        description: 'A network of tunnels infested with goblins.',
+        icon: '🕳️',
+        brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
+        fodder: ['goblin'],
+        standard: ['goblin_brute'],
+        elite: ['goblin_shaman'],
+    },
+    wolf_territory: {
+        id: 'wolf_territory',
+        name: 'Wolf Territory',
+        description: 'A forest where wolves have made their home.',
+        icon: '🐺',
+        brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
+        fodder: ['wolf'],
+        standard: ['dire_wolf'],
+        elite: ['dire_wolf'],
+    },
+    rat_infestation: {
+        id: 'rat_infestation',
+        name: 'Rat Infestation',
+        description: 'Giant rats have overrun the area.',
+        icon: '🐀',
+        brackets: [QuestBracket.NOVICE],
+        fodder: ['rat'],
+        standard: ['giant_spider'],
+        elite: ['giant_spider'],
+    },
+    slime_cavern: {
+        id: 'slime_cavern',
+        name: 'Slime Cavern',
+        description: 'A bubbling pit of gelatinous creatures.',
+        icon: '🟢',
+        brackets: [QuestBracket.NOVICE],
+        fodder: ['slime'],
+        standard: ['slime'],
+        elite: ['giant_spider'],
+    },
+    bat_roost: {
+        id: 'bat_roost',
+        name: 'Bat Roost',
+        description: 'A cave echoing with the screeches of bats.',
+        icon: '🦇',
+        brackets: [QuestBracket.NOVICE],
+        fodder: ['bat'],
+        standard: ['giant_spider'],
+        elite: ['giant_spider'],
+    },
+    boar_thicket: {
+        id: 'boar_thicket',
+        name: 'Boar Thicket',
+        description: 'Wild boars roam this dense forest.',
+        icon: '🐗',
+        brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
+        fodder: ['boar'],
+        standard: ['dire_wolf'],
+        elite: ['troll'],
+    },
+    snake_pit: {
+        id: 'snake_pit',
+        name: 'Snake Pit',
+        description: 'A nest of venomous snakes.',
+        icon: '🐍',
+        brackets: [QuestBracket.NOVICE],
+        fodder: ['snake'],
+        standard: ['giant_spider'],
+        elite: ['giant_spider'],
+    },
+    spider_nest: {
+        id: 'spider_nest',
+        name: 'Spider Nest',
+        description: 'Webs cover every surface in this lair.',
+        icon: '🕷️',
+        brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
+        fodder: ['bat', 'rat'],
+        standard: ['giant_spider'],
+        elite: ['giant_spider'],
+    },
+
+    // ==================== JOURNEYMAN THEMES ====================
+    bandit_hideout: {
+        id: 'bandit_hideout',
+        name: 'Bandit Hideout',
+        description: 'A camp of dangerous outlaws.',
+        icon: '🏴',
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        fodder: ['bandit'],
+        standard: ['bandit_leader'],
+        elite: ['bandit_leader'],
+    },
+    orc_camp: {
+        id: 'orc_camp',
+        name: 'Orc Camp',
+        description: 'Brutal orcs have set up camp here.',
+        icon: '👹',
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        fodder: ['orc'],
+        standard: ['orc_warrior'],
+        elite: ['orc_warlord'],
+    },
+    skeleton_crypt: {
+        id: 'skeleton_crypt',
+        name: 'Skeleton Crypt',
+        description: 'The dead walk in these ancient halls.',
+        icon: '💀',
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        fodder: ['skeleton'],
+        standard: ['skeleton_warrior'],
+        elite: ['lich'],
+    },
+    zombie_graveyard: {
+        id: 'zombie_graveyard',
+        name: 'Zombie Graveyard',
+        description: 'The restless dead rise from their graves.',
+        icon: '🧟',
+        brackets: [QuestBracket.JOURNEYMAN],
+        fodder: ['zombie'],
+        standard: ['zombie'],
+        elite: ['lich'],
+    },
+    harpy_cliffs: {
+        id: 'harpy_cliffs',
+        name: 'Harpy Cliffs',
+        description: 'Harpies nest in these treacherous heights.',
+        icon: '🦅',
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        fodder: ['harpy'],
+        standard: ['harpy'],
+        elite: ['harpy'],
+    },
+    troll_bridge: {
+        id: 'troll_bridge',
+        name: 'Troll Bridge',
+        description: 'A troll demands tribute for passage.',
+        icon: '🌉',
+        brackets: [QuestBracket.JOURNEYMAN],
+        fodder: ['goblin', 'goblin_brute'],
+        standard: ['troll'],
+        elite: ['troll'],
+    },
+
+    // ==================== EXPERT THEMES ====================
+    dragon_lair: {
+        id: 'dragon_lair',
+        name: 'Dragon Lair',
+        description: 'A dragon guards its treasure hoard.',
+        icon: '🐉',
+        brackets: [QuestBracket.EXPERT],
+        fodder: ['kobold'],
+        standard: ['wyvern'],
+        elite: ['dragon'],
+    },
+    demon_portal: {
+        id: 'demon_portal',
+        name: 'Demon Portal',
+        description: 'A tear into the demon realm.',
+        icon: '🔥',
+        brackets: [QuestBracket.EXPERT],
+        fodder: ['imp'],
+        standard: ['demon'],
+        elite: ['demon_lord'],
+    },
+    lich_tower: {
+        id: 'lich_tower',
+        name: 'Lich Tower',
+        description: 'A tower of dark necromancy.',
+        icon: '🗼',
+        brackets: [QuestBracket.EXPERT],
+        fodder: ['skeleton', 'zombie'],
+        standard: ['skeleton_warrior', 'dark_mage'],
+        elite: ['lich'],
+    },
+    giant_fortress: {
+        id: 'giant_fortress',
+        name: 'Giant Fortress',
+        description: 'A mountain fortress of giants.',
+        icon: '🏔️',
+        brackets: [QuestBracket.EXPERT],
+        fodder: ['orc', 'orc_warrior'],
+        standard: ['troll'],
+        elite: ['giant'],
+    },
+    dark_temple: {
+        id: 'dark_temple',
+        name: 'Dark Temple',
+        description: 'A temple to forbidden gods.',
+        icon: '⛪',
+        brackets: [QuestBracket.EXPERT],
+        fodder: ['cultist'],
+        standard: ['dark_mage'],
+        elite: ['lich', 'demon_lord'],
+    },
+};
+
+Object.freeze(QUEST_THEMES);
+
+/**
+ * Generate encounters for a quest based on tier
+ * @param {Object} theme - Quest theme
+ * @param {number} tier - Quest tier (1, 2, or 3)
+ * @returns {Array} Array of encounter objects
+ */
+function generateEncountersForTier(theme, tier) {
+    const encounters = [];
+    const numEncounters = CONFIG.QUESTS.ENCOUNTERS[tier] || 2;
+
+    // Get mob pools (convert to arrays if single values)
+    const fodderPool = Array.isArray(theme.fodder) ? theme.fodder : [theme.fodder];
+    const standardPool = Array.isArray(theme.standard) ? theme.standard : [theme.standard];
+
+    for (let i = 0; i < numEncounters; i++) {
+        const mobs = [];
+
+        // Tier determines pack composition
+        if (tier === 1) {
+            // Tier I: 1-2 fodder
+            const count = Utils.randomInt(1, 2);
+            for (let j = 0; j < count; j++) {
+                mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
+            }
+        } else if (tier === 2) {
+            // Tier II: 2-3 fodder
+            const count = Utils.randomInt(2, 3);
+            for (let j = 0; j < count; j++) {
+                mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
+            }
+        } else {
+            // Tier III: 2-3 fodder + 1 standard
+            const fodderCount = Utils.randomInt(2, 3);
+            for (let j = 0; j < fodderCount; j++) {
+                mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
+            }
+            mobs.push(standardPool[Math.floor(Math.random() * standardPool.length)]);
+        }
+
+        encounters.push({ mobs });
+    }
+
+    return encounters;
+}
+
+/**
+ * ============================================
+ * LEGACY QUEST TEMPLATES
+ * ============================================
+ * Kept for backward compatibility.
+ * New quests use QUEST_THEMES + generateEncountersForTier()
  * ============================================
  */
 const QUEST_TEMPLATES = {
-    // ==================== EASY QUESTS (18 templates) ====================
+    // ==================== EASY QUESTS (legacy) ====================
 
     goblin_warren: {
         id: 'goblin_warren',
@@ -1031,8 +1334,13 @@ class Quest {
         // Identity
         this.id = data.id || Utils.uuid();
         this.templateId = data.templateId || data.template_id || null;
+        this.themeId = data.themeId || data.theme_id || null; // New: theme-based system
         this.heroId = data.heroId || data.hero_id || null;
         this.userId = data.userId || data.user_id || null;
+
+        // Bracket/Tier system (new)
+        this._bracket = data.bracket || null;
+        this._tier = data.tier || null;
 
         // Status
         this.status = data.status || QuestStatus.AVAILABLE;
@@ -1045,7 +1353,7 @@ class Quest {
         // Expiration (for quest board rotation)
         this.expiresAt = data.expiresAt || data.expires_at || null;
 
-        // Selected encounters (randomly chosen from template variants)
+        // Selected encounters (randomly chosen from template variants or generated from tier)
         this.selectedEncounters = data.selectedEncounters || data.selected_encounters || null;
 
         // Progress tracking
@@ -1073,23 +1381,86 @@ class Quest {
     // ==================== COMPUTED PROPERTIES ====================
 
     /**
-     * Get quest template
+     * Get quest template (legacy) or theme (new)
      */
     get template() {
+        // Try new theme system first
+        if (this.themeId && QUEST_THEMES[this.themeId]) {
+            return QUEST_THEMES[this.themeId];
+        }
+        // Fall back to legacy templates
         return QUEST_TEMPLATES[this.templateId] || null;
+    }
+
+    /**
+     * Get quest theme (new system)
+     */
+    get theme() {
+        return QUEST_THEMES[this.themeId] || null;
+    }
+
+    /**
+     * Get quest bracket (new system)
+     */
+    get bracket() {
+        return this._bracket || QuestBracket.NOVICE;
+    }
+
+    /**
+     * Get quest tier (new system)
+     */
+    get tier() {
+        return this._tier || QuestTier.I;
+    }
+
+    /**
+     * Get tier display name (I, II, III)
+     */
+    get tierName() {
+        return TIER_NAMES[this.tier] || 'I';
+    }
+
+    /**
+     * Get bracket display name
+     */
+    get bracketName() {
+        return BRACKET_NAMES[this.bracket] || 'Novice Contracts';
+    }
+
+    /**
+     * Get recommended level for this quest
+     */
+    get recommendedLevel() {
+        const range = CONFIG.QUESTS.LEVEL_RANGE[this.bracket] || CONFIG.QUESTS.LEVEL_RANGE.novice;
+        // Higher tiers recommend higher end of bracket range
+        return Math.min(range.max, range.min + (this.tier - 1));
     }
 
     /**
      * Get quest name
      */
     get name() {
-        return this.template?.name || 'Unknown Quest';
+        const baseName = this.template?.name || 'Unknown Quest';
+        // Add tier suffix for new system
+        if (this.themeId) {
+            return `${baseName} ${this.tierName}`;
+        }
+        return baseName;
     }
 
     /**
-     * Get quest difficulty
+     * Get quest difficulty (legacy, mapped from bracket for compatibility)
      */
     get difficulty() {
+        // Map bracket to legacy difficulty
+        if (this._bracket) {
+            const bracketMap = {
+                [QuestBracket.NOVICE]: QuestDifficulty.EASY,
+                [QuestBracket.JOURNEYMAN]: QuestDifficulty.MEDIUM,
+                [QuestBracket.EXPERT]: QuestDifficulty.HARD,
+            };
+            return bracketMap[this._bracket] || QuestDifficulty.EASY;
+        }
         return this.template?.difficulty || QuestDifficulty.EASY;
     }
 
@@ -1097,6 +1468,12 @@ class Quest {
      * Get total duration in ms
      */
     get duration() {
+        // New system: use bracket
+        if (this._bracket) {
+            return CONFIG.QUESTS.DURATION[this._bracket] || CONFIG.QUESTS.DURATION.novice;
+        }
+
+        // Legacy system
         const templateDuration = this.template?.duration;
         const configDuration = CONFIG.QUESTS.DURATION[this.difficulty];
         const fallbackDuration = CONFIG.QUESTS.DURATION.easy;
@@ -1104,16 +1481,32 @@ class Quest {
 
         // Debug: Log if duration is unexpectedly small
         if (duration < 60000) {
-            Utils.warn(`Quest ${this.templateId} has unexpected duration: ${duration}ms (template: ${templateDuration}, config[${this.difficulty}]: ${configDuration}, fallback: ${fallbackDuration})`);
+            Utils.warn(`Quest ${this.templateId} has unexpected duration: ${duration}ms`);
         }
 
         return duration;
     }
 
     /**
-     * Get quest rewards based on difficulty
+     * Get quest rewards based on bracket and tier
      */
     get rewards() {
+        // New system: use bracket + tier multiplier
+        if (this._bracket) {
+            const baseGold = CONFIG.QUESTS.GOLD_REWARDS[this._bracket] || CONFIG.QUESTS.GOLD_REWARDS.novice;
+            const baseXp = CONFIG.QUESTS.XP_REWARDS[this._bracket] || CONFIG.QUESTS.XP_REWARDS.novice;
+            const multiplier = CONFIG.QUESTS.TIER_MULTIPLIER[this._tier] || 1;
+
+            return {
+                gold: {
+                    min: Math.floor(baseGold.min * multiplier),
+                    max: Math.floor(baseGold.max * multiplier),
+                },
+                xp: Math.floor(baseXp * multiplier),
+            };
+        }
+
+        // Legacy system
         const diff = this.difficulty;
         return {
             gold: CONFIG.QUESTS.GOLD_REWARDS[diff] || CONFIG.QUESTS.GOLD_REWARDS.easy,
@@ -1435,8 +1828,11 @@ class Quest {
         return {
             id: this.id,
             template_id: this.templateId,
+            theme_id: this.themeId,
             hero_id: this.heroId,
             user_id: this.userId,
+            bracket: this._bracket,
+            tier: this._tier,
             status: this.status,
             started_at: this.startedAt,
             ends_at: this.endsAt,
@@ -1459,8 +1855,11 @@ class Quest {
         return new Quest({
             id: row.id,
             templateId: row.template_id,
+            themeId: row.theme_id,
             heroId: row.hero_id,
             userId: row.user_id,
+            bracket: row.bracket,
+            tier: row.tier,
             status: row.status,
             startedAt: row.started_at,
             endsAt: row.ends_at,
@@ -1477,7 +1876,7 @@ class Quest {
     }
 
     /**
-     * Create a new quest from a template with random encounter variant
+     * Create a new quest from a template with random encounter variant (legacy)
      */
     static fromTemplate(templateId, userId) {
         const template = QUEST_TEMPLATES[templateId];
@@ -1503,6 +1902,46 @@ class Quest {
         return new Quest({
             templateId,
             userId,
+            status: QuestStatus.AVAILABLE,
+            selectedEncounters,
+            totalEncounters: selectedEncounters.length,
+            expiresAt,
+        });
+    }
+
+    /**
+     * Create a new quest from a theme with bracket and tier (new system)
+     * @param {string} themeId - Theme ID from QUEST_THEMES
+     * @param {string} bracket - Bracket (novice, journeyman, expert)
+     * @param {number} tier - Tier (1, 2, or 3)
+     * @param {string} userId - User ID
+     */
+    static fromTheme(themeId, bracket, tier, userId) {
+        const theme = QUEST_THEMES[themeId];
+        if (!theme) {
+            Utils.error(`Unknown quest theme: ${themeId}`);
+            return null;
+        }
+
+        // Check if theme is available for this bracket
+        if (!theme.brackets.includes(bracket)) {
+            Utils.error(`Theme ${themeId} not available for bracket ${bracket}`);
+            return null;
+        }
+
+        // Generate encounters based on tier
+        const selectedEncounters = generateEncountersForTier(theme, tier);
+
+        // Calculate expiration time based on bracket
+        const expirationDuration = CONFIG.QUESTS.EXPIRATION[bracket] || CONFIG.QUESTS.EXPIRATION.novice;
+        const expiresAt = new Date(Date.now() + expirationDuration).toISOString();
+
+        return new Quest({
+            themeId,
+            templateId: themeId, // For compatibility
+            userId,
+            bracket,
+            tier,
             status: QuestStatus.AVAILABLE,
             selectedEncounters,
             totalEncounters: selectedEncounters.length,
@@ -1593,11 +2032,17 @@ Object.freeze(Quests);
 // Export
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
+        QuestBracket,
+        QuestTier,
         QuestDifficulty,
         QuestStatus,
         QUEST_EXPIRATION,
+        TIER_NAMES,
+        BRACKET_NAMES,
         MOB_DEFINITIONS,
+        QUEST_THEMES,
         QUEST_TEMPLATES,
+        generateEncountersForTier,
         Quest,
         Quests,
     };
