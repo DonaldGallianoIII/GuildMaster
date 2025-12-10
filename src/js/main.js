@@ -63,6 +63,14 @@ const App = {
      * Start the game after authentication
      */
     async startGame(user) {
+        // Prevent double initialization from race condition between
+        // initial session check and onAuthStateChange callback
+        if (this._authenticated) {
+            Utils.log('Already authenticated, skipping duplicate startGame call');
+            return;
+        }
+        this._authenticated = true;
+
         Utils.log('Starting game for user:', user.id);
 
         // Hide auth, show game
@@ -82,7 +90,6 @@ const App = {
         this.bindStateEvents();
 
         this._initialized = true;
-        this._authenticated = true;
         Utils.log('Guild Master initialized successfully!');
 
         // Show initial tab
