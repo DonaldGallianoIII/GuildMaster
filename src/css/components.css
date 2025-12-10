@@ -833,3 +833,150 @@
 .skill-scaling {
     font-size: 0.85rem;
 }
+
+/* ==================== EQUIPMENT GRID ==================== */
+/**
+ * Equipment slots for hero detail modal
+ * Shows equipped items or empty slots
+ */
+.equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+    margin: var(--spacing-md) 0;
+}
+
+.equipment-slot {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.equipment-slot:hover {
+    background: var(--color-parchment-dark);
+    box-shadow: var(--shadow-sm);
+}
+
+.equipment-slot.empty {
+    border-style: dashed;
+    opacity: 0.7;
+}
+
+.equipment-slot.empty:hover {
+    opacity: 1;
+}
+
+.equipment-slot.equipped {
+    border-width: 2px;
+}
+
+.equipment-slot.rarity-common { border-color: var(--rarity-common); }
+.equipment-slot.rarity-magic { border-color: var(--rarity-magic); background: rgba(65, 105, 225, 0.05); }
+.equipment-slot.rarity-rare { border-color: var(--rarity-rare); background: rgba(218, 165, 32, 0.05); }
+.equipment-slot.rarity-unique { border-color: var(--rarity-unique); background: rgba(255, 69, 0, 0.05); }
+.equipment-slot.rarity-heirloom { border-color: var(--rarity-heirloom); background: rgba(153, 50, 204, 0.05); }
+
+.equipment-slot .slot-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-parchment);
+    border-radius: var(--radius-sm);
+}
+
+.equipment-slot .slot-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.equipment-slot .slot-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.equipment-slot .slot-stats {
+    font-size: 0.75rem;
+    color: var(--color-forest);
+}
+
+.equipment-slot .slot-label {
+    font-size: 0.85rem;
+    color: var(--color-ink-faded);
+}
+
+.equipment-slot .slot-empty {
+    font-size: 0.75rem;
+    color: var(--color-ink-faded);
+    font-style: italic;
+}
+
+/* ==================== INVENTORY EQUIP LIST ==================== */
+/**
+ * List of inventory items to choose from when equipping
+ */
+.inventory-equip-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.inventory-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.inventory-item:hover {
+    background: var(--color-parchment-dark);
+    box-shadow: var(--shadow-sm);
+    transform: translateX(4px);
+}
+
+.inventory-item.rarity-common { border-color: var(--rarity-common); }
+.inventory-item.rarity-magic { border-color: var(--rarity-magic); border-width: 2px; }
+.inventory-item.rarity-rare { border-color: var(--rarity-rare); border-width: 2px; }
+.inventory-item.rarity-unique { border-color: var(--rarity-unique); border-width: 2px; }
+.inventory-item.rarity-heirloom { border-color: var(--rarity-heirloom); border-width: 3px; }
+
+.inventory-item .item-icon {
+    font-size: 2rem;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-parchment);
+    border-radius: var(--radius-sm);
+}
+
+.inventory-item .item-info {
+    flex: 1;
+}
+
+.inventory-item .item-name {
+    font-weight: 600;
+    font-family: var(--font-heading);
+}
+
+.inventory-item .item-stats {
+    font-size: 0.85rem;
+    color: var(--color-forest);
+}
