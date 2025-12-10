@@ -61,6 +61,8 @@ function createMockClient() {
         hero_skills: JSON.parse(localStorage.getItem('gm_hero_skills') || '[]'),
         items: JSON.parse(localStorage.getItem('gm_items') || '[]'),
         quests: JSON.parse(localStorage.getItem('gm_quests') || '[]'),
+        consumables: JSON.parse(localStorage.getItem('gm_consumables') || '[]'),
+        farm_plots: JSON.parse(localStorage.getItem('gm_farm_plots') || '[]'),
     };
 
     // Current user simulation
@@ -617,6 +619,106 @@ const DB = {
 
             if (error) {
                 Utils.error('Failed to complete quest:', error);
+                return null;
+            }
+            return data;
+        },
+    },
+
+    /**
+     * Consumable operations (food, seeds, crops)
+     */
+    consumables: {
+        async getAll(userId) {
+            const { data, error } = await getSupabase()
+                .from('consumables')
+                .select('*')
+                .eq('user_id', userId);
+
+            if (error) {
+                Utils.error('Failed to get consumables:', error);
+                return [];
+            }
+            return data.map(Consumable.fromDatabase);
+        },
+
+        async save(consumable) {
+            const { data, error } = await getSupabase()
+                .from('consumables')
+                .upsert(consumable.toDatabase());
+
+            if (error) {
+                Utils.error('Failed to save consumable:', error);
+                return null;
+            }
+            return data;
+        },
+
+        async delete(consumableId) {
+            const { error } = await getSupabase()
+                .from('consumables')
+                .delete()
+                .eq('id', consumableId);
+
+            if (error) {
+                Utils.error('Failed to delete consumable:', error);
+                return false;
+            }
+            return true;
+        },
+
+        async deleteByItemId(userId, itemId) {
+            const { error } = await getSupabase()
+                .from('consumables')
+                .delete()
+                .eq('user_id', userId)
+                .eq('item_id', itemId);
+
+            if (error) {
+                Utils.error('Failed to delete consumable by item_id:', error);
+                return false;
+            }
+            return true;
+        },
+    },
+
+    /**
+     * Farm plot operations
+     */
+    farmPlots: {
+        async getAll(userId) {
+            const { data, error } = await getSupabase()
+                .from('farm_plots')
+                .select('*')
+                .eq('user_id', userId)
+                .order('plot_index', { ascending: true });
+
+            if (error) {
+                Utils.error('Failed to get farm plots:', error);
+                return [];
+            }
+            return data.map(FarmPlot.fromDatabase);
+        },
+
+        async save(plot) {
+            const { data, error } = await getSupabase()
+                .from('farm_plots')
+                .upsert(plot.toDatabase());
+
+            if (error) {
+                Utils.error('Failed to save farm plot:', error);
+                return null;
+            }
+            return data;
+        },
+
+        async saveAll(plots) {
+            const { data, error } = await getSupabase()
+                .from('farm_plots')
+                .upsert(plots.map(p => p.toDatabase()));
+
+            if (error) {
+                Utils.error('Failed to save farm plots:', error);
                 return null;
             }
             return data;
