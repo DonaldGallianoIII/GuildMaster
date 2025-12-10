@@ -594,6 +594,33 @@ const DB = {
             return data.map(Quest.fromDatabase);
         },
 
+        async getAvailable(userId) {
+            const { data, error } = await getSupabase()
+                .from('quests')
+                .select('*')
+                .eq('user_id', userId)
+                .eq('status', 'available');
+
+            if (error) {
+                Utils.error('Failed to get available quests:', error);
+                return [];
+            }
+            return data.map(Quest.fromDatabase);
+        },
+
+        async delete(questId) {
+            const { error } = await getSupabase()
+                .from('quests')
+                .delete()
+                .eq('id', questId);
+
+            if (error) {
+                Utils.error('Failed to delete quest:', error);
+                return false;
+            }
+            return true;
+        },
+
         async save(quest) {
             const { data, error } = await getSupabase()
                 .from('quests')
