@@ -170,6 +170,9 @@ const App = {
             case 'inventory':
                 InventorySystem.render();
                 break;
+            case 'guild':
+                GuildHallSystem.render();
+                break;
         }
     },
 
@@ -182,6 +185,7 @@ const App = {
         InventorySystem.init();
         PeekSystem.init();
         DevPanel.init();
+        GuildHallSystem.init();
     },
 
     // Update interval for hero cards showing quest progress
@@ -199,17 +203,47 @@ const App = {
         GameState.on('questCompleted', () => this.renderHeroes());
         GameState.on('itemEquipped', () => this.renderHeroes());
         GameState.on('itemUnequipped', () => this.renderHeroes());
+        GameState.on('heroHealed', () => this.renderHeroes());
         GameState.on('dataLoaded', () => {
             this.updatePlayerDisplay();
             this.refreshCurrentTab();
         });
 
-        // Start hero update interval for quest progress on hero cards
+        // Start hero update interval for quest progress and healing on hero cards
         this._heroUpdateInterval = setInterval(() => {
             if (this._currentTab === 'heroes') {
                 this.updateHeroQuestProgress();
+                this.updateHeroHealingProgress();
             }
         }, 1000);
+    },
+
+    /**
+     * Update passive healing progress display on hero cards
+     */
+    updateHeroHealingProgress() {
+        const healingHeroes = GameState.heroes.filter(h => h.canPassiveHeal);
+        if (healingHeroes.length === 0) return;
+
+        for (const hero of healingHeroes) {
+            const indicator = document.querySelector(
+                `.hero-card[data-hero-id="${hero.id}"] .hero-healing-indicator`
+            );
+            if (indicator) {
+                const progress = hero.passiveHealProgress;
+                const timeLeft = Math.ceil(hero.timeUntilNextHeal);
+
+                const progressFill = indicator.querySelector('.healing-progress-fill');
+                if (progressFill) {
+                    progressFill.style.width = `${progress}%`;
+                }
+
+                const timeSpan = indicator.querySelector('span:last-child');
+                if (timeSpan) {
+                    timeSpan.textContent = timeLeft > 0 ? Utils.formatTime(timeLeft) : 'Ready';
+                }
+            }
+        }
     },
 
     /**
