@@ -100,7 +100,7 @@ const QuestCard = {
         enemies.innerHTML = `<h4>Enemies</h4>`;
         const enemyList = Utils.createElement('div', { className: 'enemy-list' });
 
-        // Get unique enemies from selected encounters
+        // Get unique enemies from selected encounters with threat labels
         const mobCounts = {};
         for (const encounter of quest.encounters) {
             for (const mobId of encounter.mobs) {
@@ -111,9 +111,12 @@ const QuestCard = {
         for (const [mobId, count] of Object.entries(mobCounts)) {
             const mob = Quests.getMob(mobId);
             if (mob) {
+                const threatLabel = typeof getMobThreatLabel === 'function'
+                    ? getMobThreatLabel(mob.tier)
+                    : mob.tier || '';
                 enemyList.appendChild(Utils.createElement('span', {
-                    className: 'enemy-tag',
-                }, `${mob.icon} ${mob.name} ×${count}`));
+                    className: `enemy-tag threat-${(mob.tier || '').split('_')[0]}`,
+                }, `${mob.icon} ${mob.name} ×${count} (${threatLabel})`));
             }
         }
         enemies.appendChild(enemyList);

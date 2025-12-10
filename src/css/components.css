@@ -386,6 +386,28 @@
     border-radius: var(--radius-sm);
 }
 
+/* Threat tier colors */
+.enemy-tag.threat-fodder {
+    border-color: #8bc34a;
+    background: rgba(139, 195, 74, 0.1);
+}
+
+.enemy-tag.threat-standard {
+    border-color: #ff9800;
+    background: rgba(255, 152, 0, 0.1);
+}
+
+.enemy-tag.threat-elite {
+    border-color: #f44336;
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.enemy-tag.threat-boss {
+    border-color: #9c27b0;
+    background: rgba(156, 39, 176, 0.15);
+    font-weight: 600;
+}
+
 .quest-rewards {
     padding: var(--spacing-sm);
     background: var(--color-parchment);
@@ -480,6 +502,7 @@
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: stretch;
+    justify-content: flex-start;
     gap: 1rem;
     padding: var(--spacing-md);
     overflow-x: auto;
@@ -493,10 +516,21 @@
     flex-shrink: 0;
     min-width: 300px;
     width: 300px;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
     border: 2px solid var(--color-leather);
     background: #fff;
     box-shadow: var(--shadow-sm);
     transition: all 0.2s ease;
+}
+
+.carousel-card .card-body {
+    flex: 1;
+}
+
+.carousel-card .card-footer {
+    margin-top: auto;
 }
 
 .carousel-card:hover {
