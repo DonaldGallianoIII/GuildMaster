@@ -458,8 +458,8 @@
 }
 
 .accordion-content {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--spacing-md);
     padding: var(--spacing-md);
     background: linear-gradient(180deg, #f5f0e6 0%, #ebe4d6 100%);
@@ -485,7 +485,7 @@
 }
 
 .accordion-content .quest-card:hover {
-    transform: translateX(4px);
+    transform: translateY(-4px);
     box-shadow: var(--shadow-md);
     border-color: var(--color-gold);
 }
