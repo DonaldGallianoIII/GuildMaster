@@ -776,3 +776,101 @@ a:hover {
         gap: var(--spacing-sm);
     }
 }
+
+/* ==================== DEV PANEL ==================== */
+.dev-panel {
+    background: var(--color-parchment-light);
+    border: var(--border-thick);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.dev-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: var(--border-medium);
+}
+
+.dev-panel-header h3 {
+    margin: 0;
+}
+
+.dev-badge {
+    background: var(--color-blood);
+    color: var(--color-parchment);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.dev-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.dev-section h4 {
+    font-size: 1rem;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-ink-light);
+}
+
+.dev-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.dev-btn {
+    font-size: 0.85rem;
+    padding: var(--spacing-xs) var(--spacing-md);
+}
+
+.dev-log {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
+    border-top: var(--border-thin);
+}
+
+.dev-log h4 {
+    font-size: 0.9rem;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-ink-faded);
+}
+
+.dev-console {
+    background: var(--color-ink);
+    color: #00ff00;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-sm);
+    height: 150px;
+    overflow-y: auto;
+}
+
+.dev-log-entry {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(0, 255, 0, 0.1);
+}
+
+.log-time {
+    color: #888;
+    margin-right: var(--spacing-sm);
+}
+
+/* Dev Panel Responsive */
+@media (max-width: 768px) {
+    .dev-controls {
+        flex-direction: column;
+    }
+
+    .dev-btn {
+        width: 100%;
+    }
+}

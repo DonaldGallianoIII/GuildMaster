@@ -181,6 +181,7 @@ const App = {
         QuestSystem.init();
         InventorySystem.init();
         PeekSystem.init();
+        DevPanel.init();
     },
 
     /**
