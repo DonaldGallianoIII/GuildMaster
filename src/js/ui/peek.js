@@ -58,6 +58,12 @@ const PeekSystem = {
             return;
         }
 
+        // Stop updating if hero was defeated
+        if (quest.heroDefeated) {
+            this.stopPeek(questId);
+            return;
+        }
+
         // Find the peek area element
         const peekArea = document.querySelector(`.quest-peek-area[data-quest-id="${questId}"]`);
         if (!peekArea) return;

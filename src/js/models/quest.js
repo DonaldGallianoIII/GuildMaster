@@ -399,6 +399,21 @@ class Quest {
     }
 
     /**
+     * Check if hero was defeated (pre-calculated combat showed failure)
+     * This allows showing failure immediately instead of waiting for timer
+     */
+    get heroDefeated() {
+        return this.combatResults && this.combatResults.success === false;
+    }
+
+    /**
+     * Check if quest should be completed (either time is up OR hero died)
+     */
+    get isReadyToComplete() {
+        return this.isTimeComplete || this.heroDefeated;
+    }
+
+    /**
      * Get encounters from template
      */
     get encounters() {
