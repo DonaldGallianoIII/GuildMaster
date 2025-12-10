@@ -243,7 +243,7 @@ const Utils = {
     },
 
     /**
-     * Show toast notification
+     * Show toast notification (queued, bottom-left)
      * @param {string} message - Message to display
      * @param {string} type - 'info' | 'success' | 'error' | 'warning'
      */
@@ -255,12 +255,13 @@ const Utils = {
             className: `toast ${type}`,
         }, message);
 
-        container.appendChild(toast);
+        // Insert at beginning so newest appears at bottom (column-reverse)
+        container.insertBefore(toast, container.firstChild);
 
         // Auto-remove after duration
         setTimeout(() => {
             toast.style.opacity = '0';
-            toast.style.transform = 'translateX(100%)';
+            toast.style.transform = 'translateX(-100%)';
             setTimeout(() => toast.remove(), 300);
         }, CONFIG.UI.TOAST_DURATION);
     },
