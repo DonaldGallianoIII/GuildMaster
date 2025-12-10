@@ -92,6 +92,9 @@ class Hero {
         // Array of { name, bst, stats: { atk, will, def, spd } }
         this.summonLoadout = data.summonLoadout || data.summon_loadout || [];
 
+        // Hire cost (for recruits only, preserved from generation)
+        this.hireCost = data.hireCost ?? null;
+
         // Conjured weapon commitment (0 = none, up to WILL)
         this.conjuredWeaponWill = data.conjuredWeaponWill || data.conjured_weapon_will || 0;
     }
