@@ -307,9 +307,9 @@ const Modals = {
                     ${this._createEquipmentSlots(hero, equippedBySlot)}
                 </div>
 
-                <h4 style="margin-top: 1rem;">Skills</h4>
-                <div class="skills-detail">
-                    ${hero.skills.map(s => this._createSkillDetail(s)).join('')}
+                <h4 style="margin-top: 1rem;">Skills ${hero.skillPoints > 0 ? `<span class="skill-points-badge">${hero.skillPoints} points</span>` : ''}</h4>
+                <div class="skills-bubbles" id="hero-skills-container">
+                    ${hero.skills.map(s => this._createSkillBubble(s, hero)).join('')}
                 </div>
             </div>
             <div class="modal-footer">
@@ -321,6 +321,9 @@ const Modals = {
         content.querySelectorAll('.equipment-slot').forEach(slot => {
             slot.addEventListener('click', () => this._handleEquipmentSlotClick(hero, slot.dataset.slot, equippedBySlot));
         });
+
+        // Bind skill upgrade handlers
+        this._bindSkillUpgradeHandlers(hero);
 
         this.show('hero-modal');
     },
@@ -460,30 +463,93 @@ const Modals = {
     },
 
     /**
-     * Create skill detail section
+     * Create interactive skill bubble
      */
-    _createSkillDetail(skillRef) {
+    _createSkillBubble(skillRef, hero) {
         const skillId = typeof skillRef === 'string' ? skillRef : skillRef.skillId;
         const skillDef = Skills.get(skillId);
         if (!skillDef) return '';
 
         const rank = skillRef.rank || 1;
         const maxRank = Skills.getMaxRank(skillRef.isDoubled, skillRef.isTripled);
+        const canUpgrade = hero.skillPoints > 0 && rank < maxRank;
+
+        // Calculate current and next effect values
+        const currentValue = Skills.calcEffectValue(skillDef, rank);
+        const nextValue = rank < maxRank ? Skills.calcEffectValue(skillDef, rank + 1) : null;
+
+        // Format effect value display
+        const formatEffect = (val) => {
+            if (skillDef.activation === SkillActivation.PASSIVE || skillDef.damageType === DamageType.NONE) {
+                return `${(val * 100).toFixed(0)}%`;
+            }
+            return `${(val * 100).toFixed(0)}%`;
+        };
+
+        // Build scaling description
+        const scalingText = skillDef.scaling.length > 0
+            ? skillDef.scaling.map(s => s.toUpperCase()).join(' + ')
+            : 'None';
+
+        // Rarity color class
+        const rarityClass = `skill-rarity-${skillDef.rarity}`;
+        const doubleClass = skillRef.isTripled ? 'tripled' : skillRef.isDoubled ? 'doubled' : '';
 
         return `
-            <div class="skill-detail">
-                <div class="skill-name">
-                    ${skillDef.icon} ${skillDef.name}
-                    ${skillRef.isTripled ? '³' : skillRef.isDoubled ? '²' : ''}
-                    <span class="skill-rank">(Rank ${rank}/${maxRank})</span>
+            <div class="skill-bubble ${rarityClass} ${doubleClass}" data-skill-id="${skillId}">
+                <div class="skill-bubble-icon">${skillDef.icon}</div>
+                <div class="skill-bubble-content">
+                    <div class="skill-bubble-header">
+                        <span class="skill-bubble-name">${skillDef.name}${skillRef.isTripled ? '³' : skillRef.isDoubled ? '²' : ''}</span>
+                        <span class="skill-bubble-rank">Rank ${rank}/${maxRank}</span>
+                    </div>
+                    <div class="skill-bubble-desc">${skillDef.description}</div>
+                    <div class="skill-bubble-info">
+                        <span class="skill-type">${Utils.capitalize(skillDef.activation)}</span>
+                        <span class="skill-damage-type">${Utils.capitalize(skillDef.damageType)}</span>
+                        <span class="skill-scaling">Scales: ${scalingText}</span>
+                    </div>
+                    <div class="skill-bubble-effect">
+                        <span class="effect-current">Effect: ${formatEffect(currentValue)}</span>
+                        ${nextValue ? `<span class="effect-next">→ ${formatEffect(nextValue)}</span>` : '<span class="effect-max">MAX</span>'}
+                    </div>
                 </div>
-                <div class="skill-description">${skillDef.description}</div>
-                <div class="skill-scaling">
-                    Type: ${Utils.capitalize(skillDef.damageType)} |
-                    Scales: ${skillDef.scaling.map(Utils.capitalize).join(', ') || 'None'}
-                </div>
+                ${canUpgrade ? `
+                    <button class="skill-upgrade-btn" data-skill-id="${skillId}" data-hero-id="${hero.id}" title="Spend 1 skill point to upgrade">
+                        <span class="upgrade-plus">+</span>
+                    </button>
+                ` : ''}
             </div>
         `;
+    },
+
+    /**
+     * Bind skill upgrade button handlers
+     */
+    _bindSkillUpgradeHandlers(hero) {
+        const container = document.getElementById('hero-skills-container');
+        if (!container) return;
+
+        container.querySelectorAll('.skill-upgrade-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const skillId = btn.dataset.skillId;
+                const heroId = btn.dataset.heroId;
+
+                const currentHero = GameState.getHero(heroId);
+                if (!currentHero) return;
+
+                const success = currentHero.upgradeSkill(skillId);
+                if (success) {
+                    await GameState.updateHero(currentHero);
+                    Utils.toast(`Upgraded ${Skills.get(skillId).name}!`, 'success');
+                    // Refresh modal to show updated skills
+                    this.showHeroDetail(currentHero);
+                } else {
+                    Utils.toast('Cannot upgrade skill', 'warning');
+                }
+            });
+        });
     },
 
     // ==================== LIVE COMBAT LOG MODAL ====================

@@ -100,8 +100,8 @@ const PeekSystem = {
         // Check for new events to animate
         this.checkForNewEvents(questId, events);
 
-        // Check if quest is complete
-        if (quest.isTimeComplete) {
+        // Check if quest is complete (time up OR hero died)
+        if (quest.isReadyToComplete) {
             this.stopPeek(questId);
             // Trigger quest completion
             GameState.checkQuestCompletions();
