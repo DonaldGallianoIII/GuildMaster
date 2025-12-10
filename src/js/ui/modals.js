@@ -392,17 +392,23 @@ const Modals = {
         const accordionToggle = content.querySelector('#inventory-accordion-toggle');
         if (accordionToggle) {
             accordionToggle.addEventListener('click', (e) => {
-                if (e.target.tagName !== 'SELECT') {
-                    this._inventoryExpanded = !this._inventoryExpanded;
-                    this.showHeroDetail(hero);
+                // Don't toggle if clicking on the select or its options
+                if (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') {
+                    return;
                 }
+                this._inventoryExpanded = !this._inventoryExpanded;
+                this.showHeroDetail(hero);
             });
         }
 
-        // Bind sort select
+        // Bind sort select - stop propagation to prevent accordion toggle
         const sortSelect = content.querySelector('#inventory-sort-select');
         if (sortSelect) {
+            sortSelect.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
             sortSelect.addEventListener('change', (e) => {
+                e.stopPropagation();
                 this._inventorySort = e.target.value;
                 this.showHeroDetail(hero);
             });
