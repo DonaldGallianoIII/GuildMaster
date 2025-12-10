@@ -489,13 +489,53 @@ const GameState = {
         if (saved) {
             try {
                 const data = JSON.parse(saved);
+
+                // Validate data is an array
+                if (!Array.isArray(data) || data.length === 0) {
+                    Utils.log('Invalid quest board data, regenerating');
+                    this.generateQuestBoard();
+                    return;
+                }
+
                 // Convert plain objects back to Quest instances
-                this._state.questBoard = data.map(q => new Quest(q));
+                // Also validate that they have encounters (migration from old system)
+                const validQuests = [];
+                for (const q of data) {
+                    // Skip invalid entries
+                    if (!q || !q.templateId) {
+                        continue;
+                    }
+
+                    const quest = new Quest(q);
+
+                    // Check if quest has valid encounters
+                    if (!quest.encounters || quest.encounters.length === 0) {
+                        // Old quest without selectedEncounters - regenerate it
+                        Utils.log('Regenerating quest without encounters:', quest.templateId);
+                        const replacement = this.generateRandomQuest(quest.difficulty);
+                        if (replacement) {
+                            validQuests.push(replacement);
+                        }
+                    } else {
+                        validQuests.push(quest);
+                    }
+                }
+
+                // If we ended up with no valid quests, regenerate the whole board
+                if (validQuests.length === 0) {
+                    Utils.log('No valid quests found, regenerating board');
+                    this.generateQuestBoard();
+                    return;
+                }
+
+                this._state.questBoard = validQuests;
                 Utils.log('Loaded quest board from localStorage:', this._state.questBoard.length);
 
                 // Check for any expired quests and replace them
                 this.checkQuestBoardExpiration();
 
+                // Save back in case we regenerated any quests
+                this.saveQuestBoard();
                 this.emit('questBoardRefreshed');
             } catch (e) {
                 Utils.error('Failed to load quest board from localStorage:', e);
