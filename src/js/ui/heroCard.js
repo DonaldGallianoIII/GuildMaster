@@ -113,7 +113,7 @@ const HeroCard = {
                     <div class="healing-progress-bar">
                         <div class="healing-progress-fill" style="width: ${progress}%"></div>
                     </div>
-                    <span>${timeLeft > 0 ? Utils.formatTime(timeLeft) : 'Ready'}</span>
+                    <span>${timeLeft > 0 ? Utils.formatTime(timeLeft * 1000) : 'Ready'}</span>
                 `;
                 body.appendChild(healIndicator);
             }
@@ -169,10 +169,16 @@ const HeroCard = {
         return card;
     },
 
+    // Track active render to prevent race conditions
+    _renderVersion: 0,
+
     /**
      * Render hero list to container (async to fetch equipment)
      */
     async renderList(container, heroes, options = {}) {
+        // Increment version to invalidate any in-progress renders
+        const thisRenderVersion = ++this._renderVersion;
+
         container.innerHTML = '';
 
         if (heroes.length === 0) {
@@ -202,6 +208,11 @@ const HeroCard = {
             }
         }
 
+        // Check if this render was superseded by a newer one
+        if (thisRenderVersion !== this._renderVersion) {
+            return; // Abort - a newer render is in progress
+        }
+
         // Get active quests for heroes
         const heroQuests = {};
         if (GameState.activeQuests) {
@@ -210,6 +221,11 @@ const HeroCard = {
                     heroQuests[quest.heroId] = quest;
                 }
             }
+        }
+
+        // Final check before appending
+        if (thisRenderVersion !== this._renderVersion) {
+            return; // Abort - a newer render started during quest lookup
         }
 
         for (const hero of heroes) {

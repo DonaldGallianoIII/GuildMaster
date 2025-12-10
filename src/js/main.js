@@ -208,8 +208,18 @@ const App = {
         GameState.on('heroDied', () => this.renderHeroes());
         GameState.on('questStarted', () => this.renderHeroes());
         GameState.on('questCompleted', () => this.renderHeroes());
-        GameState.on('itemEquipped', () => this.renderHeroes());
-        GameState.on('itemUnequipped', () => this.renderHeroes());
+        // Only re-render heroes for equipment changes if modal is not open
+        // (modal handles its own refresh)
+        GameState.on('itemEquipped', () => {
+            if (!document.getElementById('hero-modal')?.classList.contains('active')) {
+                this.renderHeroes();
+            }
+        });
+        GameState.on('itemUnequipped', () => {
+            if (!document.getElementById('hero-modal')?.classList.contains('active')) {
+                this.renderHeroes();
+            }
+        });
         GameState.on('heroHealed', () => this.renderHeroes());
         GameState.on('dataLoaded', () => {
             this.updatePlayerDisplay();
@@ -247,7 +257,7 @@ const App = {
 
                 const timeSpan = indicator.querySelector('span:last-child');
                 if (timeSpan) {
-                    timeSpan.textContent = timeLeft > 0 ? Utils.formatTime(timeLeft) : 'Ready';
+                    timeSpan.textContent = timeLeft > 0 ? Utils.formatTime(timeLeft * 1000) : 'Ready';
                 }
             }
         }

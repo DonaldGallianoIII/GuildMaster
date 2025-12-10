@@ -16,6 +16,7 @@ const GuildHallSystem = {
     _farmPlots: [],   // Player's farm plots
     _updateInterval: null,
     _loading: false,
+    _currentTab: 'farm', // Track current sub-tab
 
     // Configuration
     config: {
@@ -561,29 +562,30 @@ const GuildHallSystem = {
         const container = document.querySelector('#guild-tab .guild-stats');
         if (!container) return;
 
+        const tab = this._currentTab;
         container.innerHTML = `
             <div class="guild-hall-tabs">
-                <button class="guild-hall-tab active" data-section="farm">Farm</button>
-                <button class="guild-hall-tab" data-section="fishing">Fishing</button>
-                <button class="guild-hall-tab" data-section="shop">Shop</button>
-                <button class="guild-hall-tab" data-section="crafting">Crafting</button>
-                <button class="guild-hall-tab" data-section="pantry">Pantry</button>
+                <button class="guild-hall-tab ${tab === 'farm' ? 'active' : ''}" data-section="farm">Farm</button>
+                <button class="guild-hall-tab ${tab === 'fishing' ? 'active' : ''}" data-section="fishing">Fishing</button>
+                <button class="guild-hall-tab ${tab === 'shop' ? 'active' : ''}" data-section="shop">Shop</button>
+                <button class="guild-hall-tab ${tab === 'crafting' ? 'active' : ''}" data-section="crafting">Crafting</button>
+                <button class="guild-hall-tab ${tab === 'pantry' ? 'active' : ''}" data-section="pantry">Pantry</button>
             </div>
 
             <div class="guild-hall-sections">
-                <div class="guild-hall-section active" data-section="farm">
+                <div class="guild-hall-section ${tab === 'farm' ? 'active' : ''}" data-section="farm">
                     ${this.renderFarm()}
                 </div>
-                <div class="guild-hall-section" data-section="fishing">
+                <div class="guild-hall-section ${tab === 'fishing' ? 'active' : ''}" data-section="fishing">
                     ${this.renderFishing()}
                 </div>
-                <div class="guild-hall-section" data-section="shop">
+                <div class="guild-hall-section ${tab === 'shop' ? 'active' : ''}" data-section="shop">
                     ${this.renderShop()}
                 </div>
-                <div class="guild-hall-section" data-section="crafting">
+                <div class="guild-hall-section ${tab === 'crafting' ? 'active' : ''}" data-section="crafting">
                     ${this.renderCrafting()}
                 </div>
-                <div class="guild-hall-section" data-section="pantry">
+                <div class="guild-hall-section ${tab === 'pantry' ? 'active' : ''}" data-section="pantry">
                     ${this.renderPantry()}
                 </div>
             </div>
@@ -616,7 +618,7 @@ const GuildHallSystem = {
                         <div class="plot-progress-bar">
                             <div class="plot-progress-fill" style="width: ${progress}%"></div>
                         </div>
-                        <span class="plot-time">${Utils.formatTime(timeLeft)}</span>
+                        <span class="plot-time">${Utils.formatTime(timeLeft * 1000)}</span>
                     </div>
                 `;
             } else if (plot.state === PlotState.READY) {
@@ -830,6 +832,7 @@ const GuildHallSystem = {
         container.querySelectorAll('.guild-hall-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 const section = tab.dataset.section;
+                this._currentTab = section; // Remember current tab
 
                 // Update tab active state
                 container.querySelectorAll('.guild-hall-tab').forEach(t => t.classList.remove('active'));
