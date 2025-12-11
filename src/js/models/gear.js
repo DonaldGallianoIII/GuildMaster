@@ -292,8 +292,34 @@ class Gear {
         // Inscriptions (PvP kills)
         this.inscriptions = data.inscriptions || [];
 
+        // Lock status (prevents selling)
+        this.isLocked = data.isLocked || data.is_locked || false;
+
         // Timestamps
         this.createdAt = data.createdAt || data.created_at || Utils.now();
+    }
+
+    // ==================== LOCK METHODS ====================
+
+    /**
+     * Lock the item to prevent selling
+     */
+    lock() {
+        this.isLocked = true;
+    }
+
+    /**
+     * Unlock the item to allow selling
+     */
+    unlock() {
+        this.isLocked = false;
+    }
+
+    /**
+     * Toggle lock status
+     */
+    toggleLock() {
+        this.isLocked = !this.isLocked;
     }
 
     // ==================== COMPUTED PROPERTIES ====================
@@ -431,6 +457,7 @@ class Gear {
             lineage: this.lineage,
             souled_by: this.souledBy,
             inscriptions: this.inscriptions,
+            is_locked: this.isLocked,
             created_at: this.createdAt,
         };
     }
@@ -456,6 +483,7 @@ class Gear {
             lineage: row.lineage,
             souledBy: row.souled_by,
             inscriptions: row.inscriptions,
+            isLocked: row.is_locked,
             createdAt: row.created_at,
         });
     }
