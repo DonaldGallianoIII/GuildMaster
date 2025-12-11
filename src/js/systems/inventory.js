@@ -11,6 +11,9 @@ const InventorySystem = {
     _filter: 'all',
     _sort: 'newest',
 
+    // Multi-select mode
+    _selectedItems: new Set(),
+
     /**
      * Initialize inventory UI
      */
@@ -23,6 +26,117 @@ const InventorySystem = {
         GameState.on('itemUnequipped', () => this.render());
         GameState.on('questCompleted', () => this.render());
         GameState.on('itemSold', () => this.render());
+    },
+
+    /**
+     * Clear all selections
+     */
+    clearSelection() {
+        this._selectedItems.clear();
+        this.updateSelectionUI();
+    },
+
+    /**
+     * Toggle item selection
+     */
+    toggleSelection(itemId) {
+        if (this._selectedItems.has(itemId)) {
+            this._selectedItems.delete(itemId);
+        } else {
+            this._selectedItems.add(itemId);
+        }
+        this.updateSelectionUI();
+    },
+
+    /**
+     * Update selection UI (checkboxes and action bar)
+     */
+    updateSelectionUI() {
+        // Update checkboxes
+        document.querySelectorAll('.gear-card').forEach(card => {
+            const itemId = card.dataset.itemId;
+            const checkbox = card.querySelector('.item-select-checkbox');
+            if (checkbox) {
+                checkbox.checked = this._selectedItems.has(itemId);
+            }
+            card.classList.toggle('selected', this._selectedItems.has(itemId));
+        });
+
+        // Update action bar
+        const actionBar = document.getElementById('inventory-action-bar');
+        if (actionBar) {
+            const selectedCount = this._selectedItems.size;
+            actionBar.style.display = selectedCount > 0 ? 'flex' : 'none';
+
+            const countSpan = actionBar.querySelector('.selected-count');
+            if (countSpan) {
+                countSpan.textContent = `${selectedCount} selected`;
+            }
+
+            // Calculate total sell value
+            const totalValue = this.getSelectedSellValue();
+            const valueSpan = actionBar.querySelector('.total-sell-value');
+            if (valueSpan) {
+                valueSpan.textContent = `${totalValue}g`;
+            }
+        }
+    },
+
+    /**
+     * Get total sell value of selected items (excluding locked)
+     */
+    getSelectedSellValue() {
+        let total = 0;
+        for (const itemId of this._selectedItems) {
+            const item = GameState.inventory.find(i => i.id === itemId);
+            if (item && !item.isLocked) {
+                total += GameState.getSellPrice(item);
+            }
+        }
+        return total;
+    },
+
+    /**
+     * Sell all selected items (excluding locked)
+     */
+    async sellSelected() {
+        const itemsToSell = [];
+        for (const itemId of this._selectedItems) {
+            const item = GameState.inventory.find(i => i.id === itemId);
+            if (item && !item.isLocked) {
+                itemsToSell.push(item);
+            }
+        }
+
+        if (itemsToSell.length === 0) {
+            Utils.toast('No sellable items selected (locked items excluded)', 'warning');
+            return;
+        }
+
+        let totalGold = 0;
+        for (const item of itemsToSell) {
+            const price = GameState.getSellPrice(item);
+            totalGold += price;
+            await GameState.sellItem(item.id);
+        }
+
+        this._selectedItems.clear();
+        Utils.toast(`Sold ${itemsToSell.length} items for ${totalGold}g!`, 'success');
+        this.render();
+    },
+
+    /**
+     * Toggle lock on item
+     */
+    async toggleItemLock(itemId) {
+        const item = GameState.inventory.find(i => i.id === itemId);
+        if (!item) return;
+
+        item.toggleLock();
+        await DB.items.save(item);
+
+        Utils.toast(item.isLocked ? `${item.displayName} locked` : `${item.displayName} unlocked`, 'info');
+        this.render();
     },
 
     /**
@@ -63,6 +177,14 @@ const InventorySystem = {
         const container = document.getElementById('inventory-grid');
         if (!container) return;
 
+        // Clean up selection - remove items that are no longer in inventory
+        const inventoryIds = new Set(GameState.inventory.map(i => i.id));
+        for (const itemId of this._selectedItems) {
+            if (!inventoryIds.has(itemId)) {
+                this._selectedItems.delete(itemId);
+            }
+        }
+
         let items = [...GameState.inventory]; // Clone to avoid mutating original
 
         // Apply filter
@@ -74,6 +196,9 @@ const InventorySystem = {
         items = this.sortItems(items, this._sort);
 
         container.innerHTML = '';
+
+        // Add action bar for multi-select
+        this.renderActionBar(container);
 
         if (items.length === 0) {
             container.appendChild(UI.createEmptyState(
@@ -87,6 +212,42 @@ const InventorySystem = {
         for (const item of items) {
             container.appendChild(this.createGearCard(item));
         }
+
+        // Update selection UI state
+        this.updateSelectionUI();
+    },
+
+    /**
+     * Render the action bar for multi-select operations
+     */
+    renderActionBar(container) {
+        let actionBar = document.getElementById('inventory-action-bar');
+
+        if (!actionBar) {
+            actionBar = Utils.createElement('div', {
+                id: 'inventory-action-bar',
+                className: 'inventory-action-bar',
+            });
+
+            actionBar.innerHTML = `
+                <span class="selected-count">0 selected</span>
+                <span class="total-sell-value-label">Total: <span class="total-sell-value">0g</span></span>
+                <button class="btn btn-primary sell-selected-btn">Sell Selected</button>
+                <button class="btn btn-secondary clear-selection-btn">Clear</button>
+            `;
+
+            // Bind action bar events
+            actionBar.querySelector('.sell-selected-btn').addEventListener('click', () => {
+                this.sellSelected();
+            });
+
+            actionBar.querySelector('.clear-selection-btn').addEventListener('click', () => {
+                this.clearSelection();
+            });
+        }
+
+        actionBar.style.display = this._selectedItems.size > 0 ? 'flex' : 'none';
+        container.parentNode.insertBefore(actionBar, container);
     },
 
     /**
@@ -133,9 +294,32 @@ const InventorySystem = {
      */
     createGearCard(item) {
         const card = Utils.createElement('div', {
-            className: `card gear-card ${UI.getRarityClass(item.rarity)}`,
+            className: `card gear-card ${UI.getRarityClass(item.rarity)}${item.isLocked ? ' item-locked' : ''}${this._selectedItems.has(item.id) ? ' selected' : ''}`,
             dataset: { itemId: item.id },
         });
+
+        // Selection checkbox
+        const selectWrapper = Utils.createElement('div', { className: 'item-select-wrapper' });
+        const checkbox = Utils.createElement('input', {
+            type: 'checkbox',
+            className: 'item-select-checkbox',
+        });
+        checkbox.checked = this._selectedItems.has(item.id);
+        checkbox.addEventListener('change', (e) => {
+            e.stopPropagation();
+            this.toggleSelection(item.id);
+        });
+        selectWrapper.appendChild(checkbox);
+
+        // Lock indicator
+        if (item.isLocked) {
+            const lockIcon = Utils.createElement('span', { className: 'lock-indicator' });
+            lockIcon.textContent = '🔒';
+            lockIcon.title = 'This item is locked';
+            selectWrapper.appendChild(lockIcon);
+        }
+
+        card.appendChild(selectWrapper);
 
         // Header
         const header = Utils.createElement('div', { className: 'card-header' });
@@ -188,21 +372,35 @@ const InventorySystem = {
 
         card.appendChild(body);
 
-        // Footer with equip and sell buttons
+        // Footer with equip, lock, and sell buttons
         const footer = Utils.createElement('div', { className: 'card-footer' });
+
+        // Lock/Unlock button
+        const lockBtn = UI.createButton(item.isLocked ? '🔓' : '🔒', 'icon', async () => {
+            await this.toggleItemLock(item.id);
+        });
+        lockBtn.className = `btn btn-icon lock-btn${item.isLocked ? ' locked' : ''}`;
+        lockBtn.title = item.isLocked ? 'Unlock item' : 'Lock item';
+        footer.appendChild(lockBtn);
+
         const equipBtn = UI.createButton('Equip', 'primary', () => {
             this.showEquipModal(item);
         });
         footer.appendChild(equipBtn);
 
         const sellPrice = GameState.getSellPrice(item);
-        const sellBtn = UI.createButton(`Sell (${sellPrice}g)`, 'secondary', async () => {
-            if (confirm(`Sell ${item.displayName} for ${sellPrice}g?`)) {
+        if (item.isLocked) {
+            const lockedBtn = UI.createButton('Locked', 'secondary');
+            lockedBtn.disabled = true;
+            lockedBtn.title = 'Unlock this item to sell it';
+            footer.appendChild(lockedBtn);
+        } else {
+            const sellBtn = UI.createButton(`Sell (${sellPrice}g)`, 'secondary', async () => {
                 await GameState.sellItem(item.id);
                 this.render();
-            }
-        });
-        footer.appendChild(sellBtn);
+            });
+            footer.appendChild(sellBtn);
+        }
         card.appendChild(footer);
 
         return card;
