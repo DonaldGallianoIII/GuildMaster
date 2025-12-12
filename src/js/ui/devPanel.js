@@ -356,38 +356,45 @@ const DevPanel = {
             return;
         }
 
-        // Delete all quests from database
-        const allQuests = [...GameState._state.quests];
         let deleted = 0;
 
-        for (const quest of allQuests) {
+        // Clear active quests first (free heroes)
+        const activeQuests = [...(GameState._state.activeQuests || [])];
+        for (const quest of activeQuests) {
             // Free up any heroes on quests
             if (quest.heroId) {
                 const hero = GameState.getHero(quest.heroId);
-                if (hero && hero.state === 'quest') {
-                    hero.state = 'available';
+                if (hero && hero.state === HeroState.ON_QUEST) {
+                    hero.state = HeroState.AVAILABLE;
                     hero.currentQuestId = null;
                     await DB.heroes.update(hero.id, {
-                        state: 'available',
+                        state: HeroState.AVAILABLE,
                         current_quest_id: null,
                     });
                 }
             }
+            await DB.quests.delete(quest.id);
+            deleted++;
+        }
 
-            // Delete the quest
+        // Clear quest board
+        const boardQuests = [...(GameState._state.questBoard || [])];
+        for (const quest of boardQuests) {
             await DB.quests.delete(quest.id);
             deleted++;
         }
 
         // Clear local state
-        GameState._state.quests = [];
+        GameState._state.activeQuests = [];
+        GameState._state.questBoard = [];
         GameState.emit('questsUpdated', {});
+        GameState.emit('heroUpdated');
 
         this.log(`Cleared ${deleted} quests`);
         Utils.toast(`Cleared ${deleted} quests`, 'success');
 
         // Refresh quest board with new quests
-        await QuestSystem.refreshQuestBoard();
+        await GameState.refreshQuestBoard();
     },
 
     /**
