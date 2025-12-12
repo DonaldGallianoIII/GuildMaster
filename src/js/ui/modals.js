@@ -385,11 +385,11 @@ const Modals = {
         // Get inventory for upgrade comparison
         const inventory = GameState.inventory || [];
 
-        // Calculate equipment stat bonuses
-        const equipmentBonuses = { atk: 0, will: 0, def: 0, spd: 0 };
+        // Calculate equipment stat bonuses (including HP)
+        const equipmentBonuses = { atk: 0, will: 0, def: 0, spd: 0, hp: 0 };
         for (const item of equippedItems) {
             const itemStats = item.totalStats;
-            for (const stat of ['atk', 'will', 'def', 'spd']) {
+            for (const stat of ['atk', 'will', 'def', 'spd', 'hp']) {
                 if (itemStats[stat]) {
                     equipmentBonuses[stat] += itemStats[stat];
                 }
@@ -398,6 +398,9 @@ const Modals = {
 
         // Check if there are any bonuses to display
         const hasBonuses = Object.values(equipmentBonuses).some(v => v !== 0);
+
+        // Calculate effective maxHp with gear bonus
+        const effectiveMaxHp = hero.maxHp + equipmentBonuses.hp;
 
         content.innerHTML = `
             <div class="modal-header">
@@ -414,7 +417,7 @@ const Modals = {
                     </div>
                 </div>
 
-                ${UI.createStatBar(hero.currentHp, hero.maxHp, 'hp').outerHTML}
+                ${UI.createStatBar(hero.currentHp, effectiveMaxHp, 'hp', equipmentBonuses.hp > 0 ? `+${equipmentBonuses.hp}` : null).outerHTML}
 
                 <h4 style="margin-top: 1rem;">Stats (BST: ${hero.bst})</h4>
                 ${UI.createStatDisplay(hero.stats, hasBonuses ? equipmentBonuses : null).outerHTML}

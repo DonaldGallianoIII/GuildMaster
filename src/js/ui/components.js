@@ -11,8 +11,12 @@ const UI = {
 
     /**
      * Create stat bar display
+     * @param {number} current - Current value
+     * @param {number} max - Maximum value
+     * @param {string} color - Color theme ('hp', etc.)
+     * @param {string} bonusText - Optional bonus indicator (e.g., "+10")
      */
-    createStatBar(current, max, color = 'hp') {
+    createStatBar(current, max, color = 'hp', bonusText = null) {
         const percent = Math.max(0, Math.min(100, (current / max) * 100));
         const container = Utils.createElement('div', { className: 'hp-bar-container' });
 
@@ -23,9 +27,15 @@ const UI = {
         });
         bar.appendChild(fill);
 
+        // Show bonus if provided
+        const displayText = bonusText
+            ? `${current} / ${max} <span class="stat-bonus-positive">(${bonusText})</span>`
+            : `${current} / ${max}`;
+
         const text = Utils.createElement('div', {
             className: 'hp-text',
-        }, `${current} / ${max}`);
+        });
+        text.innerHTML = displayText;
 
         container.appendChild(bar);
         container.appendChild(text);
