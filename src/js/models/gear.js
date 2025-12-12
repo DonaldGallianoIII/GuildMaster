@@ -395,14 +395,16 @@ class Gear {
 
     /**
      * Get hunger label based on hunger value
-     * @returns {string} Hunger label (Replete, Sated, Neutral, Hungry, Voracious)
+     * @returns {string} Hunger label (Replete, Nourished, Sated, Neutral, Hungry, Ravenous, Voracious)
      */
     getHungerLabel() {
         const ranges = CONFIG.HUNGER_SYSTEM.RANGES;
         if (this.hunger <= ranges.REPLETE.max) return 'Replete';
+        if (this.hunger <= ranges.NOURISHED.max) return 'Nourished';
         if (this.hunger <= ranges.SATED.max) return 'Sated';
         if (this.hunger <= ranges.NEUTRAL.max) return 'Neutral';
         if (this.hunger <= ranges.HUNGRY.max) return 'Hungry';
+        if (this.hunger <= ranges.RAVENOUS.max) return 'Ravenous';
         return 'Voracious';
     }
 
@@ -585,11 +587,11 @@ const GearGenerator = {
             scaledStats[stat] = Math.floor(value * levelMult);
         }
 
-        // Generate affixes based on rarity
-        const affixes = this.generateAffixes(rarity);
+        // Generate hunger value FIRST (Design Doc v2 - affects affix generation)
+        const hunger = options.hunger ?? this.rollHungerByRarity(rarity);
 
-        // Generate hunger value (Design Doc v2)
-        const hunger = options.hunger ?? this.rollHunger();
+        // Generate affixes based on rarity AND hunger
+        const affixes = this.generateAffixes(rarity, hunger);
 
         return new Gear({
             slot,
@@ -604,53 +606,103 @@ const GearGenerator = {
     },
 
     /**
-     * Roll a random hunger value for new gear
-     * Distribution weighted towards neutral (bell curve-ish)
-     * Range: -0.70 (Replete) to +0.70 (Voracious)
+     * Roll a random hunger value for new gear (legacy - uses full range)
      * @returns {number}
      */
     rollHunger() {
-        // Roll 2d6-7 style distribution (-5 to +5) then scale to -0.70 to +0.70
-        // This creates a bell curve with most items being near Neutral
+        return this.rollHungerByRarity('rare'); // Default to rare range
+    },
+
+    /**
+     * Roll hunger value based on item rarity (Design Doc v2)
+     * Common items have narrow range, Unique items can be anything
+     * @param {string} rarity
+     * @returns {number}
+     */
+    rollHungerByRarity(rarity) {
+        const rollWeights = CONFIG.HUNGER_SYSTEM.ROLL_WEIGHTS;
+        const range = rollWeights[rarity] || rollWeights.rare;
+
+        // Bell curve within the rarity's range
         const roll1 = Math.random();
         const roll2 = Math.random();
-        const combined = (roll1 + roll2) / 2; // Average gives bell curve
-        const scaled = (combined - 0.5) * 1.4; // Scale to -0.70 to +0.70
+        const combined = (roll1 + roll2) / 2; // Average for bell curve
+
+        // Scale to rarity's range
+        const rangeSize = range.max - range.min;
+        const scaled = range.min + (combined * rangeSize);
+
         // Round to 2 decimal places
         return Math.round(scaled * 100) / 100;
     },
 
     /**
-     * Generate affixes based on rarity
+     * Get hunger label from a hunger value (static helper)
+     * @param {number} hunger
+     * @returns {string}
      */
-    generateAffixes(rarity) {
-        const affixes = [];
+    getHungerLabelFromValue(hunger) {
+        const ranges = CONFIG.HUNGER_SYSTEM.RANGES;
+        if (hunger <= ranges.REPLETE.max) return 'REPLETE';
+        if (hunger <= ranges.NOURISHED.max) return 'NOURISHED';
+        if (hunger <= ranges.SATED.max) return 'SATED';
+        if (hunger <= ranges.NEUTRAL.max) return 'NEUTRAL';
+        if (hunger <= ranges.HUNGRY.max) return 'HUNGRY';
+        if (hunger <= ranges.RAVENOUS.max) return 'RAVENOUS';
+        return 'VORACIOUS';
+    },
 
-        // Number of affixes by rarity
+    /**
+     * Generate affixes based on rarity AND hunger (Design Doc v2)
+     * @param {string} rarity - Item rarity
+     * @param {number} hunger - Item hunger value (-0.70 to +0.70)
+     */
+    generateAffixes(rarity, hunger = 0) {
+        const affixes = [];
+        const hungerLabel = this.getHungerLabelFromValue(hunger);
+
+        // REPLETE items drop BLANK (Design Doc v2)
+        if (hungerLabel === 'REPLETE' && CONFIG.HUNGER_SYSTEM.REPLETE_DROPS_BLANK) {
+            return affixes; // Empty array - no affixes
+        }
+
+        // Get max slots based on hunger
+        const maxSlots = CONFIG.HUNGER_SYSTEM.MAX_SLOTS[hungerLabel] || { prefix: 3, suffix: 3 };
+
+        // Number of affixes by rarity (can be limited by hunger slots)
         const affixCounts = {
             [GearRarity.COMMON]: 0,
             [GearRarity.MAGIC]: Utils.randomInt(1, 2),
             [GearRarity.RARE]: Utils.randomInt(3, 4),
-            [GearRarity.UNIQUE]: 2, // Uniques have fixed special affixes
+            [GearRarity.UNIQUE]: 2,
             [GearRarity.HEIRLOOM]: 2,
         };
 
-        const count = affixCounts[rarity] || 0;
+        const targetCount = affixCounts[rarity] || 0;
+
+        // Cap by total available slots (prefix + suffix)
+        const maxTotalSlots = maxSlots.prefix + maxSlots.suffix;
+        const count = Math.min(targetCount, maxTotalSlots);
+
         let prefixCount = 0;
         let suffixCount = 0;
+
+        // Voracious items get 1.5x affix values
+        const isVoracious = hungerLabel === 'VORACIOUS';
+        const valueMult = isVoracious ? CONFIG.HUNGER_SYSTEM.VORACIOUS_AFFIX_MULT : 1.0;
 
         for (let i = 0; i < count; i++) {
             // Alternate between prefix and suffix, with some randomness
             const isPrefix = (prefixCount <= suffixCount) || Math.random() < 0.5;
 
-            if (isPrefix && prefixCount < 2) {
-                const affix = this.rollAffix('prefix');
+            if (isPrefix && prefixCount < maxSlots.prefix) {
+                const affix = this.rollAffix('prefix', valueMult);
                 if (affix) {
                     affixes.push(affix);
                     prefixCount++;
                 }
-            } else if (suffixCount < 2) {
-                const affix = this.rollAffix('suffix');
+            } else if (suffixCount < maxSlots.suffix) {
+                const affix = this.rollAffix('suffix', valueMult);
                 if (affix) {
                     affixes.push(affix);
                     suffixCount++;
@@ -663,8 +715,10 @@ const GearGenerator = {
 
     /**
      * Roll a single affix
+     * @param {string} type - 'prefix' or 'suffix'
+     * @param {number} valueMult - Multiplier for affix value (1.5x for Voracious)
      */
-    rollAffix(type) {
+    rollAffix(type, valueMult = 1.0) {
         const pool = AFFIX_POOL[type === 'prefix' ? 'prefixes' : 'suffixes'];
         if (!pool || pool.length === 0) return null;
 
@@ -674,11 +728,15 @@ const GearGenerator = {
         const index = parseInt(Utils.weightedRandom(weights));
         const template = pool[index];
 
+        // Roll base value then apply multiplier (Voracious = 1.5x)
+        const baseValue = Utils.randomInt(template.minValue, template.maxValue);
+        const finalValue = Math.floor(baseValue * valueMult);
+
         return {
             type,
             name: template.name,
             stat: template.stat,
-            value: Utils.randomInt(template.minValue, template.maxValue),
+            value: finalValue,
         };
     },
 
