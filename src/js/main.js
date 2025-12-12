@@ -213,6 +213,7 @@ const App = {
         InventorySystem.init();
         PeekSystem.init();
         DevPanel.init();
+        Modals.init();
         await GuildHallSystem.init();
         await NotificationSystem.init();
     },

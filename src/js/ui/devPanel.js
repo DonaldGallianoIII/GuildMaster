@@ -146,6 +146,11 @@ const DevPanel = {
                 await this.addGold(10000);
                 break;
 
+            // Souls
+            case 'add-souls-100':
+                await this.addSouls(100);
+                break;
+
             // Heroes
             case 'add-hero':
                 await this.addRandomHero();
@@ -196,6 +201,15 @@ const DevPanel = {
         await GameState.addGold(amount);
         this.log(`Added ${amount} gold. Total: ${GameState.gold}`);
         Utils.toast(`+${amount} gold (dev)`, 'success');
+    },
+
+    /**
+     * Add souls to player
+     */
+    async addSouls(amount) {
+        await GameState.addSouls(amount);
+        this.log(`Added ${amount} souls. Total: ${GameState.souls}`);
+        Utils.toast(`+${amount} souls (dev)`, 'success');
     },
 
     /**
