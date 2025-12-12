@@ -100,22 +100,35 @@ const QuestCard = {
         const enemyList = Utils.createElement('div', { className: 'enemy-list' });
 
         // Get unique enemies from selected encounters with threat labels
-        const mobCounts = {};
+        // Track both count and tier (tier comes from encounter.mobTiers, not mob definition)
+        const mobData = {}; // { mobId: { count, tier } }
         for (const encounter of quest.encounters) {
-            for (const mobId of encounter.mobs) {
-                mobCounts[mobId] = (mobCounts[mobId] || 0) + 1;
+            for (let i = 0; i < encounter.mobs.length; i++) {
+                const mobId = encounter.mobs[i];
+                const tier = encounter.mobTiers ? encounter.mobTiers[i] : null;
+                if (!mobData[mobId]) {
+                    mobData[mobId] = { count: 0, tier: tier };
+                }
+                mobData[mobId].count++;
+                // Keep the tier from the first encounter (they should be consistent)
+                if (!mobData[mobId].tier && tier) {
+                    mobData[mobId].tier = tier;
+                }
             }
         }
 
-        for (const [mobId, count] of Object.entries(mobCounts)) {
+        for (const [mobId, data] of Object.entries(mobData)) {
             const mob = Quests.getMob(mobId);
             if (mob) {
-                const threatLabel = typeof getMobThreatLabel === 'function'
-                    ? getMobThreatLabel(mob.tier)
-                    : mob.tier || '';
+                // Use tier from encounter data, fallback to mob.tier (for legacy mobs)
+                const tier = data.tier || mob.tier;
+                const threatLabel = tier && typeof getMobThreatLabel === 'function'
+                    ? getMobThreatLabel(tier)
+                    : '';
+                const threatSuffix = threatLabel ? ` (${threatLabel})` : '';
                 enemyList.appendChild(Utils.createElement('span', {
-                    className: `enemy-tag threat-${(mob.tier || '').split('_')[0]}`,
-                }, `${mob.icon} ${mob.name} ×${count} (${threatLabel})`));
+                    className: `enemy-tag threat-${(tier || '').split('_')[0]}`,
+                }, `${mob.icon} ${mob.name} ×${data.count}${threatSuffix}`));
             }
         }
         enemies.appendChild(enemyList);
