@@ -1024,11 +1024,7 @@ const CombatEngine = {
                     hero.currentHp = Math.min(hero.currentHp + healAmount, hero.maxHp);
                     const actualHeal = hero.currentHp - hpBefore;
                     if (actualHeal > 0) {
-                        combatResult.events.push({
-                            type: 'REST',
-                            message: `${hero.name} catches their breath and recovers ${actualHeal} HP`,
-                            heal: actualHeal,
-                        });
+                        Utils.log(`${hero.name} catches their breath and recovers ${actualHeal} HP`);
                     }
                 }
             }
