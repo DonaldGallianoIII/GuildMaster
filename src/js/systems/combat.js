@@ -47,6 +47,7 @@ class CombatResult {
         this.victory = false;
         this.heroSurvived = true;
         this.rounds = [];
+        this.events = [];  // Quest-level events (REST between packs, etc.)
         this.totalDamageDealt = 0;
         this.totalDamageTaken = 0;
         this.enemiesKilled = 0;
@@ -972,7 +973,17 @@ const CombatEngine = {
             const encounter = encounters[i];
 
             // Create mob instances scaled to hero level
-            const mobs = encounter.mobs.map(mobId => Quests.createMobInstance(mobId, hero.level));
+            // encounter.mobTiers contains the spawn tier for each mob (for BESTIARY mobs)
+            const mobs = encounter.mobs.map((mobId, idx) => {
+                const tier = encounter.mobTiers ? encounter.mobTiers[idx] : null;
+                return Quests.createMobInstance(mobId, hero.level, tier);
+            }).filter(Boolean);  // Filter out any null mobs (unknown IDs)
+
+            // Skip empty encounters (all mobs failed to create)
+            if (mobs.length === 0) {
+                Utils.warn(`Encounter ${i} has no valid mobs, skipping`);
+                continue;
+            }
 
             // Run combat with gear bonuses and quest-level trigger tracking
             const combatResult = this.runEncounter(hero, mobs, gearBonuses, questTriggers);
