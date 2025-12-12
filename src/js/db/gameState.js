@@ -999,6 +999,12 @@ const GameState = {
             return false;
         }
 
+        // Check level requirement (Design Doc: hero level must be >= item level)
+        if (item.itemLevel && hero.level < item.itemLevel) {
+            Utils.toast(`${hero.name} needs to be level ${item.itemLevel} to equip this item (currently level ${hero.level})`, 'error');
+            return false;
+        }
+
         // Determine actual slot - use targetSlot for rings, otherwise use item.slot
         const isRing = item.slot === 'ring1' || item.slot === 'ring2';
         const actualSlot = (isRing && targetSlot) ? targetSlot : item.slot;

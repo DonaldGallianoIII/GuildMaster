@@ -373,26 +373,28 @@ const CONFIG = {
 
     /**
      * AFFIX SCALING - Affix values scale with item level
-     * Target: 2-8% of hero BST per affix
+     * At item level N, hero has N * 100 BST
+     * Single affix should be ~2-8% of that BST
      */
     AFFIX_SCALING: {
-        // Base stat per item level (scales to ~2-8% of hero BST)
-        STAT_PER_LEVEL: 2,
+        // Percentage of hero BST per affix
+        MIN_ROLL_FACTOR: 0.02,   // 2% of hero BST (min roll)
+        MAX_ROLL_FACTOR: 0.08,   // 8% of hero BST (max roll)
 
         // Weighted roll distribution for affix tier
         TIER_WEIGHTS: {
-            low: 50,    // 50% chance: 25-50% of max roll
-            mid: 30,    // 30% chance: 50-75% of max roll
-            high: 15,   // 15% chance: 75-90% of max roll
-            max: 5,     // 5% chance: 90-100% of max roll
+            low: 50,    // 50% chance: bottom 25% of range
+            mid: 30,    // 30% chance: 25-75% of range
+            high: 15,   // 15% chance: 75-95% of range
+            max: 5,     // 5% chance: top 5% of range
         },
 
-        // Tier roll ranges (percentage of max value)
+        // Tier roll ranges (percentage of the min-max range)
         TIER_RANGES: {
-            low: { min: 0.25, max: 0.50 },
-            mid: { min: 0.50, max: 0.75 },
-            high: { min: 0.75, max: 0.90 },
-            max: { min: 0.90, max: 1.00 },
+            low: { min: 0.00, max: 0.25 },
+            mid: { min: 0.25, max: 0.75 },
+            high: { min: 0.75, max: 0.95 },
+            max: { min: 0.95, max: 1.00 },
         },
     },
 

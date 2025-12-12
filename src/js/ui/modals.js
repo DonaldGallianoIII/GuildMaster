@@ -1148,6 +1148,15 @@ const Modals = {
                 };
             }
 
+            case 'rest': {
+                const heal = event.data.heal || 0;
+                return {
+                    type: 'heal',
+                    icon: '💚',
+                    text: `${heroName} catches their breath and recovers ${heal} HP.`,
+                };
+            }
+
             case 'quest_complete': {
                 if (event.data.success === false) {
                     return {
