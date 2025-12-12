@@ -19,6 +19,21 @@ const Modals = {
     _showingResults: false,
 
     /**
+     * Get item display name (handles both Gear instances and plain objects)
+     */
+    _getItemDisplayName(item) {
+        // If it's a Gear instance with the getter, use it
+        if (item.displayName !== undefined) {
+            return item.displayName;
+        }
+        // For plain objects, reconstruct the display name logic
+        if (item.isHeirloom && item.heirloomName) {
+            return `${item.heirloomName}'s ${item.baseName || item.base_name || 'Unknown'}`;
+        }
+        return item.baseName || item.base_name || 'Unknown Item';
+    },
+
+    /**
      * Calculate total stat power of an item (for comparison)
      */
     _getItemPower(item) {
@@ -100,10 +115,19 @@ const Modals = {
      */
     hideCurrent() {
         if (this._current) {
+            const modalId = this._current.id;
             this._current.classList.add('hidden');
             this._current = null;
+            document.removeEventListener('keydown', this._escHandler);
+
+            // If hiding combat results modal, check for more queued results
+            if (modalId === 'combat-modal' && this._showingResults) {
+                this._showingResults = false;
+                this._showNextResult();
+            }
+        } else {
+            document.removeEventListener('keydown', this._escHandler);
         }
-        document.removeEventListener('keydown', this._escHandler);
     },
 
     /**
@@ -935,9 +959,17 @@ const Modals = {
             hpFill.style.width = `${(this._questDisplayHp[quest.id] / hero.maxHp) * 100}%`;
             hpText.textContent = `${this._questDisplayHp[quest.id]} / ${hero.maxHp} HP`;
 
-            // Stop updating if quest is complete
+            // Stop updating if quest is complete (but don't hide if results are showing)
             if (quest.isTimeComplete) {
-                this.hideCombatLog();
+                // Clear the interval but only hide if results aren't being displayed
+                if (this._combatLogInterval) {
+                    clearInterval(this._combatLogInterval);
+                    this._combatLogInterval = null;
+                }
+                // Only hide if we're not showing combat results
+                if (!this._showingResults) {
+                    this.hide('combat-modal');
+                }
             }
         };
 
@@ -1129,7 +1161,7 @@ const Modals = {
                                 ${results.loot.map(item => `
                                     <div class="loot-item new ${UI.getRarityClass(item.rarity)}">
                                         <div class="gear-icon">${Utils.escapeHtml(item.icon)}</div>
-                                        <div class="gear-name">${Utils.escapeHtml(item.displayName)}</div>
+                                        <div class="gear-name">${Utils.escapeHtml(this._getItemDisplayName(item))}</div>
                                         <div class="gear-slot">${Utils.escapeHtml(Utils.capitalize(item.slot))}</div>
                                     </div>
                                 `).join('')}
