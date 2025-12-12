@@ -99,11 +99,16 @@ const HeroCard = {
                 className: 'hero-card-hp',
                 dataset: { heroId: hero.id, questId: activeQuest.id },
             });
-            hpSection.appendChild(UI.createStatBar(displayHp, hero.maxHp, 'hp'));
+            // Calculate effective maxHp with equipment bonus
+            const hpBonus = options.equipmentBonuses?.hp || 0;
+            const effectiveMaxHp = hero.maxHp + hpBonus;
+            hpSection.appendChild(UI.createStatBar(displayHp, effectiveMaxHp, 'hp', hpBonus > 0 ? `+${hpBonus}` : null));
             body.appendChild(hpSection);
         } else {
-            // Normal HP Bar
-            body.appendChild(UI.createStatBar(hero.currentHp, hero.maxHp, 'hp'));
+            // Normal HP Bar with equipment bonus
+            const hpBonus = options.equipmentBonuses?.hp || 0;
+            const effectiveMaxHp = hero.maxHp + hpBonus;
+            body.appendChild(UI.createStatBar(hero.currentHp, effectiveMaxHp, 'hp', hpBonus > 0 ? `+${hpBonus}` : null));
 
             // Passive healing indicator (when hero is available and not at full HP)
             if (hero.canPassiveHeal) {
@@ -193,10 +198,10 @@ const HeroCard = {
         for (const hero of heroes) {
             try {
                 const equippedItems = await GameState.getEquippedItems(hero.id);
-                const bonuses = { atk: 0, will: 0, def: 0, spd: 0 };
+                const bonuses = { atk: 0, will: 0, def: 0, spd: 0, hp: 0 };
                 for (const item of equippedItems) {
                     const itemStats = item.totalStats;
-                    for (const stat of ['atk', 'will', 'def', 'spd']) {
+                    for (const stat of ['atk', 'will', 'def', 'spd', 'hp']) {
                         if (itemStats[stat]) {
                             bonuses[stat] += itemStats[stat];
                         }
@@ -204,7 +209,7 @@ const HeroCard = {
                 }
                 heroEquipment[hero.id] = bonuses;
             } catch (e) {
-                heroEquipment[hero.id] = { atk: 0, will: 0, def: 0, spd: 0 };
+                heroEquipment[hero.id] = { atk: 0, will: 0, def: 0, spd: 0, hp: 0 };
             }
         }
 

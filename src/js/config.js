@@ -398,18 +398,17 @@ const CONFIG = {
 
     /**
      * DEBUG MODE
-     * Set via URL parameter: ?debug=true
-     * Or check for localhost/development environment
+     * Set via URL parameter: ?debug=false to disable
+     * Default: true during development
      */
     DEBUG: (() => {
-        // Check URL parameter
+        // Check URL parameter to explicitly disable
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('debug')) {
-            return urlParams.get('debug') === 'true';
+            return urlParams.get('debug') !== 'false';
         }
-        // Default to true for localhost, false for production
-        return window.location.hostname === 'localhost' ||
-               window.location.hostname === '127.0.0.1';
+        // Default to true during development
+        return true;
     })(),
 };
 
