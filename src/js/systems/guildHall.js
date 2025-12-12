@@ -606,6 +606,8 @@ const GuildHallSystem = {
         if (!container) return;
 
         const tab = this._currentTab;
+        const showDevTab = CONFIG.DEBUG;
+
         container.innerHTML = `
             <div class="guild-hall-tabs">
                 <button class="guild-hall-tab ${tab === 'farm' ? 'active' : ''}" data-section="farm">Farm</button>
@@ -613,6 +615,7 @@ const GuildHallSystem = {
                 <button class="guild-hall-tab ${tab === 'shop' ? 'active' : ''}" data-section="shop">Shop</button>
                 <button class="guild-hall-tab ${tab === 'crafting' ? 'active' : ''}" data-section="crafting">Crafting</button>
                 <button class="guild-hall-tab ${tab === 'pantry' ? 'active' : ''}" data-section="pantry">Pantry</button>
+                ${showDevTab ? `<button class="guild-hall-tab ${tab === 'dev' ? 'active' : ''}" data-section="dev">🔧 Dev</button>` : ''}
             </div>
 
             <div class="guild-hall-sections">
@@ -631,10 +634,20 @@ const GuildHallSystem = {
                 <div class="guild-hall-section ${tab === 'pantry' ? 'active' : ''}" data-section="pantry">
                     ${this.renderPantry()}
                 </div>
+                ${showDevTab ? `
+                <div class="guild-hall-section ${tab === 'dev' ? 'active' : ''}" data-section="dev">
+                    ${this.renderDevTools()}
+                </div>
+                ` : ''}
             </div>
         `;
 
         this.bindEvents(container);
+
+        // Bind dev panel events if on dev tab
+        if (showDevTab && tab === 'dev') {
+            DevPanel.bindEvents();
+        }
     },
 
     renderFarm() {
@@ -870,6 +883,100 @@ const GuildHallSystem = {
         return html;
     },
 
+    /**
+     * Render dev tools panel (only shown when CONFIG.DEBUG is true)
+     */
+    renderDevTools() {
+        return `
+            <div class="dev-panel">
+                <div class="dev-panel-header">
+                    <h3>Developer Tools</h3>
+                    <span class="dev-badge">DEBUG MODE</span>
+                </div>
+
+                <div class="dev-section">
+                    <h4>Resources</h4>
+                    <div class="dev-controls">
+                        <button class="btn btn-gold dev-btn" data-action="add-gold-100">
+                            +100 Gold
+                        </button>
+                        <button class="btn btn-gold dev-btn" data-action="add-gold-1000">
+                            +1,000 Gold
+                        </button>
+                        <button class="btn btn-gold dev-btn" data-action="add-gold-10000">
+                            +10,000 Gold
+                        </button>
+                        <button class="btn btn-secondary dev-btn" data-action="add-souls-100">
+                            +100 Souls
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dev-section">
+                    <h4>Heroes</h4>
+                    <div class="dev-controls">
+                        <button class="btn btn-secondary dev-btn" data-action="add-hero">
+                            Generate Random Hero
+                        </button>
+                        <button class="btn btn-secondary dev-btn" data-action="heal-all">
+                            Heal All Heroes
+                        </button>
+                        <button class="btn btn-secondary dev-btn" data-action="level-up-all">
+                            Level Up All Heroes
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dev-section">
+                    <h4>Quests</h4>
+                    <div class="dev-controls">
+                        <button class="btn btn-secondary dev-btn" data-action="refresh-quests">
+                            Refresh Quest Board
+                        </button>
+                        <button class="btn btn-secondary dev-btn" data-action="complete-quests">
+                            Complete All Active Quests
+                        </button>
+                        <button class="btn btn-secondary dev-btn" data-action="speed-up-quests">
+                            Speed Up Quests (10x)
+                        </button>
+                        <button class="btn btn-danger dev-btn" data-action="clear-all-quests">
+                            Clear All Quests
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dev-section">
+                    <h4>Recruitment</h4>
+                    <div class="dev-controls">
+                        <button class="btn btn-secondary dev-btn" data-action="refresh-recruits">
+                            Refresh Recruits (Free)
+                        </button>
+                        <button class="btn btn-secondary dev-btn" data-action="legendary-recruit">
+                            Spawn Legendary Recruit
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dev-section">
+                    <h4>Data</h4>
+                    <div class="dev-controls">
+                        <button class="btn btn-danger dev-btn" data-action="reset-player">
+                            Reset Player Data
+                        </button>
+                        <button class="btn btn-secondary dev-btn" data-action="export-state">
+                            Export Game State
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dev-log">
+                    <h4>Console</h4>
+                    <div id="dev-console" class="dev-console"></div>
+                </div>
+            </div>
+        `;
+    },
+
     bindEvents(container) {
         // Tab switching
         container.querySelectorAll('.guild-hall-tab').forEach(tab => {
@@ -885,6 +992,11 @@ const GuildHallSystem = {
                 container.querySelectorAll('.guild-hall-section').forEach(s => {
                     s.classList.toggle('active', s.dataset.section === section);
                 });
+
+                // Bind dev panel events when switching to dev tab
+                if (section === 'dev' && CONFIG.DEBUG) {
+                    DevPanel.bindEvents();
+                }
             });
         });
 
