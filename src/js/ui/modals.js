@@ -135,7 +135,7 @@ const Modals = {
 
             content.innerHTML = `
                 <div class="modal-header">
-                    <h2>Assign Stats for ${recruit.name}</h2>
+                    <h2>Assign Stats for ${Utils.escapeHtml(recruit.name)}</h2>
                     <button class="modal-close" onclick="Modals.hide('stat-modal')">×</button>
                 </div>
                 <div class="modal-body">
@@ -235,12 +235,12 @@ const Modals = {
 
         content.innerHTML = `
             <div class="modal-header">
-                <h2>${template?.icon || '⚔️'} ${quest.name}</h2>
+                <h2>${Utils.escapeHtml(template?.icon || '⚔️')} ${Utils.escapeHtml(quest.name)}</h2>
                 <button class="modal-close" onclick="Modals.hide('quest-modal')">×</button>
             </div>
             <div class="modal-body">
                 <p style="font-style: italic; color: var(--color-ink-faded);">
-                    ${template?.description || 'An adventure awaits...'}
+                    ${Utils.escapeHtml(template?.description || 'An adventure awaits...')}
                 </p>
 
                 <div style="display: flex; gap: 1rem; margin: 1rem 0;">
@@ -340,7 +340,7 @@ const Modals = {
 
         content.innerHTML = `
             <div class="modal-header">
-                <h2>${hero.name}</h2>
+                <h2>${Utils.escapeHtml(hero.name)}</h2>
                 <button class="modal-close" onclick="Modals.hide('hero-modal')">×</button>
             </div>
             <div class="modal-body">
@@ -528,12 +528,12 @@ const Modals = {
 
             return `
                 <div class="inventory-item-row ${rarityClass}" data-item-id="${item.id}" title="Click to equip">
-                    <span class="item-icon">${item.icon}</span>
-                    <span class="item-name">${item.displayName}</span>
-                    <span class="item-slot">${Utils.capitalize(item.slot.replace(/\d/, ''))}</span>
-                    <span class="item-stats">${statsText || 'No stats'}</span>
+                    <span class="item-icon">${Utils.escapeHtml(item.icon)}</span>
+                    <span class="item-name">${Utils.escapeHtml(item.displayName)}</span>
+                    <span class="item-slot">${Utils.escapeHtml(Utils.capitalize(item.slot.replace(/\d/, '')))}</span>
+                    <span class="item-stats">${Utils.escapeHtml(statsText || 'No stats')}</span>
                     <span class="item-power">${power} pwr</span>
-                    <button class="item-sell-btn" data-item-id="${item.id}" data-item-name="${item.displayName}" data-sell-price="${sellPrice}" title="Sell for ${sellPrice}g">💰 ${sellPrice}g</button>
+                    <button class="item-sell-btn" data-item-id="${item.id}" data-item-name="${Utils.escapeHtml(item.displayName)}" data-sell-price="${sellPrice}" title="Sell for ${sellPrice}g">💰 ${sellPrice}g</button>
                 </div>
             `;
         }).join('');
@@ -572,10 +572,10 @@ const Modals = {
                 return `
                     <div class="equipment-slot equipped ${rarityClass} ${hasUpgrade ? 'has-upgrade' : ''}" data-slot="${slot.key}" title="Click to unequip">
                         ${hasUpgrade ? '<div class="upgrade-indicator" title="Better item in inventory!">▲</div>' : ''}
-                        <div class="slot-icon">${item.icon}</div>
+                        <div class="slot-icon">${Utils.escapeHtml(item.icon)}</div>
                         <div class="slot-info">
-                            <div class="slot-name">${item.displayName}</div>
-                            <div class="slot-stats">${statsText || 'No stats'}</div>
+                            <div class="slot-name">${Utils.escapeHtml(item.displayName)}</div>
+                            <div class="slot-stats">${Utils.escapeHtml(statsText || 'No stats')}</div>
                         </div>
                     </div>
                 `;
@@ -648,7 +648,7 @@ const Modals = {
 
         content.innerHTML = `
             <div class="modal-header">
-                <h2>Equip ${Utils.capitalize(slotKey)} for ${hero.name}</h2>
+                <h2>Equip ${Utils.escapeHtml(Utils.capitalize(slotKey))} for ${Utils.escapeHtml(hero.name)}</h2>
                 <button class="modal-close" onclick="Modals.showHeroDetail(GameState.getHero('${hero.id}'))">×</button>
             </div>
             <div class="modal-body">
@@ -663,10 +663,10 @@ const Modals = {
 
                         return `
                             <div class="inventory-item ${rarityClass}" data-item-id="${item.id}">
-                                <div class="item-icon">${item.icon}</div>
+                                <div class="item-icon">${Utils.escapeHtml(item.icon)}</div>
                                 <div class="item-info">
-                                    <div class="item-name">${item.displayName}</div>
-                                    <div class="item-stats">${statsText || 'No stats'}</div>
+                                    <div class="item-name">${Utils.escapeHtml(item.displayName)}</div>
+                                    <div class="item-stats">${Utils.escapeHtml(statsText || 'No stats')}</div>
                                 </div>
                             </div>
                         `;
@@ -730,10 +730,10 @@ const Modals = {
                 <div class="skill-bubble-icon">${skillDef.icon}</div>
                 <div class="skill-bubble-content">
                     <div class="skill-bubble-header">
-                        <span class="skill-bubble-name">${skillDef.name}${skillRef.isTripled ? '³' : skillRef.isDoubled ? '²' : ''}</span>
+                        <span class="skill-bubble-name">${Utils.escapeHtml(skillDef.name)}${skillRef.isTripled ? '³' : skillRef.isDoubled ? '²' : ''}</span>
                         <span class="skill-bubble-rank">Rank ${rank}/${maxRank}</span>
                     </div>
-                    <div class="skill-bubble-desc">${skillDef.description}</div>
+                    <div class="skill-bubble-desc">${Utils.escapeHtml(skillDef.description)}</div>
                     <div class="skill-bubble-info">
                         <span class="skill-type">${Utils.capitalize(skillDef.activation)}</span>
                         <span class="skill-damage-type">${Utils.capitalize(skillDef.damageType)}</span>
@@ -822,14 +822,14 @@ const Modals = {
         // Build initial HTML structure once
         content.innerHTML = `
             <div class="modal-header">
-                <h2>⚔️ ${quest.name} - Combat Log</h2>
+                <h2>⚔️ ${Utils.escapeHtml(quest.name)} - Combat Log</h2>
                 <button class="modal-close" onclick="Modals.hideCombatLog()">×</button>
             </div>
             <div class="modal-body">
                 <div class="combat-log-hero">
                     ${UI.createPortrait(hero.portraitId).outerHTML}
                     <div class="combat-log-hero-info">
-                        <div class="hero-name">${hero.name}</div>
+                        <div class="hero-name">${Utils.escapeHtml(hero.name)}</div>
                         <div class="hero-level">Level ${hero.level}</div>
                         <div class="combat-hp-bar">
                             <div class="hp-bar-fill" id="combat-hp-fill" style="width: ${(this._questDisplayHp[quest.id] / hero.maxHp) * 100}%"></div>
@@ -875,8 +875,8 @@ const Modals = {
                     const entry = document.createElement('div');
                     entry.className = `combat-log-entry ${formatted.type}`;
                     entry.innerHTML = `
-                        <span class="log-icon">${formatted.icon}</span>
-                        <span class="log-text">${formatted.text}</span>
+                        <span class="log-icon">${Utils.escapeHtml(formatted.icon)}</span>
+                        <span class="log-text">${Utils.escapeHtml(formatted.text)}</span>
                     `;
                     logEntries.appendChild(entry);
                 }
@@ -924,8 +924,8 @@ const Modals = {
                     const entry = document.createElement('div');
                     entry.className = `combat-log-entry ${formatted.type}`;
                     entry.innerHTML = `
-                        <span class="log-icon">${formatted.icon}</span>
-                        <span class="log-text">${formatted.text}</span>
+                        <span class="log-icon">${Utils.escapeHtml(formatted.icon)}</span>
+                        <span class="log-text">${Utils.escapeHtml(formatted.text)}</span>
                     `;
                     logEntries.appendChild(entry);
                 }
@@ -1105,14 +1105,14 @@ const Modals = {
 
         content.innerHTML = `
             <div class="modal-header">
-                <h2>Quest ${isVictory ? 'Complete' : 'Failed'}: ${quest.name}</h2>
+                <h2>Quest ${isVictory ? 'Complete' : 'Failed'}: ${Utils.escapeHtml(quest.name)}</h2>
                 <button class="modal-close" onclick="Modals.hide('combat-modal')">×</button>
             </div>
             <div class="modal-body">
                 <div class="combat-summary">
                     <div class="combat-result ${resultClass}">
                         <h3>${isVictory ? '⚔️ Victory!' : '💀 Defeat'}</h3>
-                        <p>${isVictory ? `${hero.name} returned triumphant!` : `${hero.name} has fallen...`}</p>
+                        <p>${isVictory ? `${Utils.escapeHtml(hero.name)} returned triumphant!` : `${Utils.escapeHtml(hero.name)} has fallen...`}</p>
                     </div>
                 </div>
 
@@ -1128,9 +1128,9 @@ const Modals = {
                             <div class="loot-grid">
                                 ${results.loot.map(item => `
                                     <div class="loot-item new ${UI.getRarityClass(item.rarity)}">
-                                        <div class="gear-icon">${item.icon}</div>
-                                        <div class="gear-name">${item.displayName}</div>
-                                        <div class="gear-slot">${Utils.capitalize(item.slot)}</div>
+                                        <div class="gear-icon">${Utils.escapeHtml(item.icon)}</div>
+                                        <div class="gear-name">${Utils.escapeHtml(item.displayName)}</div>
+                                        <div class="gear-slot">${Utils.escapeHtml(Utils.capitalize(item.slot))}</div>
                                     </div>
                                 `).join('')}
                             </div>

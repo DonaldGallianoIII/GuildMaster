@@ -65,7 +65,7 @@ const QuestCard = {
 
         const nameSection = Utils.createElement('div');
         nameSection.innerHTML = `
-            <div class="quest-name">${template.icon} ${quest.name}</div>
+            <div class="quest-name">${Utils.escapeHtml(template.icon)} ${Utils.escapeHtml(quest.name)}</div>
             <div class="quest-duration">⏱️ ${Utils.formatDuration(quest.duration)}</div>
         `;
         headerContent.appendChild(nameSection);
@@ -92,7 +92,7 @@ const QuestCard = {
         const body = Utils.createElement('div', { className: 'card-body' });
 
         // Description
-        body.innerHTML = `<p style="color: var(--color-ink-faded); font-style: italic;">${template.description}</p>`;
+        body.innerHTML = `<p style="color: var(--color-ink-faded); font-style: italic;">${Utils.escapeHtml(template.description)}</p>`;
 
         // Enemy preview (use quest.encounters which returns selectedEncounters)
         const enemies = Utils.createElement('div', { className: 'quest-enemies' });
@@ -165,7 +165,7 @@ const QuestCard = {
 
         header.innerHTML = `
             <div class="quest-header">
-                <div class="quest-name">${template?.icon || '⚔️'} ${quest.name}</div>
+                <div class="quest-name">${Utils.escapeHtml(template?.icon || '⚔️')} ${Utils.escapeHtml(quest.name)}</div>
                 ${heroDefeated
                     ? '<span class="quest-failed-badge">💀 FAILED</span>'
                     : UI.createDifficultyBadge(quest.difficulty).outerHTML
@@ -186,7 +186,7 @@ const QuestCard = {
                 <div class="failed-message">
                     <span class="failed-icon">💀</span>
                     <div class="failed-text">
-                        <strong>${options.hero?.name || 'Hero'} has fallen!</strong>
+                        <strong>${Utils.escapeHtml(options.hero?.name || 'Hero')} has fallen!</strong>
                         <p>The quest has ended in defeat.</p>
                     </div>
                 </div>
@@ -354,7 +354,7 @@ const QuestCard = {
                 className: 'tier-bar-header',
             });
             header.innerHTML = `
-                <span class="tier-bar-name">${tierInfo.name}</span>
+                <span class="tier-bar-name">${Utils.escapeHtml(tierInfo.name)}</span>
                 <span class="tier-bar-count"><span>${tierQuests.length} contracts</span></span>
                 <span class="tier-bar-arrow">▶</span>
             `;

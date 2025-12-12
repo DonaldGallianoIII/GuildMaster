@@ -170,6 +170,18 @@ const Utils = {
     // ==================== STRINGS ====================
 
     /**
+     * Escape HTML special characters to prevent XSS
+     * @param {string} str - String to escape
+     * @returns {string} Escaped string safe for innerHTML
+     */
+    escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    },
+
+    /**
      * Capitalize first letter
      */
     capitalize(str) {

@@ -430,7 +430,7 @@ const DevPanel = {
         const time = new Date().toLocaleTimeString();
         const entry = document.createElement('div');
         entry.className = 'dev-log-entry';
-        entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+        entry.innerHTML = `<span class="log-time">[${time}]</span> ${Utils.escapeHtml(message)}`;
 
         console.appendChild(entry);
         console.scrollTop = console.scrollHeight;

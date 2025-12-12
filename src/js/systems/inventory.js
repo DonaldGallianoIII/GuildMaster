@@ -255,7 +255,7 @@ const InventorySystem = {
      */
     sortItems(items, sortBy) {
         const rarityOrder = { common: 0, magic: 1, rare: 2, unique: 3, heirloom: 4 };
-        const slotOrder = { weapon: 0, helmet: 1, chest: 2, gloves: 3, boots: 4, amulet: 5, ring1: 6, ring2: 6 };
+        const slotOrder = { weapon: 0, helmet: 1, chest: 2, gloves: 3, boots: 4, amulet: 5, ring1: 6, ring2: 7 };
 
         return items.sort((a, b) => {
             switch (sortBy) {
@@ -324,9 +324,9 @@ const InventorySystem = {
         // Header
         const header = Utils.createElement('div', { className: 'card-header' });
         header.innerHTML = `
-            <div class="gear-icon">${item.icon}</div>
-            <div class="gear-name">${item.displayName}</div>
-            <div class="gear-slot">${Utils.capitalize(item.slot)}</div>
+            <div class="gear-icon">${Utils.escapeHtml(item.icon)}</div>
+            <div class="gear-name">${Utils.escapeHtml(item.displayName)}</div>
+            <div class="gear-slot">${Utils.escapeHtml(Utils.capitalize(item.slot))}</div>
         `;
         card.appendChild(header);
 

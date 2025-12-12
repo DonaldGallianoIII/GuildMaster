@@ -60,14 +60,21 @@ const GameState = {
     async loadPlayerData(userId) {
         Utils.log('Loading player data for:', userId);
 
-        // Load in parallel
-        let [player, heroes, inventory, activeQuests, availableQuests] = await Promise.all([
-            DB.players.get(userId),
-            DB.heroes.getAll(userId),
-            DB.items.getInventory(userId),
-            DB.quests.getActive(userId),
-            DB.quests.getAvailable(userId),
-        ]);
+        // Load in parallel with error handling
+        let player, heroes, inventory, activeQuests, availableQuests;
+        try {
+            [player, heroes, inventory, activeQuests, availableQuests] = await Promise.all([
+                DB.players.get(userId),
+                DB.heroes.getAll(userId),
+                DB.items.getInventory(userId),
+                DB.quests.getActive(userId),
+                DB.quests.getAvailable(userId),
+            ]);
+        } catch (error) {
+            Utils.error('Failed to load player data:', error);
+            Utils.toast('Failed to load game data. Please refresh.', 'error');
+            throw error;
+        }
 
         // If player doesn't exist in database, create them
         if (!player) {
@@ -240,13 +247,16 @@ const GameState = {
                     hero.stats.spd += additions.spd;
                 }
 
-                // Save updated hero
-                await DB.heroes.save(hero);
                 migrated++;
             }
         }
 
+        // Batch save all migrated heroes at once (more efficient than sequential saves)
         if (migrated > 0) {
+            const heroesToSave = this._state.heroes.filter(h =>
+                h.state !== HeroState.DEAD && h.state !== HeroState.RETIRED
+            );
+            await Promise.all(heroesToSave.map(h => DB.heroes.save(h)));
             Utils.log(`Migrated ${migrated} heroes to new stat system`);
             Utils.toast(`${migrated} hero(es) updated with new stat balance!`, 'success');
         }
