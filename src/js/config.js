@@ -230,6 +230,13 @@ const CONFIG = {
     },
 
     /**
+     * BETWEEN PACKS (rest period between encounters)
+     */
+    BETWEEN_PACKS: {
+        HEAL_PERCENT: 0.10,  // Heal 10% of max HP between packs
+    },
+
+    /**
      * INHERITANCE & RETIREMENT
      */
     INHERITANCE: {
@@ -312,6 +319,7 @@ Object.freeze(CONFIG.ENEMY_LOOT.GEAR_CHANCE);
 Object.freeze(CONFIG.ENEMY_LOOT.GEAR_RARITY);
 Object.freeze(CONFIG.MOB_TIERS);
 Object.freeze(CONFIG.FREE_HIT);
+Object.freeze(CONFIG.BETWEEN_PACKS);
 Object.freeze(CONFIG.INHERITANCE);
 Object.freeze(CONFIG.ALIGNMENT);
 Object.freeze(CONFIG.SUMMONS);

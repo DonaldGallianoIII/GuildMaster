@@ -993,6 +993,23 @@ const CombatEngine = {
                 if (item) results.loot.push(item);
                 return item;
             }).filter(Boolean);
+
+            // Between packs: hero catches their breath and recovers some health
+            if (i < encounters.length - 1) {
+                const healAmount = Math.floor(hero.maxHp * CONFIG.BETWEEN_PACKS.HEAL_PERCENT);
+                if (healAmount > 0 && hero.currentHp < hero.maxHp) {
+                    const hpBefore = hero.currentHp;
+                    hero.currentHp = Math.min(hero.currentHp + healAmount, hero.maxHp);
+                    const actualHeal = hero.currentHp - hpBefore;
+                    if (actualHeal > 0) {
+                        combatResult.events.push({
+                            type: 'REST',
+                            message: `${hero.name} catches their breath and recovers ${actualHeal} HP`,
+                            heal: actualHeal,
+                        });
+                    }
+                }
+            }
         }
 
         // Calculate rewards if successful
