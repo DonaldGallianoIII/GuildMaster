@@ -1902,6 +1902,23 @@ class Quest {
                     loot: i === combatResults.encounters.length - 1 && combatResults.loot?.length > 0,
                 },
             });
+
+            // Add REST event if present (between packs healing)
+            if (combatData?.events) {
+                for (const evt of combatData.events) {
+                    if (evt.type === 'REST') {
+                        events.push({
+                            time: encounterStart + encounterDuration - 25, // Just after encounter end
+                            type: 'rest',
+                            data: {
+                                encounterIndex: i,
+                                heal: evt.heal,
+                                message: evt.message,
+                            },
+                        });
+                    }
+                }
+            }
         }
 
         // Quest complete event

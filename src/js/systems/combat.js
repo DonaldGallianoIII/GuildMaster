@@ -275,6 +275,9 @@ const CombatEngine = {
                 if (!actor.isAlive) continue;
 
                 if (actor.isHero) {
+                    // Skip if enemy already dead (e.g., killed by thorns)
+                    if (!currentEnemy.isAlive) continue;
+
                     // Hero attacks - check for AoE
                     const livingEnemies = allEnemies.filter(e => e.isAlive);
                     const action = this.executeAction(actor, [currentEnemy], livingEnemies, hero);
@@ -306,6 +309,9 @@ const CombatEngine = {
                         if (t.damage && t.actorIsHero) result.totalDamageDealt += t.damage;
                     });
                 } else {
+                    // Skip if hero already dead
+                    if (!heroCombatant.isAlive) continue;
+
                     // Enemy attacks hero
                     const action = this.executeAction(actor, [heroCombatant], allEnemies, hero);
 
@@ -526,11 +532,13 @@ const CombatEngine = {
 
     /**
      * Select target for attack
-     * Strategy: Focus lowest HP target
+     * Strategy: Focus lowest HP target (only living targets)
      */
     selectTarget(targets) {
-        if (targets.length === 0) return null;
-        return targets.reduce((lowest, t) =>
+        // Filter to only living targets
+        const livingTargets = targets.filter(t => t.isAlive && t.currentHp > 0);
+        if (livingTargets.length === 0) return null;
+        return livingTargets.reduce((lowest, t) =>
             t.currentHp < lowest.currentHp ? t : lowest
         );
     },
