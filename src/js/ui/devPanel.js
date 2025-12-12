@@ -74,6 +74,9 @@ const DevPanel = {
                         <button class="btn btn-secondary dev-btn" data-action="speed-up-quests">
                             Speed Up Quests (10x)
                         </button>
+                        <button class="btn btn-danger dev-btn" data-action="clear-all-quests">
+                            Clear All Quests
+                        </button>
                     </div>
                 </div>
 
@@ -163,6 +166,9 @@ const DevPanel = {
                 break;
             case 'speed-up-quests':
                 this.speedUpQuests();
+                break;
+            case 'clear-all-quests':
+                await this.clearAllQuests();
                 break;
 
             // Recruitment
@@ -324,6 +330,50 @@ const DevPanel = {
         }
         this.log('Quest timers sped up by 10x');
         Utils.toast('Quests sped up!', 'info');
+    },
+
+    /**
+     * Clear all quests (available and active) - useful for cleaning stale data
+     */
+    async clearAllQuests() {
+        const userId = GameState.player?.id;
+        if (!userId) {
+            this.log('No player loaded');
+            return;
+        }
+
+        // Delete all quests from database
+        const allQuests = [...GameState._state.quests];
+        let deleted = 0;
+
+        for (const quest of allQuests) {
+            // Free up any heroes on quests
+            if (quest.heroId) {
+                const hero = GameState.getHero(quest.heroId);
+                if (hero && hero.state === 'quest') {
+                    hero.state = 'available';
+                    hero.currentQuestId = null;
+                    await DB.heroes.update(hero.id, {
+                        state: 'available',
+                        current_quest_id: null,
+                    });
+                }
+            }
+
+            // Delete the quest
+            await DB.quests.delete(quest.id);
+            deleted++;
+        }
+
+        // Clear local state
+        GameState._state.quests = [];
+        GameState.emit('questsUpdated', {});
+
+        this.log(`Cleared ${deleted} quests`);
+        Utils.toast(`Cleared ${deleted} quests`, 'success');
+
+        // Refresh quest board with new quests
+        await QuestSystem.refreshQuestBoard();
     },
 
     /**
