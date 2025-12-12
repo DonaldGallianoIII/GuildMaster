@@ -216,11 +216,32 @@ const DevPanel = {
      * Add a random hero directly to roster
      */
     async addRandomHero() {
-        const hero = Hero.generate(Math.floor(Math.random() * 5) + 1);
+        const names = [
+            'Kira', 'Marcus', 'Elena', 'Theron', 'Lyra',
+            'Damon', 'Vera', 'Silas', 'Nova', 'Axel',
+        ];
+
+        const level = Utils.randomInt(1, 5);
+        const bst = Utils.calcBST(level);
+
+        // Create hero with random stats
+        const hero = new Hero({
+            id: Utils.uuid(),
+            userId: GameState.player.id,
+            name: Utils.randomChoice(names),
+            portraitId: Utils.randomInt(1, 20),
+            level: level,
+            stats: {
+                atk: Math.floor(bst * 0.25),
+                will: Math.floor(bst * 0.25),
+                def: Math.floor(bst * 0.25),
+                spd: bst - Math.floor(bst * 0.75),
+            },
+            skills: Skills.rollForRecruit(),
+        });
 
         // Save to database
-        const userId = GameState.player.id;
-        await DB.heroes.create(userId, hero);
+        await DB.heroes.save(hero);
 
         // Add to local state
         GameState._state.heroes.push(hero);
@@ -235,12 +256,9 @@ const DevPanel = {
      */
     async healAllHeroes() {
         for (const hero of GameState.heroes) {
-            hero.currentHp = hero.maxHp;
+            hero._currentHp = null; // Reset to maxHp
             hero.state = HeroState.AVAILABLE;
-            await DB.heroes.update(hero.id, {
-                current_hp: hero.currentHp,
-                state: hero.state
-            });
+            await DB.heroes.save(hero);
         }
         GameState.emit('heroUpdated');
         this.log(`Healed ${GameState.heroes.length} heroes`);
@@ -251,25 +269,21 @@ const DevPanel = {
      * Level up all heroes
      */
     async levelUpAllHeroes() {
+        let leveled = 0;
         for (const hero of GameState.heroes) {
             if (hero.level < CONFIG.HERO.MAX_LEVEL) {
                 hero.level += 1;
                 hero.skillPoints += CONFIG.SKILLS.POINTS_PER_LEVEL;
-                // Recalculate stats
-                hero.maxHp = (hero.level * CONFIG.STATS.HP_PER_LEVEL) + hero.stats.def;
-                hero.currentHp = hero.maxHp;
-
-                await DB.heroes.update(hero.id, {
-                    level: hero.level,
-                    skill_points: hero.skillPoints,
-                    max_hp: hero.maxHp,
-                    current_hp: hero.currentHp
-                });
+                // Reset HP to full (maxHp is a computed getter based on level + def)
+                hero._currentHp = null;
+                await DB.heroes.save(hero);
+                leveled++;
             }
         }
         GameState.emit('heroUpdated');
-        this.log(`Leveled up ${GameState.heroes.length} heroes`);
-        Utils.toast('All heroes leveled up', 'success');
+        GameState.emit('heroLevelUp');
+        this.log(`Leveled up ${leveled} heroes`);
+        Utils.toast(`${leveled} heroes leveled up`, 'success');
     },
 
     /**
@@ -309,11 +323,9 @@ const DevPanel = {
                 const hero = GameState.heroes.find(h => h.id === quest.heroId);
                 if (hero) {
                     hero.state = HeroState.AVAILABLE;
+                    hero.currentQuestId = null;
                     hero.xp = (hero.xp || 0) + xpReward;
-                    await DB.heroes.update(hero.id, {
-                        state: hero.state,
-                        xp: hero.xp
-                    });
+                    await DB.heroes.save(hero);
                 }
             }
         }
@@ -356,38 +368,42 @@ const DevPanel = {
             return;
         }
 
-        // Delete all quests from database
-        const allQuests = [...GameState._state.quests];
         let deleted = 0;
 
-        for (const quest of allQuests) {
+        // Clear active quests first (free heroes)
+        const activeQuests = [...(GameState._state.activeQuests || [])];
+        for (const quest of activeQuests) {
             // Free up any heroes on quests
             if (quest.heroId) {
                 const hero = GameState.getHero(quest.heroId);
-                if (hero && hero.state === 'quest') {
-                    hero.state = 'available';
+                if (hero && hero.state === HeroState.ON_QUEST) {
+                    hero.state = HeroState.AVAILABLE;
                     hero.currentQuestId = null;
-                    await DB.heroes.update(hero.id, {
-                        state: 'available',
-                        current_quest_id: null,
-                    });
+                    await DB.heroes.save(hero);
                 }
             }
+            await DB.quests.delete(quest.id);
+            deleted++;
+        }
 
-            // Delete the quest
+        // Clear quest board
+        const boardQuests = [...(GameState._state.questBoard || [])];
+        for (const quest of boardQuests) {
             await DB.quests.delete(quest.id);
             deleted++;
         }
 
         // Clear local state
-        GameState._state.quests = [];
+        GameState._state.activeQuests = [];
+        GameState._state.questBoard = [];
         GameState.emit('questsUpdated', {});
+        GameState.emit('heroUpdated');
 
         this.log(`Cleared ${deleted} quests`);
         Utils.toast(`Cleared ${deleted} quests`, 'success');
 
         // Refresh quest board with new quests
-        await QuestSystem.refreshQuestBoard();
+        await GameState.refreshQuestBoard();
     },
 
     /**
@@ -403,13 +419,24 @@ const DevPanel = {
      * Spawn a legendary recruit
      */
     spawnLegendaryRecruit() {
-        const recruit = Hero.generate(10); // High level
+        const names = [
+            'Kira', 'Marcus', 'Elena', 'Theron', 'Lyra',
+            'Damon', 'Vera', 'Silas', 'Nova', 'Axel',
+        ];
 
-        // Force legendary skills
-        recruit.skills = recruit.skills.map(skill => ({
+        // Generate legendary skills (tripled skills)
+        const legendarySkills = Skills.rollForRecruit().map(skill => ({
             ...skill,
-            rarity: 'legendary'
+            isTripled: true,
         }));
+
+        const recruit = new Hero({
+            id: Utils.uuid(),
+            name: Utils.randomChoice(names) + ' the Legendary',
+            portraitId: Utils.randomInt(1, 20),
+            skills: legendarySkills,
+            hireCost: 1, // Cheap for testing
+        });
 
         // Add to recruits
         GameState._state.recruits.unshift(recruit);
