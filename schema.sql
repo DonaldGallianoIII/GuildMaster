@@ -17,9 +17,11 @@ CREATE TABLE IF NOT EXISTS players (
     username TEXT UNIQUE NOT NULL,
     email TEXT,
     gold INTEGER DEFAULT 500,
+    souls INTEGER DEFAULT 0,  -- Soul currency for crafting (Design Doc v2)
     alignment INTEGER DEFAULT 0,  -- -100 to +100 (evil to good)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT players_souls_non_negative CHECK (souls >= 0)
 );
 
 -- ============================================
@@ -109,6 +111,11 @@ CREATE TABLE IF NOT EXISTS items (
     base_stats JSONB DEFAULT '{}',
     affixes JSONB DEFAULT '[]',
 
+    -- Hunger system (Design Doc v2): -0.70 (Replete) to +0.70 (Voracious)
+    hunger NUMERIC(4,2) DEFAULT 0,
+    -- Craft count for cost escalation (1.5x per craft)
+    craft_count INTEGER DEFAULT 0,
+
     -- Lock status (prevents accidental selling)
     is_locked BOOLEAN DEFAULT FALSE,
 
@@ -122,12 +129,17 @@ CREATE TABLE IF NOT EXISTS items (
     -- PvP inscriptions
     inscriptions JSONB DEFAULT '[]',
 
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    -- Constraints
+    CONSTRAINT items_hunger_range CHECK (hunger >= -0.70 AND hunger <= 0.70),
+    CONSTRAINT items_craft_count_non_negative CHECK (craft_count >= 0)
 );
 
 CREATE INDEX IF NOT EXISTS idx_items_user ON items(user_id);
 CREATE INDEX IF NOT EXISTS idx_items_hero ON items(hero_id);
 CREATE INDEX IF NOT EXISTS idx_items_slot ON items(slot);
+CREATE INDEX IF NOT EXISTS idx_items_hunger ON items(hunger);
 
 -- ============================================
 -- QUESTS TABLE

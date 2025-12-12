@@ -516,8 +516,8 @@ const InventorySystem = {
                         ${item.affixes.length > 0 ? `
                             <div class="current-affixes">
                                 ${item.affixes.map(a => `
-                                    <div class="affix ${a.type}">
-                                        ${a.name}: +${a.value} ${a.stat}
+                                    <div class="affix ${Utils.escapeHtml(a.type)}">
+                                        ${Utils.escapeHtml(a.name)}: +${Utils.escapeHtml(String(a.value))} ${Utils.escapeHtml(a.stat)}
                                     </div>
                                 `).join('')}
                             </div>
@@ -535,13 +535,13 @@ const InventorySystem = {
                     ${options.length > 0 ? options.map(opt => `
                         <div class="forge-option ${playerSouls >= opt.cost ? 'can-afford' : 'cannot-afford'}">
                             <div class="option-info">
-                                <strong>${opt.name}</strong>
-                                <span class="option-desc">${opt.description}</span>
+                                <strong>${Utils.escapeHtml(opt.name)}</strong>
+                                <span class="option-desc">${Utils.escapeHtml(opt.description)}</span>
                             </div>
                             <div class="option-cost">
                                 <span class="cost-amount ${playerSouls >= opt.cost ? '' : 'insufficient'}">👻 ${opt.cost}</span>
                                 <button class="btn btn-small ${playerSouls >= opt.cost ? 'btn-primary' : 'btn-secondary'}"
-                                        data-craft="${opt.id}" ${playerSouls >= opt.cost ? '' : 'disabled'}>
+                                        data-craft="${Utils.escapeHtml(opt.id)}" ${playerSouls >= opt.cost ? '' : 'disabled'}>
                                     Craft
                                 </button>
                             </div>
