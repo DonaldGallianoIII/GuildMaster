@@ -196,14 +196,31 @@ const CombatEngine = {
 
         const result = new CombatResult();
 
-        // Create hero combatant with gear bonuses
+        // Apply gear stat bonuses to hero's effective stats
+        const effectiveStats = {
+            atk: hero.stats.atk + (gearBonuses.atk || 0),
+            will: hero.stats.will + (gearBonuses.will || 0),
+            def: hero.stats.def + (gearBonuses.def || 0),
+            spd: hero.stats.spd + (gearBonuses.spd || 0),
+        };
+
+        // Calculate effective maxHp with gear bonuses (base + gear HP bonus)
+        const baseMaxHp = Utils.calcHP(hero.level, effectiveStats.def);
+        const effectiveMaxHp = baseMaxHp + (gearBonuses.hp || 0);
+
+        // Ensure currentHp doesn't exceed new maxHp
+        const effectiveCurrentHp = Math.min(hero.currentHp, effectiveMaxHp);
+
+        Utils.log('Effective combat stats:', effectiveStats, 'MaxHP:', effectiveMaxHp, 'Gear bonuses:', gearBonuses);
+
+        // Create hero combatant with gear-enhanced stats
         const heroCombatant = new Combatant({
             id: hero.id,
             name: hero.name,
-            stats: hero.stats,
+            stats: effectiveStats,
             level: hero.level,
-            maxHp: hero.maxHp,
-            currentHp: hero.currentHp,
+            maxHp: effectiveMaxHp,
+            currentHp: effectiveCurrentHp,
             skills: hero.skills,
             gearBonuses: gearBonuses,
         }, true, false);
@@ -945,6 +962,7 @@ const CombatEngine = {
             totalGold: 0,
             totalSouls: 0,  // Soul drops from kills (Design Doc v2)
             loot: [],
+            effectiveMaxHp: null, // Will be set after gear calculation
         };
 
         const template = quest.template;
@@ -952,6 +970,12 @@ const CombatEngine = {
             Utils.error('Quest has no template');
             return results;
         }
+
+        // Calculate effective maxHp with gear bonuses for use throughout quest
+        const effectiveDef = hero.stats.def + (gearBonuses.def || 0);
+        const baseMaxHp = Utils.calcHP(hero.level, effectiveDef);
+        const effectiveMaxHp = baseMaxHp + (gearBonuses.hp || 0);
+        results.effectiveMaxHp = effectiveMaxHp;
 
         // Use quest.encounters (selected variant) not template.encounters
         const encounters = quest.encounters;
@@ -1018,10 +1042,10 @@ const CombatEngine = {
 
             // Between packs: hero catches their breath and recovers some health
             if (i < encounters.length - 1) {
-                const healAmount = Math.floor(hero.maxHp * CONFIG.BETWEEN_PACKS.HEAL_PERCENT);
-                if (healAmount > 0 && hero.currentHp < hero.maxHp) {
+                const healAmount = Math.floor(effectiveMaxHp * CONFIG.BETWEEN_PACKS.HEAL_PERCENT);
+                if (healAmount > 0 && hero.currentHp < effectiveMaxHp) {
                     const hpBefore = hero.currentHp;
-                    hero.currentHp = Math.min(hero.currentHp + healAmount, hero.maxHp);
+                    hero.currentHp = Math.min(hero.currentHp + healAmount, effectiveMaxHp);
                     const actualHeal = hero.currentHp - hpBefore;
                     if (actualHeal > 0) {
                         combatResult.events.push({

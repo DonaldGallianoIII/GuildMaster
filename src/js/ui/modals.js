@@ -10,6 +10,9 @@ const Modals = {
     // Active modal reference
     _current: null,
 
+    // Currently viewed hero in hero detail modal (for refresh on level up)
+    _currentHeroId: null,
+
     // Inventory accordion state
     _inventoryExpanded: false,
     _inventorySort: 'slot', // 'slot', 'rarity', 'stats'
@@ -17,6 +20,32 @@ const Modals = {
     // Combat results queue (for when multiple quests complete at once)
     _resultsQueue: [],
     _showingResults: false,
+    _showingCombatLog: false, // Track when viewing in-progress combat log
+
+    /**
+     * Initialize modal event listeners for auto-refresh
+     */
+    init() {
+        // Refresh hero detail modal when hero data changes
+        GameState.on('heroUpdated', () => this._refreshHeroDetailIfOpen());
+        GameState.on('heroLevelUp', () => this._refreshHeroDetailIfOpen());
+        GameState.on('itemEquipped', () => this._refreshHeroDetailIfOpen());
+        GameState.on('heroHealed', () => this._refreshHeroDetailIfOpen());
+    },
+
+    /**
+     * Refresh hero detail modal if it's currently open
+     */
+    async _refreshHeroDetailIfOpen() {
+        const modal = document.getElementById('hero-modal');
+        if (!modal || !modal.classList.contains('active')) return;
+        if (!this._currentHeroId) return;
+
+        const hero = GameState.getHero(this._currentHeroId);
+        if (hero) {
+            await this.showHeroDetail(hero);
+        }
+    },
 
     /**
      * Get item display name (handles both Gear instances and plain objects)
@@ -102,6 +131,11 @@ const Modals = {
         }
         this._current = null;
         document.removeEventListener('keydown', this._escHandler);
+
+        // Clear hero tracking when hero modal closes
+        if (modalId === 'hero-modal') {
+            this._currentHeroId = null;
+        }
 
         // If hiding combat results modal, check for more queued results
         if (modalId === 'combat-modal' && this._showingResults) {
@@ -337,6 +371,9 @@ const Modals = {
     async showHeroDetail(hero) {
         const modal = document.getElementById('hero-modal');
         const content = modal.querySelector('.modal-content');
+
+        // Track current hero for auto-refresh
+        this._currentHeroId = hero.id;
 
         // Get equipped items for this hero (using cached version)
         const equippedItems = await GameState.getEquippedItems(hero.id);
@@ -825,6 +862,9 @@ const Modals = {
             return;
         }
 
+        // Mark that we're viewing combat log (prevents results from interrupting)
+        this._showingCombatLog = true;
+
         // Stop any existing interval
         if (this._combatLogInterval) {
             clearInterval(this._combatLogInterval);
@@ -877,6 +917,7 @@ const Modals = {
                 </div>
             </div>
             <div class="modal-footer">
+                <span class="queue-indicator" id="combat-log-queue" style="display: none;"></span>
                 <button class="btn btn-secondary" onclick="Modals.hideCombatLog()">Close</button>
             </div>
         `;
@@ -959,6 +1000,18 @@ const Modals = {
             hpFill.style.width = `${(this._questDisplayHp[quest.id] / hero.maxHp) * 100}%`;
             hpText.textContent = `${this._questDisplayHp[quest.id]} / ${hero.maxHp} HP`;
 
+            // Update queue indicator if results are waiting
+            const queueIndicator = content.querySelector('#combat-log-queue');
+            if (queueIndicator) {
+                const queueCount = this._resultsQueue.length;
+                if (queueCount > 0) {
+                    queueIndicator.style.display = 'inline';
+                    queueIndicator.textContent = `${queueCount} quest result${queueCount > 1 ? 's' : ''} waiting`;
+                } else {
+                    queueIndicator.style.display = 'none';
+                }
+            }
+
             // Stop updating if quest is complete (but don't hide if results are showing)
             if (quest.isTimeComplete) {
                 // Clear the interval but only hide if results aren't being displayed
@@ -986,7 +1039,13 @@ const Modals = {
             clearInterval(this._combatLogInterval);
             this._combatLogInterval = null;
         }
+        this._showingCombatLog = false;
         this.hide('combat-modal');
+
+        // If there are queued results, show them now
+        if (this._resultsQueue.length > 0 && !this._showingResults) {
+            this._showNextResult();
+        }
     },
 
     /**
@@ -1110,8 +1169,9 @@ const Modals = {
         // Add to queue
         this._resultsQueue.push({ quest, results, hero });
 
-        // If not already showing results, start showing
-        if (!this._showingResults) {
+        // If not already showing results or combat log, start showing
+        // (Don't interrupt if user is viewing combat log)
+        if (!this._showingResults && !this._showingCombatLog) {
             this._showNextResult();
         }
     },
