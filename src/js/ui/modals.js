@@ -1153,6 +1153,7 @@ const Modals = {
                         <h4 class="loot-header">Rewards</h4>
                         <div style="margin-bottom: 1rem;">
                             <span>💰 ${results.totalGold}g</span>
+                            ${results.totalSouls > 0 ? `<span style="margin-left: 1rem;">👻 ${results.totalSouls} souls</span>` : ''}
                             <span style="margin-left: 1rem;">✨ ${results.totalXp} XP</span>
                         </div>
                         ${results.loot.length > 0 ? `

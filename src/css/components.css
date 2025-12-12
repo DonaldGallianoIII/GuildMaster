@@ -822,6 +822,51 @@
     letter-spacing: 0.05em;
 }
 
+.gear-meta {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.gear-hunger {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+/* Hunger level colors - Design Doc v2 */
+.hunger-replete {
+    background-color: rgba(46, 139, 87, 0.2);
+    color: #2e8b57;
+    border: 1px solid #2e8b57;
+}
+
+.hunger-sated {
+    background-color: rgba(60, 179, 113, 0.2);
+    color: #3cb371;
+    border: 1px solid #3cb371;
+}
+
+.hunger-neutral {
+    background-color: rgba(128, 128, 128, 0.2);
+    color: #808080;
+    border: 1px solid #808080;
+}
+
+.hunger-hungry {
+    background-color: rgba(255, 165, 0, 0.2);
+    color: #ff8c00;
+    border: 1px solid #ff8c00;
+}
+
+.hunger-voracious {
+    background-color: rgba(220, 20, 60, 0.2);
+    color: #dc143c;
+    border: 1px solid #dc143c;
+}
+
 .gear-stats {
     margin: var(--spacing-md) 0;
 }

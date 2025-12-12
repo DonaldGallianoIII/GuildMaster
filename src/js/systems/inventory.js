@@ -323,10 +323,15 @@ const InventorySystem = {
 
         // Header
         const header = Utils.createElement('div', { className: 'card-header' });
+        const hungerLabel = item.getHungerLabel ? item.getHungerLabel() : 'Neutral';
+        const hungerClass = `hunger-${hungerLabel.toLowerCase()}`;
         header.innerHTML = `
             <div class="gear-icon">${Utils.escapeHtml(item.icon)}</div>
             <div class="gear-name">${Utils.escapeHtml(item.displayName)}</div>
-            <div class="gear-slot">${Utils.escapeHtml(Utils.capitalize(item.slot))}</div>
+            <div class="gear-meta">
+                <span class="gear-slot">${Utils.escapeHtml(Utils.capitalize(item.slot))}</span>
+                <span class="gear-hunger ${hungerClass}">${hungerLabel}</span>
+            </div>
         `;
         card.appendChild(header);
 

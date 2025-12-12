@@ -102,14 +102,16 @@ const NotificationSystem = {
         GameState.on('questCompleted', async ({ quest, hero, results }) => {
             if (results.success) {
                 const lootCount = results.loot?.length || 0;
+                const soulText = results.totalSouls > 0 ? `, ${results.totalSouls} souls` : '';
                 await this.create({
                     type: 'quest_complete',
                     title: `Quest Complete: ${quest.name}`,
-                    message: `${hero.name} returned with ${results.totalGold}g and ${lootCount} items!`,
+                    message: `${hero.name} returned with ${results.totalGold}g${soulText} and ${lootCount} items!`,
                     data: {
                         questId: quest.id,
                         heroId: hero.id,
                         gold: results.totalGold,
+                        souls: results.totalSouls || 0,
                         xp: results.totalXp,
                         lootCount,
                     },

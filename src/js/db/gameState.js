@@ -85,10 +85,18 @@ const GameState = {
                 email: user?.email || 'unknown',
                 username: user?.user_metadata?.username || user?.email?.split('@')[0] || 'Adventurer',
                 gold: 500,
+                souls: 0,  // Soul currency for crafting (Design Doc v2)
             };
             await DB.players.create(newPlayer);
             player = newPlayer;
             Utils.log('Player profile created:', player);
+        }
+
+        // Ensure existing players have souls field (migration)
+        if (player && player.souls === undefined) {
+            player.souls = 0;
+            await DB.players.update(userId, { souls: 0 });
+            Utils.log('Migrated player to include souls field');
         }
 
         this._state.player = player;
@@ -176,6 +184,45 @@ const GameState = {
 
         this.emit('goldChanged', { gold: this._state.player.gold });
         return true;
+    },
+
+    /**
+     * Add souls to player (Design Doc v2 - Soul Economy)
+     */
+    async addSouls(amount) {
+        if (!this._state.player) return;
+
+        this._state.player.souls += amount;
+        await DB.players.update(this._state.player.id, {
+            souls: this._state.player.souls,
+        });
+
+        this.emit('soulsChanged', { souls: this._state.player.souls });
+    },
+
+    /**
+     * Spend souls (returns false if not enough)
+     */
+    async spendSouls(amount) {
+        if (!this._state.player || this._state.player.souls < amount) {
+            Utils.toast('Not enough souls!', 'error');
+            return false;
+        }
+
+        this._state.player.souls -= amount;
+        await DB.players.update(this._state.player.id, {
+            souls: this._state.player.souls,
+        });
+
+        this.emit('soulsChanged', { souls: this._state.player.souls });
+        return true;
+    },
+
+    /**
+     * Get current soul count
+     */
+    getSouls() {
+        return this._state.player?.souls || 0;
     },
 
     // ==================== HERO MANAGEMENT ====================
@@ -809,6 +856,9 @@ const GameState = {
 
             // Award rewards
             await this.addGold(results.totalGold);
+            if (results.totalSouls > 0) {
+                await this.addSouls(results.totalSouls);
+            }
             const levelResult = hero.addXp(results.totalXp);
             hero.completeQuest(false);
 
@@ -839,8 +889,9 @@ const GameState = {
                 // Emit level up event to ensure UI refreshes
                 this.emit('heroLevelUp', { hero, newLevel: levelResult.newLevel });
             }
+            const soulText = results.totalSouls > 0 ? `, ${results.totalSouls} souls` : '';
             Utils.toast(
-                `${hero.name} returned with ${results.totalGold}g and ${results.loot.length} items!`,
+                `${hero.name} returned with ${results.totalGold}g${soulText} and ${results.loot.length} items!`,
                 'success'
             );
         } else {

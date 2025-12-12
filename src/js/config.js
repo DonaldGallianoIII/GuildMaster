@@ -280,6 +280,122 @@ const CONFIG = {
         ANIMATION_SPEED: 250,
     },
 
+    // ==================== SOUL SYSTEM (Design Doc v2) ====================
+
+    /**
+     * SOUL DROPS - Guaranteed souls per kill, scaling by tier
+     * Souls are the crafting currency for item modification
+     */
+    SOUL_DROPS: {
+        // Base soul drops by tier
+        fodder_trash: { min: 1, max: 2 },
+        fodder: { min: 2, max: 4 },
+        fodder_exalted: { min: 3, max: 6 },
+        standard_weak: { min: 5, max: 8 },
+        standard: { min: 7, max: 12 },
+        standard_exalted: { min: 10, max: 15 },
+        elite: { min: 15, max: 25 },
+        elite_exalted: { min: 25, max: 40 },
+        boss: { min: 50, max: 75 },
+        boss_legendary: { min: 80, max: 100 },
+    },
+
+    /**
+     * SOUL COSTS - Crafting costs (base values, escalate 1.5x per craft)
+     */
+    SOUL_COSTS: {
+        // Add new affix (SLAM)
+        SLAM_BASE: 100,
+
+        // Reroll existing affixes
+        REROLL_MAGIC: 25,      // Reroll magic item affixes
+        REROLL_RARE: 60,       // Reroll rare item affixes
+
+        // Level adjustment (±3 range from drop level)
+        LEVEL_ADJUST: 10,
+
+        // Escalation multiplier per craft on same item
+        ESCALATION: 1.5,
+    },
+
+    // ==================== HUNGER SYSTEM (Design Doc v2) ====================
+
+    /**
+     * SOUL HUNGER - Items have a hunger value affecting affix slots and costs
+     * Range: -0.70 (Replete) to +0.70 (Voracious)
+     */
+    HUNGER_SYSTEM: {
+        // Hunger value ranges for labels
+        RANGES: {
+            REPLETE: { min: -0.70, max: -0.50 },      // Blank drops, 5/5 max slots
+            NOURISHED: { min: -0.49, max: -0.25 },   // 4/4 max slots
+            SATED: { min: -0.24, max: -0.05 },       // 3/3 max slots
+            NEUTRAL: { min: -0.04, max: 0.04 },      // 3/3 max slots (default)
+            HUNGRY: { min: 0.05, max: 0.24 },        // 3/3 max slots
+            RAVENOUS: { min: 0.25, max: 0.49 },      // 2/2 max slots
+            VORACIOUS: { min: 0.50, max: 0.70 },     // 2/2 max slots, 1.5x affix values
+        },
+
+        // Max affix slots (prefix/suffix) by hunger tier
+        MAX_SLOTS: {
+            REPLETE: { prefix: 5, suffix: 5 },
+            NOURISHED: { prefix: 4, suffix: 4 },
+            SATED: { prefix: 3, suffix: 3 },
+            NEUTRAL: { prefix: 3, suffix: 3 },
+            HUNGRY: { prefix: 3, suffix: 3 },
+            RAVENOUS: { prefix: 2, suffix: 2 },
+            VORACIOUS: { prefix: 2, suffix: 2 },
+        },
+
+        // Cost multipliers by hunger tier
+        COST_MULTIPLIER: {
+            REPLETE: 0.5,       // Cheap to craft
+            NOURISHED: 0.75,
+            SATED: 0.9,
+            NEUTRAL: 1.0,
+            HUNGRY: 1.1,
+            RAVENOUS: 1.25,
+            VORACIOUS: 1.5,     // Expensive to craft
+        },
+
+        // Special rules
+        VORACIOUS_AFFIX_MULT: 1.5,  // Voracious items get 1.5x affix values
+        REPLETE_DROPS_BLANK: true,   // Replete items always drop with no affixes
+
+        // Roll distribution (weighted by rarity)
+        ROLL_WEIGHTS: {
+            common: { min: -0.20, max: 0.20 },   // Narrow range
+            magic: { min: -0.35, max: 0.35 },    // Moderate range
+            rare: { min: -0.50, max: 0.50 },     // Wide range
+            unique: { min: -0.70, max: 0.70 },   // Full range
+        },
+    },
+
+    /**
+     * AFFIX SCALING - Affix values scale with item level
+     * Target: 2-8% of hero BST per affix
+     */
+    AFFIX_SCALING: {
+        // Base stat per item level (scales to ~2-8% of hero BST)
+        STAT_PER_LEVEL: 2,
+
+        // Weighted roll distribution for affix tier
+        TIER_WEIGHTS: {
+            low: 50,    // 50% chance: 25-50% of max roll
+            mid: 30,    // 30% chance: 50-75% of max roll
+            high: 15,   // 15% chance: 75-90% of max roll
+            max: 5,     // 5% chance: 90-100% of max roll
+        },
+
+        // Tier roll ranges (percentage of max value)
+        TIER_RANGES: {
+            low: { min: 0.25, max: 0.50 },
+            mid: { min: 0.50, max: 0.75 },
+            high: { min: 0.75, max: 0.90 },
+            max: { min: 0.90, max: 1.00 },
+        },
+    },
+
     /**
      * DEBUG MODE
      * Set via URL parameter: ?debug=true
@@ -325,3 +441,13 @@ Object.freeze(CONFIG.ALIGNMENT);
 Object.freeze(CONFIG.SUMMONS);
 Object.freeze(CONFIG.SELL_PRICES);
 Object.freeze(CONFIG.UI);
+Object.freeze(CONFIG.SOUL_DROPS);
+Object.freeze(CONFIG.SOUL_COSTS);
+Object.freeze(CONFIG.HUNGER_SYSTEM);
+Object.freeze(CONFIG.HUNGER_SYSTEM.RANGES);
+Object.freeze(CONFIG.HUNGER_SYSTEM.MAX_SLOTS);
+Object.freeze(CONFIG.HUNGER_SYSTEM.COST_MULTIPLIER);
+Object.freeze(CONFIG.HUNGER_SYSTEM.ROLL_WEIGHTS);
+Object.freeze(CONFIG.AFFIX_SCALING);
+Object.freeze(CONFIG.AFFIX_SCALING.TIER_WEIGHTS);
+Object.freeze(CONFIG.AFFIX_SCALING.TIER_RANGES);

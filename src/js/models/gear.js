@@ -295,6 +295,10 @@ class Gear {
         // Lock status (prevents selling)
         this.isLocked = data.isLocked || data.is_locked || false;
 
+        // Hunger value (Design Doc v2 - affects affix slots)
+        // Range: -0.70 (Replete) to +0.70 (Voracious)
+        this.hunger = data.hunger ?? 0;
+
         // Timestamps
         this.createdAt = data.createdAt || data.created_at || Utils.now();
     }
@@ -387,6 +391,57 @@ class Gear {
         return this.heroId !== null;
     }
 
+    // ==================== HUNGER SYSTEM (Design Doc v2) ====================
+
+    /**
+     * Get hunger label based on hunger value
+     * @returns {string} Hunger label (Replete, Sated, Neutral, Hungry, Voracious)
+     */
+    getHungerLabel() {
+        const ranges = CONFIG.HUNGER_SYSTEM.RANGES;
+        if (this.hunger <= ranges.REPLETE.max) return 'Replete';
+        if (this.hunger <= ranges.SATED.max) return 'Sated';
+        if (this.hunger <= ranges.NEUTRAL.max) return 'Neutral';
+        if (this.hunger <= ranges.HUNGRY.max) return 'Hungry';
+        return 'Voracious';
+    }
+
+    /**
+     * Get max affix slots based on hunger
+     * Replete: 5 prefix, 5 suffix (10 total, but harder to find)
+     * Sated: 4/4 (8 total)
+     * Neutral: 3/3 (6 total, default)
+     * Hungry: 3/2 (5 total)
+     * Voracious: 2/2 (4 total, but easier to find)
+     * @returns {{ prefix: number, suffix: number }}
+     */
+    getMaxAffixSlots() {
+        const hungerLabel = this.getHungerLabel();
+        const maxSlots = CONFIG.HUNGER_SYSTEM.MAX_SLOTS[hungerLabel.toUpperCase()];
+        return maxSlots || { prefix: 3, suffix: 3 };
+    }
+
+    /**
+     * Get crafting cost multiplier based on hunger
+     * Replete items cost more to craft, Voracious cost less
+     * @returns {number}
+     */
+    getCraftingCostMultiplier() {
+        const hungerLabel = this.getHungerLabel();
+        return CONFIG.HUNGER_SYSTEM.COST_MULTIPLIER[hungerLabel.toUpperCase()] || 1.0;
+    }
+
+    /**
+     * Check if item can have more affixes added (based on hunger limit)
+     * @param {string} affixType - 'prefix' or 'suffix'
+     * @returns {boolean}
+     */
+    canAddAffix(affixType) {
+        const maxSlots = this.getMaxAffixSlots();
+        const currentCount = this.affixes.filter(a => a.type === affixType).length;
+        return currentCount < maxSlots[affixType];
+    }
+
     // ==================== METHODS ====================
 
     /**
@@ -458,6 +513,7 @@ class Gear {
             souled_by: this.souledBy,
             inscriptions: this.inscriptions,
             is_locked: this.isLocked,
+            hunger: this.hunger,
             created_at: this.createdAt,
         };
     }
@@ -484,6 +540,7 @@ class Gear {
             souledBy: row.souled_by,
             inscriptions: row.inscriptions,
             isLocked: row.is_locked,
+            hunger: row.hunger ?? 0,
             createdAt: row.created_at,
         });
     }
@@ -531,6 +588,9 @@ const GearGenerator = {
         // Generate affixes based on rarity
         const affixes = this.generateAffixes(rarity);
 
+        // Generate hunger value (Design Doc v2)
+        const hunger = options.hunger ?? this.rollHunger();
+
         return new Gear({
             slot,
             baseName: template.baseName,
@@ -539,7 +599,25 @@ const GearGenerator = {
             icon: template.icon,
             baseStats: scaledStats,
             affixes,
+            hunger,
         });
+    },
+
+    /**
+     * Roll a random hunger value for new gear
+     * Distribution weighted towards neutral (bell curve-ish)
+     * Range: -0.70 (Replete) to +0.70 (Voracious)
+     * @returns {number}
+     */
+    rollHunger() {
+        // Roll 2d6-7 style distribution (-5 to +5) then scale to -0.70 to +0.70
+        // This creates a bell curve with most items being near Neutral
+        const roll1 = Math.random();
+        const roll2 = Math.random();
+        const combined = (roll1 + roll2) / 2; // Average gives bell curve
+        const scaled = (combined - 0.5) * 1.4; // Scale to -0.70 to +0.70
+        // Round to 2 decimal places
+        return Math.round(scaled * 100) / 100;
     },
 
     /**
