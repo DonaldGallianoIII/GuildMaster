@@ -1858,7 +1858,10 @@ class Quest {
                 type: 'encounter_start',
                 data: {
                     encounterIndex: i,
-                    mobs: this.encounters[i]?.mobs.map(mobId => MOB_DEFINITIONS[mobId]?.name || mobId) || [],
+                    mobs: this.encounters[i]?.mobs.map(mobId => {
+                        const mob = Quests.getMob(mobId);
+                        return mob?.name || mobId;
+                    }) || [],
                 },
             });
 
@@ -1934,7 +1937,10 @@ class Quest {
                 type: 'encounter_start',
                 data: {
                     encounterIndex: i,
-                    mobs: encounter.mobs.map(mobId => MOB_DEFINITIONS[mobId]?.name || mobId),
+                    mobs: encounter.mobs.map(mobId => {
+                        const mob = Quests.getMob(mobId);
+                        return mob?.name || mobId;
+                    }),
                 },
             });
 
