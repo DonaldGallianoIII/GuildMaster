@@ -367,7 +367,8 @@ a:hover {
     margin-bottom: var(--spacing-lg);
 }
 
-.filter-btn {
+.filter-btn,
+.sort-btn {
     padding: var(--spacing-xs) var(--spacing-md);
     font-family: var(--font-body);
     font-size: 0.9rem;
@@ -378,11 +379,13 @@ a:hover {
     transition: all var(--transition-fast);
 }
 
-.filter-btn:hover {
+.filter-btn:hover,
+.sort-btn:hover {
     background: var(--color-parchment-dark);
 }
 
-.filter-btn.active {
+.filter-btn.active,
+.sort-btn.active {
     background: var(--color-ink);
     color: var(--color-parchment);
     border-color: var(--color-ink);
