@@ -14,17 +14,17 @@ const CONFIG = {
     // ==================== GAME BALANCE ====================
 
     /**
-     * STAT SYSTEM (updated for balance)
-     * BST = Level × 20
-     * HP = (Level × 40) + DEF
+     * STAT SYSTEM (updated for balance - Design Doc v2)
+     * BST = Level × 100
+     * HP = DEF + (Level × 40)
      *
-     * Physical Damage = ATK² ÷ (ATK + target DEF)
-     * Magical Damage = WILL² ÷ (WILL + target WILL ÷ 2)
+     * Physical Damage = ATK - (DEF × 0.5), min 3
+     * Magical Damage = WILL - (target WILL × 0.5), min 3
      */
     STATS: {
-        BST_PER_LEVEL: 20,
+        BST_PER_LEVEL: 100,
         HP_PER_LEVEL: 40,
-        MIN_DAMAGE: 1,
+        MIN_DAMAGE: 3,
     },
 
     /**
@@ -196,29 +196,29 @@ const CONFIG = {
     },
 
     /**
-     * MOB TIER SYSTEM (Dynamic scaling based on hero level)
-     * levelOffset: How many levels above/below the hero
-     * bstMult: Multiplier for BST relative to hero's BST
-     * hpMult: HP multiplier (mobs use lower HP formula)
+     * MOB TIER SYSTEM (Design Doc v2 - Dynamic scaling based on hero level)
+     * Enemies are stat templates; tier determines BST multiplier
+     * bstMult: Multiplier for BST relative to hero's BST (hero BST = level × 100)
+     * hpMult: HP multiplier for enemy survivability
      */
     MOB_TIERS: {
         // Fodder Tiers - easy kills, swarm enemies
-        fodder_trash: { levelOffset: -3, bstMult: 0.35, hpMult: 0.5, label: 'Fodder Trash' },
-        fodder: { levelOffset: -2, bstMult: 0.5, hpMult: 0.6, label: 'Fodder' },
-        fodder_exalted: { levelOffset: -1, bstMult: 0.6, hpMult: 0.7, label: 'Fodder Exalted' },
+        fodder_trash: { bstMult: 0.60, hpMult: 0.6, label: 'Fodder Trash' },
+        fodder: { bstMult: 0.70, hpMult: 0.7, label: 'Fodder' },
+        fodder_exalted: { bstMult: 0.80, hpMult: 0.8, label: 'Fodder Exalted' },
 
         // Standard Tiers - fair fights
-        standard_weak: { levelOffset: 0, bstMult: 0.7, hpMult: 0.8, label: 'Standard Weak' },
-        standard: { levelOffset: 1, bstMult: 0.85, hpMult: 0.9, label: 'Standard' },
-        standard_exalted: { levelOffset: 2, bstMult: 1.0, hpMult: 1.0, label: 'Standard Exalted' },
+        standard_weak: { bstMult: 0.85, hpMult: 0.85, label: 'Standard Weak' },
+        standard: { bstMult: 0.90, hpMult: 0.9, label: 'Standard' },
+        standard_exalted: { bstMult: 1.00, hpMult: 1.0, label: 'Standard Exalted' },
 
         // Elite Tiers - dangerous, mini-boss
-        elite: { levelOffset: 4, bstMult: 1.2, hpMult: 1.2, label: 'Elite' },
-        elite_exalted: { levelOffset: 6, bstMult: 1.5, hpMult: 1.5, label: 'Elite Exalted' },
+        elite: { bstMult: 1.20, hpMult: 1.2, label: 'Elite' },
+        elite_exalted: { bstMult: 1.50, hpMult: 1.5, label: 'Elite Exalted' },
 
         // Boss Tiers - major threats
-        boss: { levelOffset: 10, bstMult: 2.0, hpMult: 2.0, label: 'Boss' },
-        boss_legendary: { levelOffset: 15, bstMult: 3.0, hpMult: 3.0, label: 'Legendary Boss' },
+        boss: { bstMult: 2.00, hpMult: 2.0, label: 'Boss' },
+        boss_legendary: { bstMult: 3.00, hpMult: 3.0, label: 'Legendary Boss' },
     },
 
     /**

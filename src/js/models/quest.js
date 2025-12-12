@@ -395,6 +395,64 @@ const MOB_DEFINITIONS = {
         icon: '🐍',
         skills: ['cleave', 'frenzy', 'second_wind', 'thorns'],
     },
+
+    // ==================== MISSING MOB DEFINITIONS (referenced in themes) ====================
+    goblin_shaman: {
+        id: 'goblin_shaman',
+        name: 'Goblin Shaman',
+        tier: 'elite',
+        statDist: { atk: 0.15, will: 0.45, def: 0.15, spd: 0.25 },
+        icon: '🧙',
+        skills: ['fireball', 'spark', 'mana_shield'],
+    },
+    bandit_leader: {
+        id: 'bandit_leader',
+        name: 'Bandit Leader',
+        tier: 'standard_exalted',
+        statDist: { atk: 0.4, will: 0.1, def: 0.3, spd: 0.2 },
+        icon: '🦹',
+        skills: ['cleave', 'backstab'],
+    },
+    troll: {
+        id: 'troll',
+        name: 'Troll',
+        tier: 'elite',
+        statDist: { atk: 0.5, will: 0.05, def: 0.35, spd: 0.1 },
+        icon: '👹',
+        skills: ['bash', 'frenzy', 'second_wind'],
+    },
+    kobold: {
+        id: 'kobold',
+        name: 'Kobold',
+        tier: 'fodder',
+        statDist: { atk: 0.3, will: 0.05, def: 0.2, spd: 0.45 },
+        icon: '🦎',
+        skills: [],
+    },
+    wyvern: {
+        id: 'wyvern',
+        name: 'Wyvern',
+        tier: 'elite',
+        statDist: { atk: 0.45, will: 0.05, def: 0.25, spd: 0.25 },
+        icon: '🐉',
+        skills: ['cleave', 'frenzy'],
+    },
+    skeleton_warrior: {
+        id: 'skeleton_warrior',
+        name: 'Skeleton Warrior',
+        tier: 'standard',
+        statDist: { atk: 0.45, will: 0.05, def: 0.3, spd: 0.2 },
+        icon: '⚔️',
+        skills: ['bash'],
+    },
+    orc_warrior: {
+        id: 'orc_warrior',
+        name: 'Orc Warrior',
+        tier: 'standard',
+        statDist: { atk: 0.5, will: 0, def: 0.3, spd: 0.2 },
+        icon: '👹',
+        skills: ['bash', 'frenzy'],
+    },
 };
 
 Object.freeze(MOB_DEFINITIONS);
@@ -1999,6 +2057,7 @@ const Quests = {
 
     /**
      * Create a mob instance with stats scaled to hero level
+     * Design Doc v2: Enemies are stat templates, tier determines BST multiplier
      * @param {string} mobId - The mob definition ID
      * @param {number} heroLevel - The level of the hero fighting this mob
      * @param {string} tierOverride - Optional tier override
@@ -2015,14 +2074,11 @@ const Quests = {
             return null;
         }
 
-        // Calculate mob level based on hero level + tier offset
-        const mobLevel = Math.max(1, heroLevel + tierConfig.levelOffset);
-
-        // Calculate BST: hero's BST * tier multiplier
+        // Calculate BST: hero's BST * tier multiplier (Design Doc v2)
         const heroBst = heroLevel * CONFIG.STATS.BST_PER_LEVEL;
         const mobBst = Math.floor(heroBst * tierConfig.bstMult);
 
-        // Distribute BST according to stat distribution
+        // Distribute BST according to stat distribution (must sum to 1.0)
         const stats = {
             atk: Math.floor(mobBst * (def.statDist.atk || 0)),
             will: Math.floor(mobBst * (def.statDist.will || 0)),
@@ -2030,15 +2086,16 @@ const Quests = {
             spd: Math.floor(mobBst * (def.statDist.spd || 0)),
         };
 
-        // Calculate HP: base HP formula * tier HP multiplier
-        const baseHp = (mobLevel * CONFIG.STATS.HP_PER_LEVEL) + stats.def;
+        // Calculate HP: DEF + (level × 40) scaled by tier HP multiplier
+        // Using hero level as reference for mob HP scaling
+        const baseHp = stats.def + (heroLevel * CONFIG.STATS.HP_PER_LEVEL);
         const hp = Math.floor(baseHp * tierConfig.hpMult);
 
         return {
             id: Utils.uuid(),
             mobId: def.id,
             name: def.name,
-            level: mobLevel,
+            level: heroLevel, // Mobs scale to hero level
             tier,
             stats,
             maxHp: hp,
