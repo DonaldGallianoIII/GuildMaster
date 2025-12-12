@@ -53,6 +53,7 @@ class CombatResult {
         this.loot = [];
         this.xpGained = 0;
         this.goldGained = 0;
+        this.soulsGained = 0;  // Soul drops from kills (Design Doc v2)
     }
 
     addRound(round) {
@@ -941,6 +942,7 @@ const CombatEngine = {
             encounters: [],
             totalXp: 0,
             totalGold: 0,
+            totalSouls: 0,  // Soul drops from kills (Design Doc v2)
             loot: [],
         };
 
@@ -993,6 +995,15 @@ const CombatEngine = {
                 if (item) results.loot.push(item);
                 return item;
             }).filter(Boolean);
+
+            // Calculate soul drops from kills (Design Doc v2 - Soul Economy)
+            for (const mob of mobs) {
+                const soulDrops = CONFIG.SOUL_DROPS[mob.tier];
+                if (soulDrops) {
+                    const souls = Utils.randomInt(soulDrops.min, soulDrops.max);
+                    results.totalSouls += souls;
+                }
+            }
 
             // Between packs: hero catches their breath and recovers some health
             if (i < encounters.length - 1) {

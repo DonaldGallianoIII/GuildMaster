@@ -14,17 +14,17 @@ const CONFIG = {
     // ==================== GAME BALANCE ====================
 
     /**
-     * STAT SYSTEM (updated for balance)
-     * BST = Level × 20
-     * HP = (Level × 40) + DEF
+     * STAT SYSTEM (updated for balance - Design Doc v2)
+     * BST = Level × 100
+     * HP = DEF + (Level × 40)
      *
-     * Physical Damage = ATK² ÷ (ATK + target DEF)
-     * Magical Damage = WILL² ÷ (WILL + target WILL ÷ 2)
+     * Physical Damage = ATK - (DEF × 0.5), min 3
+     * Magical Damage = WILL - (target WILL × 0.5), min 3
      */
     STATS: {
-        BST_PER_LEVEL: 20,
+        BST_PER_LEVEL: 100,
         HP_PER_LEVEL: 40,
-        MIN_DAMAGE: 1,
+        MIN_DAMAGE: 3,
     },
 
     /**
@@ -196,29 +196,29 @@ const CONFIG = {
     },
 
     /**
-     * MOB TIER SYSTEM (Dynamic scaling based on hero level)
-     * levelOffset: How many levels above/below the hero
-     * bstMult: Multiplier for BST relative to hero's BST
-     * hpMult: HP multiplier (mobs use lower HP formula)
+     * MOB TIER SYSTEM (Design Doc v2 - Dynamic scaling based on hero level)
+     * Enemies are stat templates; tier determines BST multiplier
+     * bstMult: Multiplier for BST relative to hero's BST (hero BST = level × 100)
+     * hpMult: HP multiplier for enemy survivability
      */
     MOB_TIERS: {
         // Fodder Tiers - easy kills, swarm enemies
-        fodder_trash: { levelOffset: -3, bstMult: 0.35, hpMult: 0.5, label: 'Fodder Trash' },
-        fodder: { levelOffset: -2, bstMult: 0.5, hpMult: 0.6, label: 'Fodder' },
-        fodder_exalted: { levelOffset: -1, bstMult: 0.6, hpMult: 0.7, label: 'Fodder Exalted' },
+        fodder_trash: { bstMult: 0.60, hpMult: 0.6, label: 'Fodder Trash' },
+        fodder: { bstMult: 0.70, hpMult: 0.7, label: 'Fodder' },
+        fodder_exalted: { bstMult: 0.80, hpMult: 0.8, label: 'Fodder Exalted' },
 
         // Standard Tiers - fair fights
-        standard_weak: { levelOffset: 0, bstMult: 0.7, hpMult: 0.8, label: 'Standard Weak' },
-        standard: { levelOffset: 1, bstMult: 0.85, hpMult: 0.9, label: 'Standard' },
-        standard_exalted: { levelOffset: 2, bstMult: 1.0, hpMult: 1.0, label: 'Standard Exalted' },
+        standard_weak: { bstMult: 0.85, hpMult: 0.85, label: 'Standard Weak' },
+        standard: { bstMult: 0.90, hpMult: 0.9, label: 'Standard' },
+        standard_exalted: { bstMult: 1.00, hpMult: 1.0, label: 'Standard Exalted' },
 
         // Elite Tiers - dangerous, mini-boss
-        elite: { levelOffset: 4, bstMult: 1.2, hpMult: 1.2, label: 'Elite' },
-        elite_exalted: { levelOffset: 6, bstMult: 1.5, hpMult: 1.5, label: 'Elite Exalted' },
+        elite: { bstMult: 1.20, hpMult: 1.2, label: 'Elite' },
+        elite_exalted: { bstMult: 1.50, hpMult: 1.5, label: 'Elite Exalted' },
 
         // Boss Tiers - major threats
-        boss: { levelOffset: 10, bstMult: 2.0, hpMult: 2.0, label: 'Boss' },
-        boss_legendary: { levelOffset: 15, bstMult: 3.0, hpMult: 3.0, label: 'Legendary Boss' },
+        boss: { bstMult: 2.00, hpMult: 2.0, label: 'Boss' },
+        boss_legendary: { bstMult: 3.00, hpMult: 3.0, label: 'Legendary Boss' },
     },
 
     /**
@@ -280,6 +280,122 @@ const CONFIG = {
         ANIMATION_SPEED: 250,
     },
 
+    // ==================== SOUL SYSTEM (Design Doc v2) ====================
+
+    /**
+     * SOUL DROPS - Guaranteed souls per kill, scaling by tier
+     * Souls are the crafting currency for item modification
+     */
+    SOUL_DROPS: {
+        // Base soul drops by tier
+        fodder_trash: { min: 1, max: 2 },
+        fodder: { min: 2, max: 4 },
+        fodder_exalted: { min: 3, max: 6 },
+        standard_weak: { min: 5, max: 8 },
+        standard: { min: 7, max: 12 },
+        standard_exalted: { min: 10, max: 15 },
+        elite: { min: 15, max: 25 },
+        elite_exalted: { min: 25, max: 40 },
+        boss: { min: 50, max: 75 },
+        boss_legendary: { min: 80, max: 100 },
+    },
+
+    /**
+     * SOUL COSTS - Crafting costs (base values, escalate 1.5x per craft)
+     */
+    SOUL_COSTS: {
+        // Add new affix (SLAM)
+        SLAM_BASE: 100,
+
+        // Reroll existing affixes
+        REROLL_MAGIC: 25,      // Reroll magic item affixes
+        REROLL_RARE: 60,       // Reroll rare item affixes
+
+        // Level adjustment (±3 range from drop level)
+        LEVEL_ADJUST: 10,
+
+        // Escalation multiplier per craft on same item
+        ESCALATION: 1.5,
+    },
+
+    // ==================== HUNGER SYSTEM (Design Doc v2) ====================
+
+    /**
+     * SOUL HUNGER - Items have a hunger value affecting affix slots and costs
+     * Range: -0.70 (Replete) to +0.70 (Voracious)
+     */
+    HUNGER_SYSTEM: {
+        // Hunger value ranges for labels
+        RANGES: {
+            REPLETE: { min: -0.70, max: -0.50 },      // Blank drops, 5/5 max slots
+            NOURISHED: { min: -0.49, max: -0.25 },   // 4/4 max slots
+            SATED: { min: -0.24, max: -0.05 },       // 3/3 max slots
+            NEUTRAL: { min: -0.04, max: 0.04 },      // 3/3 max slots (default)
+            HUNGRY: { min: 0.05, max: 0.24 },        // 3/3 max slots
+            RAVENOUS: { min: 0.25, max: 0.49 },      // 2/2 max slots
+            VORACIOUS: { min: 0.50, max: 0.70 },     // 2/2 max slots, 1.5x affix values
+        },
+
+        // Max affix slots (prefix/suffix) by hunger tier
+        MAX_SLOTS: {
+            REPLETE: { prefix: 5, suffix: 5 },
+            NOURISHED: { prefix: 4, suffix: 4 },
+            SATED: { prefix: 3, suffix: 3 },
+            NEUTRAL: { prefix: 3, suffix: 3 },
+            HUNGRY: { prefix: 3, suffix: 3 },
+            RAVENOUS: { prefix: 2, suffix: 2 },
+            VORACIOUS: { prefix: 2, suffix: 2 },
+        },
+
+        // Cost multipliers by hunger tier
+        COST_MULTIPLIER: {
+            REPLETE: 0.5,       // Cheap to craft
+            NOURISHED: 0.75,
+            SATED: 0.9,
+            NEUTRAL: 1.0,
+            HUNGRY: 1.1,
+            RAVENOUS: 1.25,
+            VORACIOUS: 1.5,     // Expensive to craft
+        },
+
+        // Special rules
+        VORACIOUS_AFFIX_MULT: 1.5,  // Voracious items get 1.5x affix values
+        REPLETE_DROPS_BLANK: true,   // Replete items always drop with no affixes
+
+        // Roll distribution (weighted by rarity)
+        ROLL_WEIGHTS: {
+            common: { min: -0.20, max: 0.20 },   // Narrow range
+            magic: { min: -0.35, max: 0.35 },    // Moderate range
+            rare: { min: -0.50, max: 0.50 },     // Wide range
+            unique: { min: -0.70, max: 0.70 },   // Full range
+        },
+    },
+
+    /**
+     * AFFIX SCALING - Affix values scale with item level
+     * Target: 2-8% of hero BST per affix
+     */
+    AFFIX_SCALING: {
+        // Base stat per item level (scales to ~2-8% of hero BST)
+        STAT_PER_LEVEL: 2,
+
+        // Weighted roll distribution for affix tier
+        TIER_WEIGHTS: {
+            low: 50,    // 50% chance: 25-50% of max roll
+            mid: 30,    // 30% chance: 50-75% of max roll
+            high: 15,   // 15% chance: 75-90% of max roll
+            max: 5,     // 5% chance: 90-100% of max roll
+        },
+
+        // Tier roll ranges (percentage of max value)
+        TIER_RANGES: {
+            low: { min: 0.25, max: 0.50 },
+            mid: { min: 0.50, max: 0.75 },
+            high: { min: 0.75, max: 0.90 },
+            max: { min: 0.90, max: 1.00 },
+        },
+    },
+
     /**
      * DEBUG MODE
      * Set via URL parameter: ?debug=true
@@ -325,3 +441,13 @@ Object.freeze(CONFIG.ALIGNMENT);
 Object.freeze(CONFIG.SUMMONS);
 Object.freeze(CONFIG.SELL_PRICES);
 Object.freeze(CONFIG.UI);
+Object.freeze(CONFIG.SOUL_DROPS);
+Object.freeze(CONFIG.SOUL_COSTS);
+Object.freeze(CONFIG.HUNGER_SYSTEM);
+Object.freeze(CONFIG.HUNGER_SYSTEM.RANGES);
+Object.freeze(CONFIG.HUNGER_SYSTEM.MAX_SLOTS);
+Object.freeze(CONFIG.HUNGER_SYSTEM.COST_MULTIPLIER);
+Object.freeze(CONFIG.HUNGER_SYSTEM.ROLL_WEIGHTS);
+Object.freeze(CONFIG.AFFIX_SCALING);
+Object.freeze(CONFIG.AFFIX_SCALING.TIER_WEIGHTS);
+Object.freeze(CONFIG.AFFIX_SCALING.TIER_RANGES);

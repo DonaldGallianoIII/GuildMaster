@@ -225,6 +225,7 @@ const App = {
      */
     bindStateEvents() {
         GameState.on('goldChanged', () => this.updatePlayerDisplay());
+        GameState.on('soulsChanged', () => this.updatePlayerDisplay());
         GameState.on('heroHired', () => this.renderHeroes());
         GameState.on('heroUpdated', () => this.renderHeroes());
         GameState.on('heroDied', () => this.renderHeroes());
@@ -388,6 +389,11 @@ const App = {
         const goldEl = document.getElementById('player-gold');
         if (goldEl) {
             goldEl.textContent = GameState.gold.toLocaleString();
+        }
+
+        const soulsEl = document.getElementById('player-souls');
+        if (soulsEl) {
+            soulsEl.textContent = GameState.getSouls().toLocaleString();
         }
 
         const nameEl = document.getElementById('guild-name');

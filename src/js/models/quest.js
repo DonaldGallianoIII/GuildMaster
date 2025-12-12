@@ -395,16 +395,75 @@ const MOB_DEFINITIONS = {
         icon: '🐍',
         skills: ['cleave', 'frenzy', 'second_wind', 'thorns'],
     },
+
+    // ==================== MISSING MOB DEFINITIONS (referenced in themes) ====================
+    goblin_shaman: {
+        id: 'goblin_shaman',
+        name: 'Goblin Shaman',
+        tier: 'elite',
+        statDist: { atk: 0.15, will: 0.45, def: 0.15, spd: 0.25 },
+        icon: '🧙',
+        skills: ['fireball', 'spark', 'mana_shield'],
+    },
+    bandit_leader: {
+        id: 'bandit_leader',
+        name: 'Bandit Leader',
+        tier: 'standard_exalted',
+        statDist: { atk: 0.4, will: 0.1, def: 0.3, spd: 0.2 },
+        icon: '🦹',
+        skills: ['cleave', 'backstab'],
+    },
+    troll: {
+        id: 'troll',
+        name: 'Troll',
+        tier: 'elite',
+        statDist: { atk: 0.5, will: 0.05, def: 0.35, spd: 0.1 },
+        icon: '👹',
+        skills: ['bash', 'frenzy', 'second_wind'],
+    },
+    kobold: {
+        id: 'kobold',
+        name: 'Kobold',
+        tier: 'fodder',
+        statDist: { atk: 0.3, will: 0.05, def: 0.2, spd: 0.45 },
+        icon: '🦎',
+        skills: [],
+    },
+    wyvern: {
+        id: 'wyvern',
+        name: 'Wyvern',
+        tier: 'elite',
+        statDist: { atk: 0.45, will: 0.05, def: 0.25, spd: 0.25 },
+        icon: '🐉',
+        skills: ['cleave', 'frenzy'],
+    },
+    skeleton_warrior: {
+        id: 'skeleton_warrior',
+        name: 'Skeleton Warrior',
+        tier: 'standard',
+        statDist: { atk: 0.45, will: 0.05, def: 0.3, spd: 0.2 },
+        icon: '⚔️',
+        skills: ['bash'],
+    },
+    orc_warrior: {
+        id: 'orc_warrior',
+        name: 'Orc Warrior',
+        tier: 'standard',
+        statDist: { atk: 0.5, will: 0, def: 0.3, spd: 0.2 },
+        icon: '👹',
+        skills: ['bash', 'frenzy'],
+    },
 };
 
 Object.freeze(MOB_DEFINITIONS);
 
 /**
  * ============================================
- * QUEST THEMES - Tier-Based System
+ * QUEST THEMES - Tier-Based System (Bestiary v2)
  * ============================================
  * Themes define flavor (name, icon, mob pools).
  * Encounters are generated based on bracket + tier.
+ * Mobs are now sourced from BESTIARY (Design Doc v2).
  *
  * Tier Pack Sizes:
  * - Tier I:   1-2 fodder per encounter (2 encounters)
@@ -413,16 +472,16 @@ Object.freeze(MOB_DEFINITIONS);
  * ============================================
  */
 const QUEST_THEMES = {
-    // ==================== NOVICE THEMES ====================
+    // ==================== NOVICE THEMES (VERMIN, BEASTS, GOBLINOID) ====================
     goblin_tunnel: {
         id: 'goblin_tunnel',
         name: 'Goblin Tunnels',
         description: 'A network of tunnels infested with goblins.',
         icon: '🕳️',
         brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
-        fodder: ['goblin'],
-        standard: ['goblin_brute'],
-        elite: ['goblin_shaman'],
+        fodder: ['goblin_runt', 'goblin', 'goblin_scout'],
+        standard: ['goblin_warrior', 'goblin_brute', 'goblin_archer'],
+        elite: ['goblin_shaman', 'goblin_chief'],
     },
     wolf_territory: {
         id: 'wolf_territory',
@@ -430,9 +489,9 @@ const QUEST_THEMES = {
         description: 'A forest where wolves have made their home.',
         icon: '🐺',
         brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
-        fodder: ['wolf'],
-        standard: ['dire_wolf'],
-        elite: ['dire_wolf'],
+        fodder: ['wolf_pup', 'wolf'],
+        standard: ['dire_wolf', 'alpha_wolf'],
+        elite: ['worg', 'winter_wolf'],
     },
     rat_infestation: {
         id: 'rat_infestation',
@@ -440,19 +499,9 @@ const QUEST_THEMES = {
         description: 'Giant rats have overrun the area.',
         icon: '🐀',
         brackets: [QuestBracket.NOVICE],
-        fodder: ['rat'],
-        standard: ['giant_spider'],
-        elite: ['giant_spider'],
-    },
-    slime_cavern: {
-        id: 'slime_cavern',
-        name: 'Slime Cavern',
-        description: 'A bubbling pit of gelatinous creatures.',
-        icon: '🟢',
-        brackets: [QuestBracket.NOVICE],
-        fodder: ['slime'],
-        standard: ['slime'],
-        elite: ['giant_spider'],
+        fodder: ['sewer_rat', 'plague_rat', 'giant_rat'],
+        standard: ['giant_rat', 'rat_king'],
+        elite: ['rat_king'],
     },
     bat_roost: {
         id: 'bat_roost',
@@ -460,9 +509,9 @@ const QUEST_THEMES = {
         description: 'A cave echoing with the screeches of bats.',
         icon: '🦇',
         brackets: [QuestBracket.NOVICE],
-        fodder: ['bat'],
-        standard: ['giant_spider'],
-        elite: ['giant_spider'],
+        fodder: ['cave_bat', 'vampire_bat', 'dire_bat'],
+        standard: ['swarm_bat', 'blood_wing'],
+        elite: ['blood_wing'],
     },
     boar_thicket: {
         id: 'boar_thicket',
@@ -470,9 +519,9 @@ const QUEST_THEMES = {
         description: 'Wild boars roam this dense forest.',
         icon: '🐗',
         brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
-        fodder: ['boar'],
-        standard: ['dire_wolf'],
-        elite: ['troll'],
+        fodder: ['wild_boar'],
+        standard: ['dire_boar', 'razorback'],
+        elite: ['war_boar'],
     },
     snake_pit: {
         id: 'snake_pit',
@@ -480,9 +529,9 @@ const QUEST_THEMES = {
         description: 'A nest of venomous snakes.',
         icon: '🐍',
         brackets: [QuestBracket.NOVICE],
-        fodder: ['snake'],
-        standard: ['giant_spider'],
-        elite: ['giant_spider'],
+        fodder: ['viper', 'constrictor'],
+        standard: ['giant_snake', 'king_cobra'],
+        elite: ['basilisk'],
     },
     spider_nest: {
         id: 'spider_nest',
@@ -490,21 +539,41 @@ const QUEST_THEMES = {
         description: 'Webs cover every surface in this lair.',
         icon: '🕷️',
         brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
-        fodder: ['bat', 'rat'],
-        standard: ['giant_spider'],
-        elite: ['giant_spider'],
+        fodder: ['spider_hatchling', 'cave_spider'],
+        standard: ['giant_spider', 'poison_spider'],
+        elite: ['broodmother', 'widow_queen'],
+    },
+    beetle_burrow: {
+        id: 'beetle_burrow',
+        name: 'Beetle Burrow',
+        description: 'Chitinous insects swarm in the darkness.',
+        icon: '🪲',
+        brackets: [QuestBracket.NOVICE],
+        fodder: ['cockroach', 'giant_beetle', 'scarab'],
+        standard: ['stag_beetle', 'fire_beetle'],
+        elite: ['emperor_scorpion'],
+    },
+    scorpion_desert: {
+        id: 'scorpion_desert',
+        name: 'Scorpion Desert',
+        description: 'Deadly stingers lurk beneath the sand.',
+        icon: '🦂',
+        brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
+        fodder: ['scorpion', 'centipede'],
+        standard: ['giant_scorpion', 'giant_centipede'],
+        elite: ['emperor_scorpion', 'carrion_crawler'],
     },
 
-    // ==================== JOURNEYMAN THEMES ====================
+    // ==================== JOURNEYMAN THEMES (HUMANOID, ORC_BRUTE, UNDEAD) ====================
     bandit_hideout: {
         id: 'bandit_hideout',
         name: 'Bandit Hideout',
         description: 'A camp of dangerous outlaws.',
         icon: '🏴',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
-        fodder: ['bandit'],
-        standard: ['bandit_leader'],
-        elite: ['bandit_leader'],
+        fodder: ['thug', 'bandit', 'bandit_archer'],
+        standard: ['bandit_brute', 'bandit_captain'],
+        elite: ['bandit_lord', 'bandit_king'],
     },
     orc_camp: {
         id: 'orc_camp',
@@ -512,9 +581,9 @@ const QUEST_THEMES = {
         description: 'Brutal orcs have set up camp here.',
         icon: '👹',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
-        fodder: ['orc'],
-        standard: ['orc_warrior'],
-        elite: ['orc_warlord'],
+        fodder: ['orc_grunt', 'orc_warrior'],
+        standard: ['orc_veteran', 'orc_berserker'],
+        elite: ['orc_warchief', 'orc_chieftain'],
     },
     skeleton_crypt: {
         id: 'skeleton_crypt',
@@ -522,9 +591,9 @@ const QUEST_THEMES = {
         description: 'The dead walk in these ancient halls.',
         icon: '💀',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
-        fodder: ['skeleton'],
-        standard: ['skeleton_warrior'],
-        elite: ['lich'],
+        fodder: ['skeleton', 'skeleton_warrior'],
+        standard: ['skeleton_archer', 'skeleton_knight'],
+        elite: ['skeleton_mage', 'skeleton_lord'],
     },
     zombie_graveyard: {
         id: 'zombie_graveyard',
@@ -532,41 +601,81 @@ const QUEST_THEMES = {
         description: 'The restless dead rise from their graves.',
         icon: '🧟',
         brackets: [QuestBracket.JOURNEYMAN],
-        fodder: ['zombie'],
-        standard: ['zombie'],
-        elite: ['lich'],
+        fodder: ['shambling_corpse', 'zombie', 'bloated_zombie'],
+        standard: ['plague_zombie', 'zombie_hulk'],
+        elite: ['zombie_lord'],
     },
-    harpy_cliffs: {
-        id: 'harpy_cliffs',
-        name: 'Harpy Cliffs',
-        description: 'Harpies nest in these treacherous heights.',
-        icon: '🦅',
+    pirate_cove: {
+        id: 'pirate_cove',
+        name: 'Pirate Cove',
+        description: 'Cutthroats and rogues stash their loot here.',
+        icon: '🏴‍☠️',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
-        fodder: ['harpy'],
-        standard: ['harpy'],
-        elite: ['harpy'],
+        fodder: ['pirate_deckhand', 'pirate'],
+        standard: ['pirate_gunner', 'pirate_first_mate'],
+        elite: ['pirate_captain', 'dread_pirate'],
     },
-    troll_bridge: {
-        id: 'troll_bridge',
-        name: 'Troll Bridge',
-        description: 'A troll demands tribute for passage.',
+    cultist_shrine: {
+        id: 'cultist_shrine',
+        name: 'Cultist Shrine',
+        description: 'Dark rituals are performed at this unholy place.',
+        icon: '🕯️',
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        fodder: ['cultist_initiate', 'cultist'],
+        standard: ['cultist_zealot', 'dark_acolyte'],
+        elite: ['cult_priest', 'cult_fanatic'],
+    },
+    hobgoblin_fort: {
+        id: 'hobgoblin_fort',
+        name: 'Hobgoblin Fort',
+        description: 'A disciplined tribe of hobgoblins.',
+        icon: '🏰',
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        fodder: ['hobgoblin', 'hobgoblin_soldier'],
+        standard: ['hobgoblin_captain', 'bugbear'],
+        elite: ['hobgoblin_warlord', 'hobgoblin_devastator'],
+    },
+    haunted_manor: {
+        id: 'haunted_manor',
+        name: 'Haunted Manor',
+        description: 'Spirits and ghouls prowl these halls.',
+        icon: '👻',
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        fodder: ['ghost', 'ghoul'],
+        standard: ['specter', 'crypt_ghoul', 'wraith'],
+        elite: ['banshee', 'wight'],
+    },
+    troll_lair: {
+        id: 'troll_lair',
+        name: 'Troll Lair',
+        description: 'Monstrous trolls dwell in this foul den.',
         icon: '🌉',
         brackets: [QuestBracket.JOURNEYMAN],
-        fodder: ['goblin', 'goblin_brute'],
-        standard: ['troll'],
-        elite: ['troll'],
+        fodder: ['troll', 'cave_troll'],
+        standard: ['war_troll', 'troll_shaman'],
+        elite: ['troll_champion', 'troll_king'],
+    },
+    bear_den: {
+        id: 'bear_den',
+        name: 'Bear Den',
+        description: 'Massive bears guard their territory.',
+        icon: '🐻',
+        brackets: [QuestBracket.JOURNEYMAN],
+        fodder: ['black_bear', 'brown_bear'],
+        standard: ['cave_bear', 'dire_bear'],
+        elite: ['werebear'],
     },
 
-    // ==================== EXPERT THEMES ====================
+    // ==================== EXPERT THEMES (DRACONIC, DEMON, HIGH-TIER UNDEAD) ====================
     dragon_lair: {
         id: 'dragon_lair',
         name: 'Dragon Lair',
         description: 'A dragon guards its treasure hoard.',
         icon: '🐉',
         brackets: [QuestBracket.EXPERT],
-        fodder: ['kobold'],
-        standard: ['wyvern'],
-        elite: ['dragon'],
+        fodder: ['kobold', 'kobold_warrior', 'kobold_skirmisher'],
+        standard: ['drake_hatchling', 'fire_drake', 'wyvern'],
+        elite: ['young_dragon', 'adult_dragon', 'ancient_dragon'],
     },
     demon_portal: {
         id: 'demon_portal',
@@ -574,9 +683,9 @@ const QUEST_THEMES = {
         description: 'A tear into the demon realm.',
         icon: '🔥',
         brackets: [QuestBracket.EXPERT],
-        fodder: ['imp'],
-        standard: ['demon'],
-        elite: ['demon_lord'],
+        fodder: ['imp', 'fiendling', 'hellion'],
+        standard: ['hellhound', 'shadow_demon', 'succubus'],
+        elite: ['pit_fiend', 'demon_prince', 'archdemon'],
     },
     lich_tower: {
         id: 'lich_tower',
@@ -584,9 +693,9 @@ const QUEST_THEMES = {
         description: 'A tower of dark necromancy.',
         icon: '🗼',
         brackets: [QuestBracket.EXPERT],
-        fodder: ['skeleton', 'zombie'],
-        standard: ['skeleton_warrior', 'dark_mage'],
-        elite: ['lich'],
+        fodder: ['skeleton', 'skeleton_warrior', 'ghost'],
+        standard: ['skeleton_mage', 'wraith', 'wight'],
+        elite: ['lich_apprentice', 'lich', 'archlich'],
     },
     giant_fortress: {
         id: 'giant_fortress',
@@ -594,9 +703,9 @@ const QUEST_THEMES = {
         description: 'A mountain fortress of giants.',
         icon: '🏔️',
         brackets: [QuestBracket.EXPERT],
-        fodder: ['orc', 'orc_warrior'],
-        standard: ['troll'],
-        elite: ['giant'],
+        fodder: ['orc_warrior', 'orc_veteran'],
+        standard: ['ogre', 'ogre_warrior', 'hill_giant'],
+        elite: ['stone_giant', 'mountain_giant', 'titan'],
     },
     dark_temple: {
         id: 'dark_temple',
@@ -604,9 +713,49 @@ const QUEST_THEMES = {
         description: 'A temple to forbidden gods.',
         icon: '⛪',
         brackets: [QuestBracket.EXPERT],
-        fodder: ['cultist'],
-        standard: ['dark_mage'],
-        elite: ['lich', 'demon_lord'],
+        fodder: ['cultist', 'cultist_zealot', 'dark_acolyte'],
+        standard: ['cult_priest', 'cult_fanatic', 'shadow_demon'],
+        elite: ['lich', 'demon_prince', 'archdemon'],
+    },
+    vampire_castle: {
+        id: 'vampire_castle',
+        name: 'Vampire Castle',
+        description: 'The undead aristocracy rules from here.',
+        icon: '🧛',
+        brackets: [QuestBracket.EXPERT],
+        fodder: ['ghost', 'ghoul', 'vampire_spawn'],
+        standard: ['wight', 'revenant', 'vampire'],
+        elite: ['vampire_lord', 'nosferatu', 'death_knight'],
+    },
+    wyvern_eyrie: {
+        id: 'wyvern_eyrie',
+        name: 'Wyvern Eyrie',
+        description: 'Flying terrors nest in the peaks.',
+        icon: '🐲',
+        brackets: [QuestBracket.EXPERT],
+        fodder: ['wyvern_hatchling', 'young_wyvern'],
+        standard: ['wyvern', 'war_wyvern'],
+        elite: ['alpha_wyvern', 'young_dragon'],
+    },
+    abyssal_rift: {
+        id: 'abyssal_rift',
+        name: 'Abyssal Rift',
+        description: 'Horrors from the deepest hells emerge.',
+        icon: '🌀',
+        brackets: [QuestBracket.EXPERT],
+        fodder: ['lemure', 'fiendling', 'dretch'],
+        standard: ['bone_devil', 'chain_devil', 'ice_devil'],
+        elite: ['pit_fiend', 'balor', 'archdemon'],
+    },
+    mummy_tomb: {
+        id: 'mummy_tomb',
+        name: 'Mummy Tomb',
+        description: 'Ancient kings slumber in eternal unrest.',
+        icon: '🏛️',
+        brackets: [QuestBracket.EXPERT],
+        fodder: ['skeleton', 'mummy'],
+        standard: ['mummy_guardian', 'barrow_wight'],
+        elite: ['mummy_lord', 'demilich'],
     },
 };
 
@@ -634,51 +783,68 @@ function getMobThreatLabel(mobTier) {
 }
 
 /**
+ * Helper to check if a mob ID exists in either BESTIARY or MOB_DEFINITIONS
+ * @param {string} mobId - The mob ID to check
+ * @returns {boolean} True if mob exists
+ */
+function mobExists(mobId) {
+    if (typeof BESTIARY !== 'undefined' && BESTIARY[mobId]) return true;
+    if (MOB_DEFINITIONS[mobId]) return true;
+    return false;
+}
+
+/**
  * Generate encounters for a quest based on tier
  * Reduced mob counts for better early game balance
  * @param {Object} theme - Quest theme
  * @param {number} tier - Quest tier (1, 2, or 3)
- * @returns {Array} Array of encounter objects
+ * @returns {Array} Array of encounter objects with mob IDs and spawn tiers
  */
 function generateEncountersForTier(theme, tier) {
     const encounters = [];
     const numEncounters = CONFIG.QUESTS.ENCOUNTERS[tier] || 2;
 
     // Get mob pools (convert to arrays if single values, filter out undefined)
-    const fodderPool = (Array.isArray(theme.fodder) ? theme.fodder : [theme.fodder]).filter(m => m && MOB_DEFINITIONS[m]);
-    const standardPool = (Array.isArray(theme.standard) ? theme.standard : [theme.standard]).filter(m => m && MOB_DEFINITIONS[m]);
+    // Now checks BESTIARY in addition to MOB_DEFINITIONS
+    const fodderPool = (Array.isArray(theme.fodder) ? theme.fodder : [theme.fodder]).filter(m => m && mobExists(m));
+    const standardPool = (Array.isArray(theme.standard) ? theme.standard : [theme.standard]).filter(m => m && mobExists(m));
 
     // Fallback if pools are empty
     if (fodderPool.length === 0) {
-        fodderPool.push('goblin'); // Default fodder
+        fodderPool.push('sewer_rat'); // Default fodder (BESTIARY)
     }
     if (standardPool.length === 0) {
-        standardPool.push('goblin_brute'); // Default standard
+        standardPool.push('giant_rat'); // Default standard (BESTIARY)
     }
 
     for (let i = 0; i < numEncounters; i++) {
         const mobs = [];
+        const mobTiers = []; // Track what tier each mob should spawn at
 
         // Tier determines pack composition (REDUCED COUNTS for balance)
         if (tier === 1) {
             // Tier I: 1 fodder (solo encounter)
             mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
+            mobTiers.push('fodder');
         } else if (tier === 2) {
             // Tier II: 1-2 fodder (reduced from 2-3)
             const count = Utils.randomInt(1, 2);
             for (let j = 0; j < count; j++) {
                 mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
+                mobTiers.push('fodder');
             }
         } else {
             // Tier III: 1-2 fodder + 1 standard (reduced from 2-3 fodder)
             const fodderCount = Utils.randomInt(1, 2);
             for (let j = 0; j < fodderCount; j++) {
                 mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
+                mobTiers.push('fodder');
             }
             mobs.push(standardPool[Math.floor(Math.random() * standardPool.length)]);
+            mobTiers.push('standard');
         }
 
-        encounters.push({ mobs });
+        encounters.push({ mobs, mobTiers });
     }
 
     return encounters;
@@ -1991,23 +2157,46 @@ const Quests = {
     },
 
     /**
-     * Get mob definition
+     * Get mob definition - checks BESTIARY first, then legacy MOB_DEFINITIONS
+     * @param {string} mobId - The mob ID to look up
+     * @returns {Object|null} The mob definition or null if not found
      */
     getMob(mobId) {
+        // Check new BESTIARY first (Design Doc v2)
+        if (typeof BESTIARY !== 'undefined' && BESTIARY[mobId]) {
+            return BESTIARY[mobId];
+        }
+        // Fall back to legacy MOB_DEFINITIONS for backwards compatibility
         return MOB_DEFINITIONS[mobId] || null;
     },
 
     /**
      * Create a mob instance with stats scaled to hero level
+     * Design Doc v2: Enemies are stat templates, tier determines BST multiplier
      * @param {string} mobId - The mob definition ID
      * @param {number} heroLevel - The level of the hero fighting this mob
-     * @param {string} tierOverride - Optional tier override
+     * @param {string} tierOverride - Required for BESTIARY mobs (which have no inherent tier)
      */
     createMobInstance(mobId, heroLevel = 1, tierOverride = null) {
-        const def = MOB_DEFINITIONS[mobId];
-        if (!def) return null;
+        // Try BESTIARY first, then fall back to legacy MOB_DEFINITIONS
+        let def = null;
+        let isBestiaryMob = false;
 
-        const tier = tierOverride || def.tier;
+        if (typeof BESTIARY !== 'undefined' && BESTIARY[mobId]) {
+            def = BESTIARY[mobId];
+            isBestiaryMob = true;
+        } else if (MOB_DEFINITIONS[mobId]) {
+            def = MOB_DEFINITIONS[mobId];
+        }
+
+        if (!def) {
+            Utils.warn(`Unknown mob: ${mobId}`);
+            return null;
+        }
+
+        // BESTIARY mobs have no inherent tier - tier MUST be provided
+        // Legacy MOB_DEFINITIONS have a tier field as fallback
+        const tier = tierOverride || def.tier || 'fodder';
         const tierConfig = CONFIG.MOB_TIERS[tier];
 
         if (!tierConfig) {
@@ -2015,14 +2204,11 @@ const Quests = {
             return null;
         }
 
-        // Calculate mob level based on hero level + tier offset
-        const mobLevel = Math.max(1, heroLevel + tierConfig.levelOffset);
-
-        // Calculate BST: hero's BST * tier multiplier
+        // Calculate BST: hero's BST * tier multiplier (Design Doc v2)
         const heroBst = heroLevel * CONFIG.STATS.BST_PER_LEVEL;
         const mobBst = Math.floor(heroBst * tierConfig.bstMult);
 
-        // Distribute BST according to stat distribution
+        // Distribute BST according to stat distribution (must sum to 1.0)
         const stats = {
             atk: Math.floor(mobBst * (def.statDist.atk || 0)),
             will: Math.floor(mobBst * (def.statDist.will || 0)),
@@ -2030,21 +2216,26 @@ const Quests = {
             spd: Math.floor(mobBst * (def.statDist.spd || 0)),
         };
 
-        // Calculate HP: base HP formula * tier HP multiplier
-        const baseHp = (mobLevel * CONFIG.STATS.HP_PER_LEVEL) + stats.def;
+        // Calculate HP: DEF + (level × 40) scaled by tier HP multiplier
+        // Using hero level as reference for mob HP scaling
+        const baseHp = stats.def + (heroLevel * CONFIG.STATS.HP_PER_LEVEL);
         const hp = Math.floor(baseHp * tierConfig.hpMult);
 
         return {
             id: Utils.uuid(),
             mobId: def.id,
             name: def.name,
-            level: mobLevel,
+            level: heroLevel, // Mobs scale to hero level
             tier,
             stats,
             maxHp: hp,
             currentHp: hp,
             skills: def.skills || ['strike'],
             icon: def.icon,
+            // Include bestiary-specific fields if available
+            family: def.family || null,
+            archetype: def.archetype || null,
+            hunger: def.hunger || null,
         };
     },
 };
@@ -2066,6 +2257,7 @@ if (typeof module !== 'undefined' && module.exports) {
         QUEST_TEMPLATES,
         generateEncountersForTier,
         getMobThreatLabel,
+        mobExists,
         Quest,
         Quests,
     };
