@@ -324,9 +324,9 @@ const InventorySystem = {
         // Header
         const header = Utils.createElement('div', { className: 'card-header' });
         header.innerHTML = `
-            <div class="gear-icon">${item.icon}</div>
-            <div class="gear-name">${item.displayName}</div>
-            <div class="gear-slot">${Utils.capitalize(item.slot)}</div>
+            <div class="gear-icon">${Utils.escapeHtml(item.icon)}</div>
+            <div class="gear-name">${Utils.escapeHtml(item.displayName)}</div>
+            <div class="gear-slot">${Utils.escapeHtml(Utils.capitalize(item.slot))}</div>
         `;
         card.appendChild(header);
 

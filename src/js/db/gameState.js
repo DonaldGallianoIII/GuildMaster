@@ -60,14 +60,21 @@ const GameState = {
     async loadPlayerData(userId) {
         Utils.log('Loading player data for:', userId);
 
-        // Load in parallel
-        let [player, heroes, inventory, activeQuests, availableQuests] = await Promise.all([
-            DB.players.get(userId),
-            DB.heroes.getAll(userId),
-            DB.items.getInventory(userId),
-            DB.quests.getActive(userId),
-            DB.quests.getAvailable(userId),
-        ]);
+        // Load in parallel with error handling
+        let player, heroes, inventory, activeQuests, availableQuests;
+        try {
+            [player, heroes, inventory, activeQuests, availableQuests] = await Promise.all([
+                DB.players.get(userId),
+                DB.heroes.getAll(userId),
+                DB.items.getInventory(userId),
+                DB.quests.getActive(userId),
+                DB.quests.getAvailable(userId),
+            ]);
+        } catch (error) {
+            Utils.error('Failed to load player data:', error);
+            Utils.toast('Failed to load game data. Please refresh.', 'error');
+            throw error;
+        }
 
         // If player doesn't exist in database, create them
         if (!player) {

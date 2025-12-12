@@ -100,6 +100,9 @@ const App = {
      * Handle sign out
      */
     handleSignOut() {
+        // Clean up intervals and listeners before resetting state
+        this.cleanup();
+
         this._authenticated = false;
         this._initialized = false;
 
@@ -111,6 +114,24 @@ const App = {
         AuthUI._mode = 'login';
         AuthUI.render();
         AuthUI.bindEvents();
+    },
+
+    /**
+     * Clean up intervals and event listeners to prevent memory leaks
+     */
+    cleanup() {
+        // Clear hero update interval
+        if (this._heroUpdateInterval) {
+            clearInterval(this._heroUpdateInterval);
+            this._heroUpdateInterval = null;
+        }
+
+        // Stop quest system updates
+        if (typeof QuestSystem !== 'undefined' && QuestSystem.stopUpdates) {
+            QuestSystem.stopUpdates();
+        }
+
+        Utils.log('App cleanup completed');
     },
 
     /**
@@ -237,47 +258,66 @@ const App = {
         }, 1000);
     },
 
+    // Flag to prevent overlapping healing updates
+    _isUpdatingHealing: false,
+
     /**
      * Update passive healing progress display on hero cards
      */
     async updateHeroHealingProgress() {
-        const healingHeroes = GameState.heroes.filter(h => h.canPassiveHeal);
-        if (healingHeroes.length === 0) return;
+        // Prevent overlapping updates to avoid race conditions
+        if (this._isUpdatingHealing) return;
+        this._isUpdatingHealing = true;
 
-        let anyHealed = false;
+        try {
+            const healingHeroes = GameState.heroes.filter(h => h.canPassiveHeal);
+            if (healingHeroes.length === 0) {
+                return;
+            }
 
-        for (const hero of healingHeroes) {
-            const progress = hero.passiveHealProgress;
-            const timeLeft = Math.ceil(hero.timeUntilNextHeal);
+            let anyHealed = false;
+            const savePromises = [];
 
-            // If ready to heal, trigger it immediately instead of waiting for GuildHall interval
-            if (progress >= 100 || timeLeft <= 0) {
-                const result = hero.applyPassiveHeal();
-                if (result.healed) {
-                    await GameState.updateHero(hero);
-                    anyHealed = true;
+            for (const hero of healingHeroes) {
+                const progress = hero.passiveHealProgress;
+                const timeLeft = Math.ceil(hero.timeUntilNextHeal);
+
+                // If ready to heal, trigger it immediately instead of waiting for GuildHall interval
+                if (progress >= 100 || timeLeft <= 0) {
+                    const result = hero.applyPassiveHeal();
+                    if (result.healed) {
+                        savePromises.push(GameState.updateHero(hero));
+                        anyHealed = true;
+                    }
+                }
+
+                const indicator = document.querySelector(
+                    `.hero-card[data-hero-id="${hero.id}"] .hero-healing-indicator`
+                );
+                if (indicator) {
+                    const progressFill = indicator.querySelector('.healing-progress-fill');
+                    if (progressFill) {
+                        progressFill.style.width = `${hero.passiveHealProgress}%`;
+                    }
+
+                    const currentTimeLeft = Math.ceil(hero.timeUntilNextHeal);
+                    const timeSpan = indicator.querySelector('span:last-child');
+                    if (timeSpan) {
+                        timeSpan.textContent = currentTimeLeft > 0 ? Utils.formatTime(currentTimeLeft * 1000) : 'Ready';
+                    }
                 }
             }
 
-            const indicator = document.querySelector(
-                `.hero-card[data-hero-id="${hero.id}"] .hero-healing-indicator`
-            );
-            if (indicator) {
-                const progressFill = indicator.querySelector('.healing-progress-fill');
-                if (progressFill) {
-                    progressFill.style.width = `${hero.passiveHealProgress}%`;
-                }
-
-                const currentTimeLeft = Math.ceil(hero.timeUntilNextHeal);
-                const timeSpan = indicator.querySelector('span:last-child');
-                if (timeSpan) {
-                    timeSpan.textContent = currentTimeLeft > 0 ? Utils.formatTime(currentTimeLeft * 1000) : 'Ready';
-                }
+            // Wait for all saves to complete to avoid race conditions
+            if (savePromises.length > 0) {
+                await Promise.all(savePromises);
             }
-        }
 
-        if (anyHealed) {
-            GameState.emit('heroHealed');
+            if (anyHealed) {
+                GameState.emit('heroHealed');
+            }
+        } finally {
+            this._isUpdatingHealing = false;
         }
     },
 

@@ -110,8 +110,11 @@ const QuestSystem = {
         const container = document.getElementById('quest-board');
         if (!container) return;
 
-        // Get highest hero level for danger rating
-        const highestHeroLevel = GameState.heroes.reduce((max, h) => Math.max(max, h.level || 1), 1);
+        // Get highest hero level for danger rating (with null check)
+        const heroes = GameState.heroes || [];
+        const highestHeroLevel = heroes.length > 0
+            ? heroes.reduce((max, h) => Math.max(max, h.level || 1), 1)
+            : 1;
 
         QuestCard.renderBoard(container, GameState.questBoard, {
             onAccept: (quest) => this.showAssignmentModal(quest),
@@ -144,8 +147,8 @@ const QuestSystem = {
         // Check for completions (time-based) - must await to ensure completion happens
         await GameState.checkQuestCompletions();
 
-        // Check for expired quest board quests
-        GameState.checkQuestBoardExpiration();
+        // Check for expired quest board quests - must await as it's async
+        await GameState.checkQuestBoardExpiration();
 
         // Check for newly defeated heroes and re-render if needed
         let needsRerender = false;
@@ -195,20 +198,20 @@ const QuestSystem = {
      * Update expiration timers on quest board
      */
     updateQuestBoardTimers() {
-        for (const quest of GameState.questBoard) {
+        const questBoard = GameState.questBoard || [];
+        for (const quest of questBoard) {
             const timeEl = document.querySelector(`.expiration-time[data-quest-id="${quest.templateId}"]`);
-            if (timeEl) {
-                const remaining = quest.expirationTimeRemaining;
-                timeEl.textContent = Utils.formatTime(remaining);
+            if (!timeEl) continue;
+            const remaining = quest.expirationTimeRemaining;
+            timeEl.textContent = Utils.formatTime(remaining);
 
-                // Add urgent class if under 2 minutes
-                const expirationSection = timeEl.closest('.quest-expiration');
-                if (expirationSection) {
-                    if (remaining < 2 * 60 * 1000) {
-                        expirationSection.classList.add('urgent');
-                    } else {
-                        expirationSection.classList.remove('urgent');
-                    }
+            // Add urgent class if under 2 minutes
+            const expirationSection = timeEl.closest('.quest-expiration');
+            if (expirationSection) {
+                if (remaining < 2 * 60 * 1000) {
+                    expirationSection.classList.add('urgent');
+                } else {
+                    expirationSection.classList.remove('urgent');
                 }
             }
         }

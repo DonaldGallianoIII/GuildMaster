@@ -36,7 +36,7 @@ const HeroCard = {
         // Info
         const info = Utils.createElement('div', { className: 'hero-info' });
         info.innerHTML = `
-            <div class="hero-name">${hero.name}</div>
+            <div class="hero-name">${Utils.escapeHtml(hero.name)}</div>
             <div class="hero-level">Level ${hero.level}</div>
         `;
         headerContent.appendChild(info);
@@ -53,7 +53,7 @@ const HeroCard = {
             // Quest name
             const questInfo = Utils.createElement('div', { className: 'hero-quest-info' });
             questInfo.innerHTML = `
-                <div class="quest-name-small">${activeQuest.template?.icon || '⚔️'} ${activeQuest.name}</div>
+                <div class="quest-name-small">${Utils.escapeHtml(activeQuest.template?.icon || '⚔️')} ${Utils.escapeHtml(activeQuest.name)}</div>
             `;
             body.appendChild(questInfo);
 
