@@ -396,11 +396,11 @@ const Modals = {
             }
         }
 
-        // Check if there are any bonuses to display
+        // Check if there are any bonuses to display (excluding HP which is on hero)
         const hasBonuses = Object.values(equipmentBonuses).some(v => v !== 0);
 
-        // Calculate effective maxHp with gear bonus
-        const effectiveMaxHp = hero.maxHp + equipmentBonuses.hp;
+        // HP bonus is now stored on hero and included in hero.maxHp
+        const hpBonus = hero.hpBonus || 0;
 
         content.innerHTML = `
             <div class="modal-header">
@@ -417,7 +417,7 @@ const Modals = {
                     </div>
                 </div>
 
-                ${UI.createStatBar(hero.currentHp, effectiveMaxHp, 'hp', equipmentBonuses.hp > 0 ? `+${equipmentBonuses.hp}` : null).outerHTML}
+                ${UI.createStatBar(hero.currentHp, hero.maxHp, 'hp', hpBonus > 0 ? `+${hpBonus}` : null).outerHTML}
 
                 <h4 style="margin-top: 1rem;">Stats (BST: ${hero.bst})</h4>
                 ${UI.createStatDisplay(hero.stats, hasBonuses ? equipmentBonuses : null).outerHTML}

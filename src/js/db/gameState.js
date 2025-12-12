@@ -108,6 +108,9 @@ const GameState = {
         // Run stat migration for heroes with outdated BST
         await this.migrateHeroStats();
 
+        // Recalculate HP bonuses from equipment for all heroes
+        await this.recalculateAllHpBonuses();
+
         // Load or generate quest board from Supabase
         await this.loadQuestBoard();
 
@@ -936,6 +939,38 @@ const GameState = {
     },
 
     /**
+     * Calculate total HP bonus from all equipped items
+     * @param {string} heroId
+     * @returns {number} Total HP bonus
+     */
+    async calcEquipmentHpBonus(heroId) {
+        const equippedItems = await this.getEquippedItems(heroId);
+        let hpBonus = 0;
+        for (const item of equippedItems) {
+            const stats = item.totalStats;
+            if (stats.hp) {
+                hpBonus += stats.hp;
+            }
+        }
+        return hpBonus;
+    },
+
+    /**
+     * Recalculate HP bonuses for all heroes from their equipment
+     * Called on game load to ensure bonuses are up to date
+     */
+    async recalculateAllHpBonuses() {
+        for (const hero of this._state.heroes) {
+            const hpBonus = await this.calcEquipmentHpBonus(hero.id);
+            if (hero.hpBonus !== hpBonus) {
+                hero.updateHpBonus(hpBonus);
+                // Save if changed
+                await DB.heroes.save(hero);
+            }
+        }
+    },
+
+    /**
      * Equip item to hero
      * @param {string} itemId
      * @param {string} heroId
@@ -979,6 +1014,10 @@ const GameState = {
 
         // Invalidate cache
         this._invalidateEquipmentCache(heroId);
+
+        // Recalculate HP bonus from all equipped items
+        const hpBonus = await this.calcEquipmentHpBonus(heroId);
+        hero.updateHpBonus(hpBonus);
 
         // Save all changes in parallel
         const savePromises = [
@@ -1034,6 +1073,10 @@ const GameState = {
 
         // Invalidate cache
         this._invalidateEquipmentCache(hero.id);
+
+        // Recalculate HP bonus from remaining equipped items
+        const hpBonus = await this.calcEquipmentHpBonus(hero.id);
+        hero.updateHpBonus(hpBonus);
 
         // Save
         await Promise.all([

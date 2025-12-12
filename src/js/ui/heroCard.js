@@ -99,16 +99,14 @@ const HeroCard = {
                 className: 'hero-card-hp',
                 dataset: { heroId: hero.id, questId: activeQuest.id },
             });
-            // Calculate effective maxHp with equipment bonus
-            const hpBonus = options.equipmentBonuses?.hp || 0;
-            const effectiveMaxHp = hero.maxHp + hpBonus;
-            hpSection.appendChild(UI.createStatBar(displayHp, effectiveMaxHp, 'hp', hpBonus > 0 ? `+${hpBonus}` : null));
+            // HP bonus is now stored on hero and included in hero.maxHp
+            const hpBonus = hero.hpBonus || 0;
+            hpSection.appendChild(UI.createStatBar(displayHp, hero.maxHp, 'hp', hpBonus > 0 ? `+${hpBonus}` : null));
             body.appendChild(hpSection);
         } else {
-            // Normal HP Bar with equipment bonus
-            const hpBonus = options.equipmentBonuses?.hp || 0;
-            const effectiveMaxHp = hero.maxHp + hpBonus;
-            body.appendChild(UI.createStatBar(hero.currentHp, effectiveMaxHp, 'hp', hpBonus > 0 ? `+${hpBonus}` : null));
+            // Normal HP Bar - hero.maxHp includes equipment HP bonus
+            const hpBonus = hero.hpBonus || 0;
+            body.appendChild(UI.createStatBar(hero.currentHp, hero.maxHp, 'hp', hpBonus > 0 ? `+${hpBonus}` : null));
 
             // Passive healing indicator (when hero is available and not at full HP)
             if (hero.canPassiveHeal) {
