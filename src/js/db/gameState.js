@@ -1026,22 +1026,22 @@ const GameState = {
         // Remove from inventory
         this._state.inventory = this._state.inventory.filter(i => i.id !== itemId);
 
-        // Invalidate cache
-        this._invalidateEquipmentCache(heroId);
-
-        // Recalculate HP bonus from all equipped items
-        const hpBonus = await this.calcEquipmentHpBonus(heroId);
-        hero.updateHpBonus(hpBonus);
-
-        // Save all changes in parallel
-        const savePromises = [
-            DB.items.save(item),
-            DB.heroes.save(hero),
-        ];
+        // Save items to DB FIRST so cache can fetch correct data
+        const savePromises = [DB.items.save(item)];
         if (swappedItem) {
             savePromises.push(DB.items.save(swappedItem));
         }
         await Promise.all(savePromises);
+
+        // Invalidate cache AFTER saving so fresh data can be fetched
+        this._invalidateEquipmentCache(heroId);
+
+        // Recalculate HP bonus from all equipped items (now DB has correct data)
+        const hpBonus = await this.calcEquipmentHpBonus(heroId);
+        hero.updateHpBonus(hpBonus);
+
+        // Save hero with updated HP bonus
+        await DB.heroes.save(hero);
 
         // Emit single event (includes swapped item info if relevant)
         this.emit('itemEquipped', { item, hero, swappedItem });
@@ -1078,25 +1078,30 @@ const GameState = {
 
         if (!item || !hero) return false;
 
+        // Get the slot before unequipping (item.slot might be needed)
+        const slotToUnequip = item.slot;
+
         // Unequip
         item.unequip();
-        hero.equipment[item.slot] = null;
+        hero.equipment[slotToUnequip] = null;
 
-        // Add to inventory
-        this._state.inventory.push(item);
+        // Add to inventory (check for duplicates first)
+        if (!this._state.inventory.find(i => i.id === item.id)) {
+            this._state.inventory.push(item);
+        }
 
-        // Invalidate cache
+        // Save item to DB FIRST so cache can fetch correct data
+        await DB.items.save(item);
+
+        // Invalidate cache AFTER saving
         this._invalidateEquipmentCache(hero.id);
 
         // Recalculate HP bonus from remaining equipped items
         const hpBonus = await this.calcEquipmentHpBonus(hero.id);
         hero.updateHpBonus(hpBonus);
 
-        // Save
-        await Promise.all([
-            DB.items.save(item),
-            DB.heroes.save(hero),
-        ]);
+        // Save hero with updated HP bonus and equipment
+        await DB.heroes.save(hero);
 
         this.emit('itemUnequipped', { item, hero });
         return true;

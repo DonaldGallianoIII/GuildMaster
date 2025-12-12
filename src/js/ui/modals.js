@@ -30,6 +30,7 @@ const Modals = {
         GameState.on('heroUpdated', () => this._refreshHeroDetailIfOpen());
         GameState.on('heroLevelUp', () => this._refreshHeroDetailIfOpen());
         GameState.on('itemEquipped', () => this._refreshHeroDetailIfOpen());
+        GameState.on('itemUnequipped', () => this._refreshHeroDetailIfOpen());
         GameState.on('heroHealed', () => this._refreshHeroDetailIfOpen());
     },
 
@@ -531,7 +532,9 @@ const Modals = {
                     }
                     await GameState.equipItem(itemId, hero.id, targetSlot);
                     Utils.toast(`Equipped ${item.displayName}!`, 'success');
-                    this.showHeroDetail(hero);
+                    // Refresh with fresh hero data
+                    const freshHero = GameState.getHero(hero.id);
+                    if (freshHero) this.showHeroDetail(freshHero);
                 }
             });
         });
@@ -675,8 +678,9 @@ const Modals = {
             // Unequip the item (pass heroId for fast lookup)
             await GameState.unequipItem(equippedItem.id, hero.id);
             Utils.toast(`${equippedItem.displayName} unequipped!`, 'info');
-            // Refresh modal
-            this.showHeroDetail(hero);
+            // Refresh modal with fresh hero data
+            const freshHero = GameState.getHero(hero.id);
+            if (freshHero) this.showHeroDetail(freshHero);
         } else {
             // Show inventory items that can go in this slot
             this._showEquipFromInventory(hero, slotKey);
@@ -750,8 +754,9 @@ const Modals = {
                 // Pass target slot for rings so they equip to the correct slot
                 await GameState.equipItem(itemId, hero.id, slotKey);
                 Utils.toast(`Equipped ${item?.displayName || 'item'}!`, 'success');
-                // Refresh to show updated equipment
-                this.showHeroDetail(hero);
+                // Refresh with fresh hero data
+                const freshHero = GameState.getHero(hero.id);
+                if (freshHero) this.showHeroDetail(freshHero);
             });
         });
     },
