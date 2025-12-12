@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS players (
 -- HEROES TABLE
 -- ============================================
 -- Stores hero data
--- NOTE: Stats are allocated from BST (Level × 10)
+-- NOTE: Stats are allocated from BST (Level × 20)
 CREATE TABLE IF NOT EXISTS heroes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES players(id) ON DELETE CASCADE,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS heroes (
     xp INTEGER DEFAULT 0,
     skill_points INTEGER DEFAULT 0,
 
-    -- Allocated stats (must total Level × 10)
+    -- Allocated stats (must total Level × 20)
     atk INTEGER DEFAULT 0,
     will INTEGER DEFAULT 0,
     def INTEGER DEFAULT 0,
@@ -46,6 +46,12 @@ CREATE TABLE IF NOT EXISTS heroes (
 
     -- Current HP (NULL means full)
     current_hp INTEGER,
+
+    -- Passive healing tracking
+    last_heal_tick TIMESTAMP WITH TIME ZONE,
+
+    -- Skills (embedded JSONB for simpler queries)
+    skills JSONB DEFAULT '[]',
 
     -- State: available, quest, injured, retired, dead
     state TEXT DEFAULT 'available',
@@ -102,6 +108,9 @@ CREATE TABLE IF NOT EXISTS items (
     -- Stats
     base_stats JSONB DEFAULT '{}',
     affixes JSONB DEFAULT '[]',
+
+    -- Lock status (prevents accidental selling)
+    is_locked BOOLEAN DEFAULT FALSE,
 
     -- Heirloom properties
     is_heirloom BOOLEAN DEFAULT FALSE,

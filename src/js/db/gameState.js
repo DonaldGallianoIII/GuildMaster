@@ -247,13 +247,16 @@ const GameState = {
                     hero.stats.spd += additions.spd;
                 }
 
-                // Save updated hero
-                await DB.heroes.save(hero);
                 migrated++;
             }
         }
 
+        // Batch save all migrated heroes at once (more efficient than sequential saves)
         if (migrated > 0) {
+            const heroesToSave = this._state.heroes.filter(h =>
+                h.state !== HeroState.DEAD && h.state !== HeroState.RETIRED
+            );
+            await Promise.all(heroesToSave.map(h => DB.heroes.save(h)));
             Utils.log(`Migrated ${migrated} heroes to new stat system`);
             Utils.toast(`${migrated} hero(es) updated with new stat balance!`, 'success');
         }

@@ -255,7 +255,7 @@ const InventorySystem = {
      */
     sortItems(items, sortBy) {
         const rarityOrder = { common: 0, magic: 1, rare: 2, unique: 3, heirloom: 4 };
-        const slotOrder = { weapon: 0, helmet: 1, chest: 2, gloves: 3, boots: 4, amulet: 5, ring1: 6, ring2: 6 };
+        const slotOrder = { weapon: 0, helmet: 1, chest: 2, gloves: 3, boots: 4, amulet: 5, ring1: 6, ring2: 7 };
 
         return items.sort((a, b) => {
             switch (sortBy) {

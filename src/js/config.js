@@ -275,8 +275,19 @@ const CONFIG = {
 
     /**
      * DEBUG MODE
+     * Set via URL parameter: ?debug=true
+     * Or check for localhost/development environment
      */
-    DEBUG: true,
+    DEBUG: (() => {
+        // Check URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('debug')) {
+            return urlParams.get('debug') === 'true';
+        }
+        // Default to true for localhost, false for production
+        return window.location.hostname === 'localhost' ||
+               window.location.hostname === '127.0.0.1';
+    })(),
 };
 
 // Freeze config to prevent accidental modification
