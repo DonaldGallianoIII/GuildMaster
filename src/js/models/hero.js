@@ -62,6 +62,9 @@ class Hero {
         // Current HP (may be less than max if damaged)
         this._currentHp = data.currentHp ?? data.current_hp ?? null;
 
+        // HP bonus from equipment (updated when gear changes)
+        this.hpBonus = data.hpBonus ?? data.hp_bonus ?? 0;
+
         // Skills array - each skill has { skillId, rank, isDoubled, isTripled }
         this.skills = data.skills || [];
 
@@ -126,9 +129,16 @@ class Hero {
     }
 
     /**
-     * Get max HP: (Level × 20) + DEF
+     * Get max HP: (Level × 20) + DEF + equipment bonus
      */
     get maxHp() {
+        return Utils.calcHP(this.level, this.stats.def) + (this.hpBonus || 0);
+    }
+
+    /**
+     * Get base max HP (without equipment bonus)
+     */
+    get baseMaxHp() {
         return Utils.calcHP(this.level, this.stats.def);
     }
 
@@ -285,6 +295,24 @@ class Hero {
     fullHeal() {
         this._currentHp = null; // Will return maxHp
         this.lastHealTick = null; // Reset passive heal timer
+    }
+
+    /**
+     * Update HP bonus from equipment
+     * Called when gear is equipped/unequipped
+     * @param {number} newBonus - Total HP bonus from all equipment
+     */
+    updateHpBonus(newBonus) {
+        const oldBonus = this.hpBonus || 0;
+        this.hpBonus = newBonus;
+
+        // If bonus decreased and currentHp exceeds new max, cap it
+        if (newBonus < oldBonus && this._currentHp !== null) {
+            const newMax = this.maxHp;
+            if (this._currentHp > newMax) {
+                this._currentHp = newMax;
+            }
+        }
     }
 
     /**

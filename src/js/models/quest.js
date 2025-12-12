@@ -779,7 +779,7 @@ function getMobThreatLabel(mobTier) {
         'boss': 'Boss',
         'boss_legendary': 'Boss+',
     };
-    return labels[mobTier] || 'Unknown';
+    return labels[mobTier] || '';
 }
 
 /**
