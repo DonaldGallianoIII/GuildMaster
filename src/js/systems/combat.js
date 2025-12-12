@@ -1024,9 +1024,9 @@ const CombatEngine = {
                 break;
             }
 
-            // Generate loot from encounter
+            // Generate loot from encounter (items drop at hero level)
             const lootItems = mobs.map(mob => {
-                const item = GearGenerator.generateLoot(quest.difficulty, mob.tier);
+                const item = GearGenerator.generateLoot(quest.difficulty, mob.tier, hero.level);
                 if (item) results.loot.push(item);
                 return item;
             }).filter(Boolean);

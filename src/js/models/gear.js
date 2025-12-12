@@ -237,23 +237,25 @@ const GEAR_TEMPLATES = {
 
 /**
  * Affix definitions (prefixes and suffixes)
+ * Values are calculated dynamically based on item level using CONFIG.AFFIX_SCALING
+ * Formula: itemLevel * 100 * (0.02 to 0.08) = 2-8% of expected hero BST
  */
 const AFFIX_POOL = {
     prefixes: [
-        { name: 'Heavy', stat: 'atk', minValue: 1, maxValue: 5, weight: 10 },
-        { name: 'Fortified', stat: 'def', minValue: 1, maxValue: 5, weight: 10 },
-        { name: 'Swift', stat: 'spd', minValue: 1, maxValue: 4, weight: 10 },
-        { name: 'Wise', stat: 'will', minValue: 1, maxValue: 5, weight: 10 },
-        { name: 'Brutal', stat: 'critChance', minValue: 3, maxValue: 10, weight: 5 },
-        { name: 'Vampiric', stat: 'leech', minValue: 2, maxValue: 8, weight: 3 },
+        { name: 'Heavy', stat: 'atk', weight: 10 },
+        { name: 'Fortified', stat: 'def', weight: 10 },
+        { name: 'Swift', stat: 'spd', weight: 10 },
+        { name: 'Wise', stat: 'will', weight: 10 },
+        { name: 'Brutal', stat: 'critChance', weight: 5, isPercent: true, percentMin: 3, percentMax: 10 },
+        { name: 'Vampiric', stat: 'leech', weight: 3, isPercent: true, percentMin: 2, percentMax: 8 },
     ],
     suffixes: [
-        { name: 'of Power', stat: 'atk', minValue: 1, maxValue: 4, weight: 10 },
-        { name: 'of the Wall', stat: 'def', minValue: 1, maxValue: 4, weight: 10 },
-        { name: 'of Haste', stat: 'spd', minValue: 1, maxValue: 3, weight: 10 },
-        { name: 'of the Mind', stat: 'will', minValue: 1, maxValue: 4, weight: 10 },
-        { name: 'of Thorns', stat: 'thorns', minValue: 3, maxValue: 8, weight: 5 },
-        { name: 'of Life', stat: 'hp', minValue: 5, maxValue: 20, weight: 5 },
+        { name: 'of Power', stat: 'atk', weight: 10 },
+        { name: 'of the Wall', stat: 'def', weight: 10 },
+        { name: 'of Haste', stat: 'spd', weight: 10 },
+        { name: 'of the Mind', stat: 'will', weight: 10 },
+        { name: 'of Thorns', stat: 'thorns', weight: 5, isPercent: true, percentMin: 3, percentMax: 8 },
+        { name: 'of Life', stat: 'hp', weight: 5, isHpAffix: true },  // HP scales differently
     ],
 };
 
@@ -487,7 +489,7 @@ class Gear {
         // Roll the affix (with Voracious multiplier if applicable)
         const hungerLabel = this.getHungerLabel().toUpperCase();
         const valueMult = hungerLabel === 'VORACIOUS' ? CONFIG.HUNGER_SYSTEM.VORACIOUS_AFFIX_MULT : 1.0;
-        const affix = GearGenerator.rollAffix(affixType, valueMult);
+        const affix = GearGenerator.rollAffix(affixType, this.itemLevel, valueMult);
 
         if (!affix) {
             return { success: false, error: 'Failed to roll affix' };
@@ -513,10 +515,10 @@ class Gear {
         const hungerLabel = this.getHungerLabel().toUpperCase();
         const valueMult = hungerLabel === 'VORACIOUS' ? CONFIG.HUNGER_SYSTEM.VORACIOUS_AFFIX_MULT : 1.0;
 
-        // Reroll each affix while keeping type and stat
+        // Reroll each affix while keeping type and stat (use item level for scaling)
         const newAffixes = [];
         for (const oldAffix of this.affixes) {
-            const newAffix = GearGenerator.rollAffix(oldAffix.type, valueMult);
+            const newAffix = GearGenerator.rollAffix(oldAffix.type, this.itemLevel, valueMult);
             if (newAffix) {
                 newAffixes.push(newAffix);
             }
@@ -718,8 +720,8 @@ const GearGenerator = {
         // Generate hunger value FIRST (Design Doc v2 - affects affix generation)
         const hunger = options.hunger ?? this.rollHungerByRarity(rarity);
 
-        // Generate affixes based on rarity AND hunger
-        const affixes = this.generateAffixes(rarity, hunger);
+        // Generate affixes based on rarity, hunger, AND item level
+        const affixes = this.generateAffixes(rarity, hunger, itemLevel);
 
         return new Gear({
             slot,
@@ -781,11 +783,12 @@ const GearGenerator = {
     },
 
     /**
-     * Generate affixes based on rarity AND hunger (Design Doc v2)
+     * Generate affixes based on rarity, hunger, AND item level (Design Doc v2)
      * @param {string} rarity - Item rarity
      * @param {number} hunger - Item hunger value (-0.70 to +0.70)
+     * @param {number} itemLevel - Item level (determines affix value range)
      */
-    generateAffixes(rarity, hunger = 0) {
+    generateAffixes(rarity, hunger = 0, itemLevel = 1) {
         const affixes = [];
         const hungerLabel = this.getHungerLabelFromValue(hunger);
 
@@ -824,13 +827,13 @@ const GearGenerator = {
             const isPrefix = (prefixCount <= suffixCount) || Math.random() < 0.5;
 
             if (isPrefix && prefixCount < maxSlots.prefix) {
-                const affix = this.rollAffix('prefix', valueMult);
+                const affix = this.rollAffix('prefix', itemLevel, valueMult);
                 if (affix) {
                     affixes.push(affix);
                     prefixCount++;
                 }
             } else if (suffixCount < maxSlots.suffix) {
-                const affix = this.rollAffix('suffix', valueMult);
+                const affix = this.rollAffix('suffix', itemLevel, valueMult);
                 if (affix) {
                     affixes.push(affix);
                     suffixCount++;
@@ -842,11 +845,26 @@ const GearGenerator = {
     },
 
     /**
-     * Roll a single affix
+     * Calculate affix value range based on item level
+     * Design Doc: itemLevel * 100 BST * (2-8%) = affix range
+     * @param {number} itemLevel
+     * @returns {{ min: number, max: number }}
+     */
+    calculateAffixRange(itemLevel) {
+        const heroBST = itemLevel * CONFIG.STATS.BST_PER_LEVEL;
+        return {
+            min: Math.max(1, Math.floor(heroBST * CONFIG.AFFIX_SCALING.MIN_ROLL_FACTOR)),
+            max: Math.max(2, Math.floor(heroBST * CONFIG.AFFIX_SCALING.MAX_ROLL_FACTOR)),
+        };
+    },
+
+    /**
+     * Roll a single affix with value scaled to item level
      * @param {string} type - 'prefix' or 'suffix'
+     * @param {number} itemLevel - Item level (determines value range)
      * @param {number} valueMult - Multiplier for affix value (1.5x for Voracious)
      */
-    rollAffix(type, valueMult = 1.0) {
+    rollAffix(type, itemLevel = 1, valueMult = 1.0) {
         const pool = AFFIX_POOL[type === 'prefix' ? 'prefixes' : 'suffixes'];
         if (!pool || pool.length === 0) return null;
 
@@ -856,9 +874,26 @@ const GearGenerator = {
         const index = parseInt(Utils.weightedRandom(weights));
         const template = pool[index];
 
-        // Roll base value then apply multiplier (Voracious = 1.5x)
-        const baseValue = Utils.randomInt(template.minValue, template.maxValue);
-        const finalValue = Math.floor(baseValue * valueMult);
+        let finalValue;
+
+        if (template.isPercent) {
+            // Percentage-based affixes (crit, leech, thorns) use flat percentages
+            finalValue = Utils.randomInt(template.percentMin, template.percentMax);
+        } else if (template.isHpAffix) {
+            // HP affix scales with item level but uses HP formula
+            // Target: ~10-40% of expected hero HP per affix
+            const expectedHp = Utils.calcHP(itemLevel, Math.floor(itemLevel * 25)); // Assume ~25% DEF
+            const minHp = Math.max(5, Math.floor(expectedHp * 0.10));
+            const maxHp = Math.max(10, Math.floor(expectedHp * 0.40));
+            finalValue = this.rollTieredValue(minHp, maxHp);
+        } else {
+            // Standard stat affixes scale with item level (2-8% of hero BST)
+            const { min, max } = this.calculateAffixRange(itemLevel);
+            finalValue = this.rollTieredValue(min, max);
+        }
+
+        // Apply Voracious multiplier (1.5x)
+        finalValue = Math.floor(finalValue * valueMult);
 
         return {
             type,
@@ -869,45 +904,95 @@ const GearGenerator = {
     },
 
     /**
-     * Generate loot drop from quest
-     * @param {string} difficulty - Quest difficulty
-     * @param {number} encounterTier - Mob tier (normal/magic/rare/boss)
+     * Roll a value within range using weighted tiers
+     * Design Doc: 50% low, 30% mid, 15% high, 5% max
+     * @param {number} min
+     * @param {number} max
+     * @returns {number}
      */
-    generateLoot(difficulty, encounterTier = 'normal') {
-        // Base drop chance
+    rollTieredValue(min, max) {
+        const range = max - min;
+        const roll = Math.random() * 100;
+        const tiers = CONFIG.AFFIX_SCALING.TIER_RANGES;
+
+        let tierRange;
+        if (roll < CONFIG.AFFIX_SCALING.TIER_WEIGHTS.low) {
+            tierRange = tiers.low;
+        } else if (roll < CONFIG.AFFIX_SCALING.TIER_WEIGHTS.low + CONFIG.AFFIX_SCALING.TIER_WEIGHTS.mid) {
+            tierRange = tiers.mid;
+        } else if (roll < CONFIG.AFFIX_SCALING.TIER_WEIGHTS.low + CONFIG.AFFIX_SCALING.TIER_WEIGHTS.mid + CONFIG.AFFIX_SCALING.TIER_WEIGHTS.high) {
+            tierRange = tiers.high;
+        } else {
+            tierRange = tiers.max;
+        }
+
+        // Roll within the tier's portion of the range
+        const tierMin = min + Math.floor(range * tierRange.min);
+        const tierMax = min + Math.floor(range * tierRange.max);
+
+        return Utils.randomInt(tierMin, Math.max(tierMin, tierMax));
+    },
+
+    /**
+     * Generate loot drop from quest
+     * Design Doc: Items drop at hero level (±1 variance)
+     * @param {string} difficulty - Quest difficulty (unused, kept for backwards compat)
+     * @param {string} encounterTier - Mob tier (affects drop chance and rarity)
+     * @param {number} heroLevel - Hero's level (determines item level)
+     */
+    generateLoot(difficulty, encounterTier = 'normal', heroLevel = 1) {
+        // Base drop chance by mob tier
         const dropChances = {
-            normal: 0.3,
-            magic: 0.5,
-            rare: 0.7,
-            boss: 1.0,
+            fodder_trash: 0.05,
+            fodder: 0.10,
+            fodder_exalted: 0.15,
+            standard_weak: 0.20,
+            standard: 0.25,
+            standard_exalted: 0.30,
+            elite: 0.50,
+            elite_exalted: 0.60,
+            boss: 0.80,
+            boss_legendary: 1.0,
+            // Legacy tiers
+            normal: 0.15,
+            magic: 0.30,
+            rare: 0.50,
         };
 
-        if (Math.random() > (dropChances[encounterTier] || 0.3)) {
+        if (Math.random() > (dropChances[encounterTier] || 0.15)) {
             return null; // No drop
         }
 
-        // Item level based on difficulty
-        const itemLevels = {
-            easy: Utils.randomInt(1, 3),
-            medium: Utils.randomInt(3, 6),
-            hard: Utils.randomInt(6, 10),
-        };
+        // Item level = hero level with small variance (±1)
+        const levelVariance = Utils.randomInt(-1, 1);
+        const itemLevel = Math.max(1, heroLevel + levelVariance);
 
-        // Rarity bonus from tier
+        // Rarity bonus from mob tier
         const rarityBonus = {
+            fodder_trash: 0,
+            fodder: 0,
+            fodder_exalted: 5,
+            standard_weak: 5,
+            standard: 10,
+            standard_exalted: 15,
+            elite: 20,
+            elite_exalted: 25,
+            boss: 30,
+            boss_legendary: 40,
+            // Legacy
             normal: 0,
             magic: 10,
             rare: 20,
-            boss: 30,
         };
 
         // Modify rarity weights
         const modifiedWeights = { ...CONFIG.GEAR_RARITY_WEIGHTS };
-        modifiedWeights.magic += rarityBonus[encounterTier] || 0;
-        modifiedWeights.rare += (rarityBonus[encounterTier] || 0) / 2;
+        const bonus = rarityBonus[encounterTier] || 0;
+        modifiedWeights.magic += bonus;
+        modifiedWeights.rare += Math.floor(bonus / 2);
 
         return this.generate({
-            itemLevel: itemLevels[difficulty] || 1,
+            itemLevel,
             rarity: Utils.weightedRandom(modifiedWeights),
         });
     },
