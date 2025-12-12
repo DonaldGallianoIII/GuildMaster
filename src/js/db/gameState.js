@@ -105,20 +105,22 @@ const GameState = {
         this._state.activeQuests = activeQuests || [];
         this._state.questBoard = availableQuests || [];
 
-        // Run stat migration for heroes with outdated BST
-        await this.migrateHeroStats();
-
-        // Recalculate HP bonuses from equipment for all heroes
-        await this.recalculateAllHpBonuses();
-
-        // Load or generate quest board from Supabase
-        await this.loadQuestBoard();
-
         // Load recruits from localStorage (persists between refreshes)
         this.loadRecruits();
 
+        // Emit dataLoaded immediately so UI can display gold/souls/name right away
         this.emit('dataLoaded');
-        Utils.log('Player data loaded', this._state);
+        Utils.log('Player data loaded (initial)', this._state);
+
+        // Run background tasks that don't need to block initial display
+        // These are fire-and-forget but we still await to ensure consistency
+        await Promise.all([
+            this.migrateHeroStats(),
+            this.recalculateAllHpBonuses(),
+            this.loadQuestBoard(),
+        ]);
+
+        Utils.log('Player data fully initialized');
     },
 
     // ==================== GETTERS ====================
@@ -960,13 +962,25 @@ const GameState = {
      * Called on game load to ensure bonuses are up to date
      */
     async recalculateAllHpBonuses() {
-        for (const hero of this._state.heroes) {
-            const hpBonus = await this.calcEquipmentHpBonus(hero.id);
-            if (hero.hpBonus !== hpBonus) {
+        // Calculate all HP bonuses in parallel
+        const heroUpdates = await Promise.all(
+            this._state.heroes.map(async (hero) => {
+                const hpBonus = await this.calcEquipmentHpBonus(hero.id);
+                return { hero, hpBonus, needsUpdate: hero.hpBonus !== hpBonus };
+            })
+        );
+
+        // Apply updates and save changed heroes in parallel
+        const savePromises = [];
+        for (const { hero, hpBonus, needsUpdate } of heroUpdates) {
+            if (needsUpdate) {
                 hero.updateHpBonus(hpBonus);
-                // Save if changed
-                await DB.heroes.save(hero);
+                savePromises.push(DB.heroes.save(hero));
             }
+        }
+
+        if (savePromises.length > 0) {
+            await Promise.all(savePromises);
         }
     },
 
