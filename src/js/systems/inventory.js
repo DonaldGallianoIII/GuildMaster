@@ -377,7 +377,7 @@ const InventorySystem = {
 
         card.appendChild(body);
 
-        // Footer with equip, lock, and sell buttons
+        // Footer with equip, forge, lock, and sell buttons
         const footer = Utils.createElement('div', { className: 'card-footer' });
 
         // Lock/Unlock button
@@ -387,6 +387,14 @@ const InventorySystem = {
         lockBtn.className = `btn btn-icon lock-btn${item.isLocked ? ' locked' : ''}`;
         lockBtn.title = item.isLocked ? 'Unlock item' : 'Lock item';
         footer.appendChild(lockBtn);
+
+        // Forge button (soul crafting)
+        const forgeBtn = UI.createButton('⚒️', 'icon', () => {
+            this.showForgeModal(item);
+        });
+        forgeBtn.className = 'btn btn-icon forge-btn';
+        forgeBtn.title = 'Soul Forge - Craft affixes';
+        footer.appendChild(forgeBtn);
 
         const equipBtn = UI.createButton('Equip', 'primary', () => {
             this.showEquipModal(item);
@@ -462,6 +470,146 @@ const InventorySystem = {
         }
 
         Modals.show('hero-modal');
+    },
+
+    /**
+     * Show soul forge modal for crafting
+     */
+    showForgeModal(item) {
+        const modal = document.getElementById('hero-modal');
+        const content = modal.querySelector('.modal-content');
+
+        const hungerLabel = item.getHungerLabel ? item.getHungerLabel() : 'Neutral';
+        const hungerClass = `hunger-${hungerLabel.toLowerCase()}`;
+        const maxSlots = item.getMaxAffixSlots ? item.getMaxAffixSlots() : { prefix: 3, suffix: 3 };
+        const prefixCount = item.affixes.filter(a => a.type === 'prefix').length;
+        const suffixCount = item.affixes.filter(a => a.type === 'suffix').length;
+        const playerSouls = GameState.getSouls();
+
+        // Get crafting options
+        const options = item.getCraftingOptions ? item.getCraftingOptions() : [];
+
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>⚒️ Soul Forge</h2>
+                <button class="modal-close" onclick="Modals.hide('hero-modal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="forge-item-info">
+                    <div class="forge-item-header">
+                        <span class="gear-icon">${Utils.escapeHtml(item.icon)}</span>
+                        <div>
+                            <div class="gear-name ${UI.getRarityClass(item.rarity)}">${Utils.escapeHtml(item.displayName)}</div>
+                            <div class="gear-meta">
+                                <span class="gear-slot">${Utils.escapeHtml(Utils.capitalize(item.slot))}</span>
+                                <span class="gear-hunger ${hungerClass}">${hungerLabel}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="forge-stats">
+                        <h4>Current Affixes</h4>
+                        <div class="affix-slots">
+                            <span>Prefixes: ${prefixCount}/${maxSlots.prefix}</span>
+                            <span>Suffixes: ${suffixCount}/${maxSlots.suffix}</span>
+                        </div>
+                        ${item.affixes.length > 0 ? `
+                            <div class="current-affixes">
+                                ${item.affixes.map(a => `
+                                    <div class="affix ${a.type}">
+                                        ${a.name}: +${a.value} ${a.stat}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : '<p class="no-affixes">No affixes - this item is blank</p>'}
+                    </div>
+
+                    <div class="forge-info">
+                        <div class="soul-balance">👻 Your Souls: <strong>${playerSouls.toLocaleString()}</strong></div>
+                        ${item.craftCount > 0 ? `<div class="craft-count">Crafts on this item: ${item.craftCount} (costs escalated ${Math.round((Math.pow(1.5, item.craftCount) - 1) * 100)}%)</div>` : ''}
+                    </div>
+                </div>
+
+                <div class="forge-options">
+                    <h4>Crafting Options</h4>
+                    ${options.length > 0 ? options.map(opt => `
+                        <div class="forge-option ${playerSouls >= opt.cost ? 'can-afford' : 'cannot-afford'}">
+                            <div class="option-info">
+                                <strong>${opt.name}</strong>
+                                <span class="option-desc">${opt.description}</span>
+                            </div>
+                            <div class="option-cost">
+                                <span class="cost-amount ${playerSouls >= opt.cost ? '' : 'insufficient'}">👻 ${opt.cost}</span>
+                                <button class="btn btn-small ${playerSouls >= opt.cost ? 'btn-primary' : 'btn-secondary'}"
+                                        data-craft="${opt.id}" ${playerSouls >= opt.cost ? '' : 'disabled'}>
+                                    Craft
+                                </button>
+                            </div>
+                        </div>
+                    `).join('') : '<p class="no-options">No crafting options available for this item</p>'}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Modals.hide('hero-modal')">Close</button>
+            </div>
+        `;
+
+        // Bind craft buttons
+        content.querySelectorAll('[data-craft]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const craftId = btn.dataset.craft;
+                await this.performCraft(item, craftId);
+            });
+        });
+
+        Modals.show('hero-modal');
+    },
+
+    /**
+     * Perform a crafting operation
+     */
+    async performCraft(item, craftId) {
+        const cost = item.getCraftingCost(craftId.includes('reroll') ? (item.rarity === 'rare' ? 'reroll_rare' : 'reroll_magic') : 'slam');
+
+        // Check souls
+        if (GameState.getSouls() < cost) {
+            Utils.toast('Not enough souls!', 'error');
+            return;
+        }
+
+        // Spend souls
+        const spent = await GameState.spendSouls(cost);
+        if (!spent) return;
+
+        // Perform craft
+        let result;
+        if (craftId === 'slam_prefix') {
+            result = item.slam('prefix');
+        } else if (craftId === 'slam_suffix') {
+            result = item.slam('suffix');
+        } else if (craftId === 'reroll') {
+            result = item.reroll();
+        }
+
+        if (result && result.success) {
+            // Save the item
+            await DB.items.save(item);
+
+            if (result.affix) {
+                Utils.toast(`Added ${result.affix.name}: +${result.affix.value} ${result.affix.stat}!`, 'success');
+            } else if (result.affixes) {
+                Utils.toast(`Rerolled ${result.affixes.length} affixes!`, 'success');
+            }
+
+            // Refresh the modal
+            this.showForgeModal(item);
+            // Refresh inventory display
+            this.render();
+        } else {
+            // Refund souls on failure
+            await GameState.addSouls(cost);
+            Utils.toast(result?.error || 'Crafting failed!', 'error');
+        }
     },
 };
 

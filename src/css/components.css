@@ -2672,3 +2672,146 @@
 .gear-card .card-header {
     padding-left: calc(var(--spacing-md) + 28px);
 }
+
+/* ==================== SOUL FORGE MODAL (Design Doc v2) ==================== */
+.forge-item-info {
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.forge-item-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.forge-item-header .gear-icon {
+    font-size: 2rem;
+}
+
+.forge-stats {
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--color-parchment);
+    border-radius: var(--radius-sm);
+}
+
+.forge-stats h4 {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: 0.9rem;
+    color: var(--color-ink-faded);
+}
+
+.affix-slots {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.85rem;
+}
+
+.current-affixes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.current-affixes .affix {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--color-parchment-dark);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.current-affixes .affix.prefix {
+    border-left: 3px solid var(--rarity-magic);
+}
+
+.current-affixes .affix.suffix {
+    border-left: 3px solid var(--rarity-rare);
+}
+
+.no-affixes {
+    font-style: italic;
+    color: var(--color-ink-faded);
+    margin: var(--spacing-sm) 0;
+}
+
+.forge-info {
+    padding-top: var(--spacing-sm);
+    border-top: var(--border-thin);
+}
+
+.soul-balance {
+    font-size: 1.1rem;
+    color: #7b68ee;
+}
+
+.craft-count {
+    font-size: 0.85rem;
+    color: var(--color-ink-faded);
+    margin-top: var(--spacing-xs);
+}
+
+.forge-options h4 {
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+.forge-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--color-parchment-light);
+    border: var(--border-thin);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.forge-option.cannot-afford {
+    opacity: 0.6;
+}
+
+.option-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.option-desc {
+    font-size: 0.85rem;
+    color: var(--color-ink-faded);
+}
+
+.option-cost {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.cost-amount {
+    color: #7b68ee;
+    font-weight: 600;
+}
+
+.cost-amount.insufficient {
+    color: var(--color-blood);
+}
+
+.no-options {
+    font-style: italic;
+    color: var(--color-ink-faded);
+    text-align: center;
+    padding: var(--spacing-lg);
+}
+
+.forge-btn {
+    color: #7b68ee;
+}
+
+.forge-btn:hover {
+    color: #9370db;
+}

@@ -299,6 +299,9 @@ class Gear {
         // Range: -0.70 (Replete) to +0.70 (Voracious)
         this.hunger = data.hunger ?? 0;
 
+        // Craft count for escalation (1.5x per craft)
+        this.craftCount = data.craftCount || data.craft_count || 0;
+
         // Timestamps
         this.createdAt = data.createdAt || data.created_at || Utils.now();
     }
@@ -444,6 +447,129 @@ class Gear {
         return currentCount < maxSlots[affixType];
     }
 
+    // ==================== SOUL CRAFTING (Design Doc v2) ====================
+
+    /**
+     * Calculate crafting cost for an operation
+     * @param {string} operation - 'slam', 'reroll_magic', 'reroll_rare', 'level_adjust'
+     * @returns {number} Soul cost
+     */
+    getCraftingCost(operation) {
+        const baseCosts = {
+            slam: CONFIG.SOUL_COSTS.SLAM_BASE,
+            reroll_magic: CONFIG.SOUL_COSTS.REROLL_MAGIC,
+            reroll_rare: CONFIG.SOUL_COSTS.REROLL_RARE,
+            level_adjust: CONFIG.SOUL_COSTS.LEVEL_ADJUST,
+        };
+
+        const baseCost = baseCosts[operation] || 100;
+
+        // Apply hunger multiplier (Replete = cheaper, Voracious = expensive)
+        const hungerMult = this.getCraftingCostMultiplier();
+
+        // Apply escalation (1.5x per previous craft)
+        const escalation = Math.pow(CONFIG.SOUL_COSTS.ESCALATION, this.craftCount);
+
+        return Math.ceil(baseCost * hungerMult * escalation);
+    }
+
+    /**
+     * SLAM - Add a new affix to the item
+     * @param {string} affixType - 'prefix' or 'suffix'
+     * @returns {{ success: boolean, affix?: object, error?: string }}
+     */
+    slam(affixType) {
+        // Check if we can add this affix type
+        if (!this.canAddAffix(affixType)) {
+            return { success: false, error: `No ${affixType} slots available` };
+        }
+
+        // Roll the affix (with Voracious multiplier if applicable)
+        const hungerLabel = this.getHungerLabel().toUpperCase();
+        const valueMult = hungerLabel === 'VORACIOUS' ? CONFIG.HUNGER_SYSTEM.VORACIOUS_AFFIX_MULT : 1.0;
+        const affix = GearGenerator.rollAffix(affixType, valueMult);
+
+        if (!affix) {
+            return { success: false, error: 'Failed to roll affix' };
+        }
+
+        // Add the affix
+        this.affixes.push(affix);
+        this.craftCount++;
+
+        return { success: true, affix };
+    }
+
+    /**
+     * REROLL - Reroll all existing affixes
+     * @returns {{ success: boolean, affixes?: array, error?: string }}
+     */
+    reroll() {
+        if (this.affixes.length === 0) {
+            return { success: false, error: 'No affixes to reroll' };
+        }
+
+        // Get Voracious multiplier if applicable
+        const hungerLabel = this.getHungerLabel().toUpperCase();
+        const valueMult = hungerLabel === 'VORACIOUS' ? CONFIG.HUNGER_SYSTEM.VORACIOUS_AFFIX_MULT : 1.0;
+
+        // Reroll each affix while keeping type and stat
+        const newAffixes = [];
+        for (const oldAffix of this.affixes) {
+            const newAffix = GearGenerator.rollAffix(oldAffix.type, valueMult);
+            if (newAffix) {
+                newAffixes.push(newAffix);
+            }
+        }
+
+        this.affixes = newAffixes;
+        this.craftCount++;
+
+        return { success: true, affixes: newAffixes };
+    }
+
+    /**
+     * Get available crafting options for this item
+     * @returns {Array} Available crafting operations with costs
+     */
+    getCraftingOptions() {
+        const options = [];
+
+        // SLAM options (if slots available)
+        if (this.canAddAffix('prefix')) {
+            options.push({
+                id: 'slam_prefix',
+                name: 'Slam Prefix',
+                description: 'Add a random prefix',
+                cost: this.getCraftingCost('slam'),
+                available: true,
+            });
+        }
+        if (this.canAddAffix('suffix')) {
+            options.push({
+                id: 'slam_suffix',
+                name: 'Slam Suffix',
+                description: 'Add a random suffix',
+                cost: this.getCraftingCost('slam'),
+                available: true,
+            });
+        }
+
+        // REROLL option (if has affixes)
+        if (this.affixes.length > 0) {
+            const rerollOp = this.rarity === 'rare' ? 'reroll_rare' : 'reroll_magic';
+            options.push({
+                id: 'reroll',
+                name: 'Reroll Affixes',
+                description: 'Reroll all affixes (keeps count)',
+                cost: this.getCraftingCost(rerollOp),
+                available: true,
+            });
+        }
+
+        return options;
+    }
+
     // ==================== METHODS ====================
 
     /**
@@ -516,6 +642,7 @@ class Gear {
             inscriptions: this.inscriptions,
             is_locked: this.isLocked,
             hunger: this.hunger,
+            craft_count: this.craftCount,
             created_at: this.createdAt,
         };
     }
@@ -543,6 +670,7 @@ class Gear {
             inscriptions: row.inscriptions,
             isLocked: row.is_locked,
             hunger: row.hunger ?? 0,
+            craftCount: row.craft_count || 0,
             createdAt: row.created_at,
         });
     }
