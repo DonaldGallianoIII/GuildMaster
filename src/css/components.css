@@ -1102,6 +1102,16 @@
     background: var(--color-parchment-dark);
 }
 
+.allocator-btn-large {
+    width: 42px;
+    font-size: 0.9rem;
+    background: var(--color-parchment-dark);
+}
+
+.allocator-btn-large:hover:not(:disabled) {
+    background: var(--color-gold-light);
+}
+
 .allocator-value {
     width: 50px;
     text-align: center;
