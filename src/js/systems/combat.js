@@ -33,11 +33,357 @@ const CombatActionType = {
     BUFF: 'buff',
     DEBUFF: 'debuff',
     SUMMON: 'summon',
-    TRIGGER: 'trigger',    // Passive/trigger skill activated
+    TRIGGER: 'trigger',       // Passive/trigger skill activated
     DEATH: 'death',
+    DOT_TICK: 'dot_tick',     // Damage over time tick (poison, burn, bleed)
+    HOT_TICK: 'hot_tick',     // Heal over time tick (regen)
+    STATUS_APPLY: 'status_apply',   // Status effect applied
+    STATUS_EXPIRE: 'status_expire', // Status effect expired
+    STATUS_RESIST: 'status_resist', // Status effect resisted
 };
 
 Object.freeze(CombatActionType);
+
+/**
+ * Status effect types
+ * @readonly
+ * @enum {string}
+ */
+const StatusEffectType = {
+    // Damage over Time (DoT)
+    POISON: 'poison',         // % max HP damage, stacks intensity
+    BURN: 'burn',             // Flat magic damage, doesn't stack
+    BLEED: 'bleed',           // Flat physical damage, stacks duration
+
+    // Heal over Time (HoT)
+    REGEN: 'regen',           // % max HP healing
+    LIFESTEAL_BUFF: 'lifesteal_buff', // Temporary lifesteal bonus
+
+    // Crowd Control
+    STUN: 'stun',             // Skip turn, 100% hit chance against
+    SLOW: 'slow',             // Reduced speed
+    ROOT: 'root',             // Can't be moved (future: positioning)
+    SILENCE: 'silence',       // Can't use skills, basic attack only
+    BLIND: 'blind',           // Reduced hit chance / increased miss
+
+    // Stat Modifiers (Buffs)
+    ATK_UP: 'atk_up',
+    DEF_UP: 'def_up',
+    WILL_UP: 'will_up',
+    SPD_UP: 'spd_up',
+    CRIT_UP: 'crit_up',
+    SHIELD: 'shield',         // Absorbs damage before HP
+
+    // Stat Modifiers (Debuffs)
+    ATK_DOWN: 'atk_down',
+    DEF_DOWN: 'def_down',
+    WILL_DOWN: 'will_down',
+    SPD_DOWN: 'spd_down',
+    VULNERABLE: 'vulnerable', // Takes increased damage
+
+    // Special
+    TAUNT: 'taunt',           // Forces targeting (future: multi-hero)
+    MARKED: 'marked',         // Takes bonus damage from next hit
+    THORNS: 'thorns',         // Reflect damage to attackers
+    UNDYING: 'undying',       // Survive killing blow once
+};
+
+Object.freeze(StatusEffectType);
+
+/**
+ * Status effect timing - when the effect ticks
+ * @readonly
+ * @enum {string}
+ */
+const StatusTiming = {
+    START_OF_TURN: 'start_of_turn',   // Ticks before actor acts
+    END_OF_TURN: 'end_of_turn',       // Ticks after actor acts
+    ON_HIT: 'on_hit',                 // Ticks when target is hit
+    ON_ATTACK: 'on_attack',           // Ticks when actor attacks
+};
+
+Object.freeze(StatusTiming);
+
+/**
+ * Status effect instance
+ */
+class StatusEffect {
+    constructor(data = {}) {
+        this.id = data.id || Utils.uuid();
+        this.type = data.type || StatusEffectType.POISON;
+        this.name = data.name || this.type;
+        this.sourceId = data.sourceId || null;      // Who applied it
+        this.sourceName = data.sourceName || 'Unknown';
+
+        // Duration
+        this.duration = data.duration || 3;          // Turns remaining
+        this.maxDuration = data.maxDuration || data.duration || 3;
+        this.permanent = data.permanent || false;    // Doesn't expire
+
+        // Effect values
+        this.value = data.value || 0;                // Primary value (damage, heal amount, stat modifier)
+        this.percentage = data.percentage || false;  // Is value a percentage of max HP?
+        this.flatValue = data.flatValue || 0;        // Additional flat value
+
+        // Stacking
+        this.stacks = data.stacks || 1;
+        this.maxStacks = data.maxStacks || 1;
+        this.stackable = data.stackable || false;    // Can stack intensity
+        this.refreshable = data.refreshable || true; // Reapplying refreshes duration
+
+        // Timing
+        this.timing = data.timing || StatusTiming.START_OF_TURN;
+
+        // Damage type (for DoTs)
+        this.damageType = data.damageType || DamageType.TRUE;
+
+        // Visual
+        this.icon = data.icon || '❓';
+        this.description = data.description || '';
+    }
+
+    /**
+     * Tick the effect (reduce duration)
+     * @returns {boolean} True if effect should be removed
+     */
+    tick() {
+        if (this.permanent) return false;
+        this.duration--;
+        return this.duration <= 0;
+    }
+
+    /**
+     * Add stacks (for stackable effects)
+     * @param {number} count - Stacks to add
+     */
+    addStacks(count = 1) {
+        if (this.stackable) {
+            this.stacks = Math.min(this.stacks + count, this.maxStacks);
+        }
+    }
+
+    /**
+     * Refresh duration (for refreshable effects)
+     */
+    refresh() {
+        if (this.refreshable) {
+            this.duration = this.maxDuration;
+        }
+    }
+
+    /**
+     * Calculate effect value (accounting for stacks)
+     */
+    getEffectiveValue() {
+        return this.value * this.stacks;
+    }
+
+    /**
+     * Clone the effect
+     */
+    clone() {
+        return new StatusEffect({ ...this });
+    }
+}
+
+/**
+ * Status effect definitions - templates for creating effects
+ */
+const STATUS_EFFECT_TEMPLATES = {
+    // ==================== DAMAGE OVER TIME ====================
+    poison: {
+        type: StatusEffectType.POISON,
+        name: 'Poison',
+        duration: 3,
+        value: 0.05,              // 5% max HP per tick
+        percentage: true,
+        stackable: true,
+        maxStacks: 5,
+        timing: StatusTiming.START_OF_TURN,
+        damageType: DamageType.TRUE,
+        icon: '🧪',
+        description: 'Taking poison damage each turn',
+    },
+    burn: {
+        type: StatusEffectType.BURN,
+        name: 'Burning',
+        duration: 2,
+        value: 10,                // Flat damage (scales with source WILL)
+        percentage: false,
+        stackable: false,
+        refreshable: true,
+        timing: StatusTiming.START_OF_TURN,
+        damageType: DamageType.MAGICAL,
+        icon: '🔥',
+        description: 'Taking fire damage each turn',
+    },
+    bleed: {
+        type: StatusEffectType.BLEED,
+        name: 'Bleeding',
+        duration: 3,
+        value: 8,                 // Flat damage (scales with source ATK)
+        percentage: false,
+        stackable: false,
+        refreshable: true,        // Reapplying adds duration
+        timing: StatusTiming.END_OF_TURN,
+        damageType: DamageType.PHYSICAL,
+        icon: '🩸',
+        description: 'Bleeding out each turn',
+    },
+
+    // ==================== HEAL OVER TIME ====================
+    regen: {
+        type: StatusEffectType.REGEN,
+        name: 'Regenerating',
+        duration: 3,
+        value: 0.05,              // 5% max HP per tick
+        percentage: true,
+        stackable: false,
+        timing: StatusTiming.START_OF_TURN,
+        icon: '💚',
+        description: 'Regenerating health each turn',
+    },
+
+    // ==================== CROWD CONTROL ====================
+    stun: {
+        type: StatusEffectType.STUN,
+        name: 'Stunned',
+        duration: 1,
+        stackable: false,
+        refreshable: false,       // Can't extend stun
+        timing: StatusTiming.START_OF_TURN,
+        icon: '💫',
+        description: 'Cannot act this turn',
+    },
+    slow: {
+        type: StatusEffectType.SLOW,
+        name: 'Slowed',
+        duration: 2,
+        value: 0.30,              // 30% speed reduction
+        percentage: true,
+        stackable: false,
+        timing: StatusTiming.START_OF_TURN,
+        icon: '🐌',
+        description: 'Movement and attack speed reduced',
+    },
+    silence: {
+        type: StatusEffectType.SILENCE,
+        name: 'Silenced',
+        duration: 2,
+        stackable: false,
+        timing: StatusTiming.START_OF_TURN,
+        icon: '🤐',
+        description: 'Cannot use skills',
+    },
+    blind: {
+        type: StatusEffectType.BLIND,
+        name: 'Blinded',
+        duration: 2,
+        value: 0.50,              // 50% miss chance
+        percentage: true,
+        stackable: false,
+        timing: StatusTiming.START_OF_TURN,
+        icon: '😵',
+        description: 'Attacks may miss',
+    },
+
+    // ==================== STAT BUFFS ====================
+    atk_up: {
+        type: StatusEffectType.ATK_UP,
+        name: 'Attack Up',
+        duration: 3,
+        value: 0.20,              // +20% ATK
+        percentage: true,
+        stackable: false,
+        timing: StatusTiming.START_OF_TURN,
+        icon: '⚔️',
+        description: 'Attack power increased',
+    },
+    def_up: {
+        type: StatusEffectType.DEF_UP,
+        name: 'Defense Up',
+        duration: 3,
+        value: 0.20,              // +20% DEF
+        percentage: true,
+        stackable: false,
+        timing: StatusTiming.START_OF_TURN,
+        icon: '🛡️',
+        description: 'Defense increased',
+    },
+    shield: {
+        type: StatusEffectType.SHIELD,
+        name: 'Shielded',
+        duration: 3,
+        value: 50,                // Absorbs 50 damage
+        percentage: false,
+        stackable: false,
+        refreshable: false,
+        timing: StatusTiming.ON_HIT,
+        icon: '🔰',
+        description: 'Absorbing incoming damage',
+    },
+
+    // ==================== STAT DEBUFFS ====================
+    atk_down: {
+        type: StatusEffectType.ATK_DOWN,
+        name: 'Attack Down',
+        duration: 3,
+        value: 0.20,              // -20% ATK
+        percentage: true,
+        stackable: false,
+        timing: StatusTiming.START_OF_TURN,
+        icon: '⬇️',
+        description: 'Attack power reduced',
+    },
+    def_down: {
+        type: StatusEffectType.DEF_DOWN,
+        name: 'Defense Down',
+        duration: 3,
+        value: 0.20,              // -20% DEF
+        percentage: true,
+        stackable: false,
+        timing: StatusTiming.START_OF_TURN,
+        icon: '💔',
+        description: 'Defense reduced',
+    },
+    vulnerable: {
+        type: StatusEffectType.VULNERABLE,
+        name: 'Vulnerable',
+        duration: 2,
+        value: 0.25,              // +25% damage taken
+        percentage: true,
+        stackable: false,
+        timing: StatusTiming.ON_HIT,
+        icon: '🎯',
+        description: 'Taking increased damage',
+    },
+
+    // ==================== SPECIAL ====================
+    marked: {
+        type: StatusEffectType.MARKED,
+        name: 'Marked',
+        duration: 1,
+        value: 0.50,              // +50% damage from next hit
+        percentage: true,
+        stackable: false,
+        timing: StatusTiming.ON_HIT,
+        icon: '🔴',
+        description: 'Next hit deals bonus damage',
+    },
+    thorns_buff: {
+        type: StatusEffectType.THORNS,
+        name: 'Thorns',
+        duration: 3,
+        value: 0.15,              // Reflect 15% damage
+        percentage: true,
+        stackable: false,
+        timing: StatusTiming.ON_HIT,
+        icon: '🌵',
+        description: 'Reflecting damage to attackers',
+    },
+};
+
+Object.freeze(STATUS_EFFECT_TEMPLATES);
 
 /**
  * Combat result
@@ -131,6 +477,7 @@ class Combatant {
         this.isAlive = true;
         this.buffs = [];
         this.debuffs = [];
+        this.statusEffects = [];  // All active status effects
         this.cooldowns = {}; // skillId -> rounds remaining
 
         // Passive tracking
@@ -176,6 +523,351 @@ class Combatant {
                 this.cooldowns[skillId]--;
             }
         }
+    }
+
+    // ==================== STATUS EFFECT METHODS ====================
+
+    /**
+     * Apply a status effect to this combatant
+     * @param {StatusEffect|string} effect - StatusEffect instance or template name
+     * @param {Combatant} source - Who applied the effect
+     * @returns {Object} { applied: boolean, action: CombatAction|null }
+     */
+    applyStatusEffect(effect, source = null) {
+        // Create from template if string
+        if (typeof effect === 'string') {
+            const template = STATUS_EFFECT_TEMPLATES[effect];
+            if (!template) {
+                Utils.warn(`Unknown status effect template: ${effect}`);
+                return { applied: false, action: null };
+            }
+            effect = new StatusEffect({
+                ...template,
+                sourceId: source?.id,
+                sourceName: source?.name || 'Unknown',
+            });
+        }
+
+        // Check for existing effect of same type
+        const existingIndex = this.statusEffects.findIndex(e => e.type === effect.type);
+
+        if (existingIndex >= 0) {
+            const existing = this.statusEffects[existingIndex];
+
+            if (effect.stackable) {
+                // Add stacks
+                existing.addStacks(1);
+                existing.refresh();
+            } else if (effect.refreshable) {
+                // Refresh duration
+                existing.refresh();
+            }
+            // If not stackable or refreshable, effect is ignored
+
+            return {
+                applied: true,
+                action: new CombatAction({
+                    type: CombatActionType.STATUS_APPLY,
+                    actorId: source?.id,
+                    actorName: source?.name || 'Unknown',
+                    actorIsHero: source?.isHero || false,
+                    targetId: this.id,
+                    targetName: this.name,
+                    description: `${effect.icon} ${this.name} is ${effect.name.toLowerCase()} (${existing.stacks > 1 ? `${existing.stacks} stacks, ` : ''}${existing.duration} turns)`,
+                }),
+            };
+        }
+
+        // Apply new effect
+        this.statusEffects.push(effect);
+
+        // Add to buffs/debuffs for backwards compatibility
+        if (this.isBuffEffect(effect.type)) {
+            this.buffs.push(effect);
+        } else {
+            this.debuffs.push(effect);
+        }
+
+        return {
+            applied: true,
+            action: new CombatAction({
+                type: CombatActionType.STATUS_APPLY,
+                actorId: source?.id,
+                actorName: source?.name || 'Unknown',
+                actorIsHero: source?.isHero || false,
+                targetId: this.id,
+                targetName: this.name,
+                description: `${effect.icon} ${this.name} is now ${effect.name.toLowerCase()} (${effect.duration} turns)`,
+            }),
+        };
+    }
+
+    /**
+     * Remove a status effect by type
+     * @param {string} effectType - StatusEffectType to remove
+     * @returns {StatusEffect|null} Removed effect or null
+     */
+    removeStatusEffect(effectType) {
+        const index = this.statusEffects.findIndex(e => e.type === effectType);
+        if (index < 0) return null;
+
+        const removed = this.statusEffects.splice(index, 1)[0];
+
+        // Remove from buffs/debuffs
+        if (this.isBuffEffect(effectType)) {
+            const buffIndex = this.buffs.findIndex(e => e.type === effectType);
+            if (buffIndex >= 0) this.buffs.splice(buffIndex, 1);
+        } else {
+            const debuffIndex = this.debuffs.findIndex(e => e.type === effectType);
+            if (debuffIndex >= 0) this.debuffs.splice(debuffIndex, 1);
+        }
+
+        return removed;
+    }
+
+    /**
+     * Check if combatant has a status effect
+     * @param {string} effectType - StatusEffectType to check
+     * @returns {StatusEffect|null}
+     */
+    hasStatusEffect(effectType) {
+        return this.statusEffects.find(e => e.type === effectType) || null;
+    }
+
+    /**
+     * Get all status effects of a specific timing
+     * @param {string} timing - StatusTiming
+     * @returns {Array<StatusEffect>}
+     */
+    getEffectsByTiming(timing) {
+        return this.statusEffects.filter(e => e.timing === timing);
+    }
+
+    /**
+     * Process status effects at start of turn
+     * @returns {Array<CombatAction>} Actions generated by effects
+     */
+    processStartOfTurnEffects() {
+        const actions = [];
+        const effects = this.getEffectsByTiming(StatusTiming.START_OF_TURN);
+
+        for (const effect of effects) {
+            const action = this.processEffectTick(effect);
+            if (action) actions.push(action);
+        }
+
+        return actions;
+    }
+
+    /**
+     * Process status effects at end of turn
+     * @returns {Array<CombatAction>} Actions generated by effects
+     */
+    processEndOfTurnEffects() {
+        const actions = [];
+        const effects = this.getEffectsByTiming(StatusTiming.END_OF_TURN);
+
+        for (const effect of effects) {
+            const action = this.processEffectTick(effect);
+            if (action) actions.push(action);
+        }
+
+        // Tick all effect durations and remove expired ones
+        const expiredEffects = [];
+        for (const effect of this.statusEffects) {
+            if (effect.tick()) {
+                expiredEffects.push(effect);
+            }
+        }
+
+        // Remove expired effects and create expiry actions
+        for (const expired of expiredEffects) {
+            this.removeStatusEffect(expired.type);
+            actions.push(new CombatAction({
+                type: CombatActionType.STATUS_EXPIRE,
+                targetId: this.id,
+                targetName: this.name,
+                description: `${expired.icon} ${this.name}'s ${expired.name.toLowerCase()} effect faded`,
+            }));
+        }
+
+        return actions;
+    }
+
+    /**
+     * Process a single effect tick (DoT damage, HoT healing, etc.)
+     * @param {StatusEffect} effect
+     * @returns {CombatAction|null}
+     */
+    processEffectTick(effect) {
+        const effectValue = effect.getEffectiveValue();
+
+        // DoT effects
+        if ([StatusEffectType.POISON, StatusEffectType.BURN, StatusEffectType.BLEED].includes(effect.type)) {
+            let damage = effect.percentage
+                ? Math.floor(this.maxHp * effectValue)
+                : Math.floor(effectValue + effect.flatValue);
+
+            const { actual, killed } = this.takeDamage(damage);
+
+            return new CombatAction({
+                type: CombatActionType.DOT_TICK,
+                targetId: this.id,
+                targetName: this.name,
+                damage: actual,
+                damageType: effect.damageType,
+                killed,
+                description: `${effect.icon} ${this.name} takes ${actual} ${effect.name.toLowerCase()} damage${killed ? ' and dies!' : ''}`,
+            });
+        }
+
+        // HoT effects
+        if (effect.type === StatusEffectType.REGEN) {
+            let healing = effect.percentage
+                ? Math.floor(this.maxHp * effectValue)
+                : Math.floor(effectValue);
+
+            const actual = this.heal(healing);
+
+            return new CombatAction({
+                type: CombatActionType.HOT_TICK,
+                targetId: this.id,
+                targetName: this.name,
+                healing: actual,
+                description: `${effect.icon} ${this.name} regenerates ${actual} HP`,
+            });
+        }
+
+        return null;
+    }
+
+    /**
+     * Get modified stat value accounting for status effects
+     * @param {string} stat - Stat name (atk, def, will, spd)
+     * @returns {number} Modified stat value
+     */
+    getModifiedStat(stat) {
+        let value = this.stats[stat] || 0;
+
+        // Apply buff/debuff modifiers
+        for (const effect of this.statusEffects) {
+            if (effect.type === StatusEffectType.ATK_UP && stat === 'atk') {
+                value = Math.floor(value * (1 + effect.getEffectiveValue()));
+            } else if (effect.type === StatusEffectType.ATK_DOWN && stat === 'atk') {
+                value = Math.floor(value * (1 - effect.getEffectiveValue()));
+            } else if (effect.type === StatusEffectType.DEF_UP && stat === 'def') {
+                value = Math.floor(value * (1 + effect.getEffectiveValue()));
+            } else if (effect.type === StatusEffectType.DEF_DOWN && stat === 'def') {
+                value = Math.floor(value * (1 - effect.getEffectiveValue()));
+            } else if (effect.type === StatusEffectType.WILL_UP && stat === 'will') {
+                value = Math.floor(value * (1 + effect.getEffectiveValue()));
+            } else if (effect.type === StatusEffectType.WILL_DOWN && stat === 'will') {
+                value = Math.floor(value * (1 - effect.getEffectiveValue()));
+            } else if (effect.type === StatusEffectType.SPD_UP && stat === 'spd') {
+                value = Math.floor(value * (1 + effect.getEffectiveValue()));
+            } else if (effect.type === StatusEffectType.SPD_DOWN && stat === 'spd') {
+                value = Math.floor(value * (1 - effect.getEffectiveValue()));
+            } else if (effect.type === StatusEffectType.SLOW && stat === 'spd') {
+                value = Math.floor(value * (1 - effect.getEffectiveValue()));
+            }
+        }
+
+        return Math.max(1, value); // Minimum stat of 1
+    }
+
+    /**
+     * Check if combatant can act (not stunned/incapacitated)
+     * @returns {boolean}
+     */
+    canAct() {
+        return this.isAlive && !this.hasStatusEffect(StatusEffectType.STUN);
+    }
+
+    /**
+     * Check if combatant can use skills (not silenced)
+     * @returns {boolean}
+     */
+    canUseSkills() {
+        return !this.hasStatusEffect(StatusEffectType.SILENCE);
+    }
+
+    /**
+     * Get miss chance from blind effect
+     * @returns {number} Miss chance (0-1)
+     */
+    getMissChance() {
+        const blind = this.hasStatusEffect(StatusEffectType.BLIND);
+        return blind ? blind.getEffectiveValue() : 0;
+    }
+
+    /**
+     * Get damage taken multiplier from vulnerable/marked effects
+     * @returns {number} Damage multiplier (1 = normal)
+     */
+    getDamageTakenMultiplier() {
+        let multiplier = 1;
+
+        const vulnerable = this.hasStatusEffect(StatusEffectType.VULNERABLE);
+        if (vulnerable) {
+            multiplier *= (1 + vulnerable.getEffectiveValue());
+        }
+
+        const marked = this.hasStatusEffect(StatusEffectType.MARKED);
+        if (marked) {
+            multiplier *= (1 + marked.getEffectiveValue());
+            // Marked is consumed on hit
+            this.removeStatusEffect(StatusEffectType.MARKED);
+        }
+
+        return multiplier;
+    }
+
+    /**
+     * Process shield absorption
+     * @param {number} damage - Incoming damage
+     * @returns {number} Remaining damage after shield
+     */
+    processShieldAbsorption(damage) {
+        const shield = this.hasStatusEffect(StatusEffectType.SHIELD);
+        if (!shield) return damage;
+
+        const absorbed = Math.min(damage, shield.value);
+        shield.value -= absorbed;
+
+        // Remove shield if depleted
+        if (shield.value <= 0) {
+            this.removeStatusEffect(StatusEffectType.SHIELD);
+        }
+
+        return damage - absorbed;
+    }
+
+    /**
+     * Check if effect type is a buff (vs debuff)
+     * @param {string} effectType
+     * @returns {boolean}
+     */
+    isBuffEffect(effectType) {
+        return [
+            StatusEffectType.REGEN,
+            StatusEffectType.LIFESTEAL_BUFF,
+            StatusEffectType.ATK_UP,
+            StatusEffectType.DEF_UP,
+            StatusEffectType.WILL_UP,
+            StatusEffectType.SPD_UP,
+            StatusEffectType.CRIT_UP,
+            StatusEffectType.SHIELD,
+            StatusEffectType.THORNS,
+            StatusEffectType.UNDYING,
+        ].includes(effectType);
+    }
+
+    /**
+     * Get all active status effect icons for display
+     * @returns {string}
+     */
+    getStatusIcons() {
+        return this.statusEffects.map(e => e.icon).join('');
     }
 }
 
@@ -450,8 +1142,9 @@ const CombatEngine = {
                 actor.heal(healing);
             }
         } else {
-            // Basic attack - physical
-            damage = Utils.calcPhysicalDamage(actor.atk, target.def);
+            // Basic attack - physical (nerfed to 0.7× ATK so skills feel impactful)
+            const basicAtkPower = Math.floor(actor.atk * 0.7);
+            damage = Utils.calcPhysicalDamage(basicAtkPower, target.def);
         }
 
         // Handle AoE/cleave multi-target damage
