@@ -507,6 +507,10 @@ class Combatant {
     heal(amount) {
         const actual = Math.min(amount, this.maxHp - this.currentHp);
         this.currentHp += actual;
+        // Safety: if healed above 0, ensure alive
+        if (this.currentHp > 0) {
+            this.isAlive = true;
+        }
         return actual;
     }
 
@@ -1144,12 +1148,21 @@ const CombatEngine = {
                     if (!targetIsSummon) {
                         const heroTriggers = this.checkTriggers(heroCombatant, action, allEnemies, hero, questTriggers);
                         heroTriggers.forEach(t => round.addAction(t));
+
+                        // If hero died and triggers didn't save them, break out of duel
+                        if (!heroCombatant.isAlive) break;
                     }
 
                     // Check for enemy triggered abilities (second wind, etc.) - enemies don't use quest triggers
                     const enemyTriggers = this.checkTriggers(actor, action, allEnemies, hero, null);
                     enemyTriggers.forEach(t => round.addAction(t));
                 }
+            }
+
+            // Check if hero died during the duel - end combat immediately
+            if (!heroCombatant.isAlive) {
+                result.addRound(round);
+                break;
             }
 
             // Remove all dead enemies from queue (AoE can kill multiple)
