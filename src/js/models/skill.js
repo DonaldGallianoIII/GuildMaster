@@ -1469,6 +1469,240 @@ const SKILL_TREES = {
             { id: 'sacred_domain', name: 'Sacred Domain', type: NodeType.CAPSTONE, cost: 1, effect: '+50% all effects, zone is entire battlefield' },
         ],
     },
+
+    // ==================== WARRIOR TREES ====================
+    cleave: {
+        early: [
+            { id: 'wider_arc', name: 'Wider Arc', type: NodeType.MINOR, cost: 1, effect: '+1 target' },
+            { id: 'heavier', name: 'Heavier', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'sharper', name: 'Sharper', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'sweeping', name: 'Sweeping', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'rending', name: 'Rending', type: NodeType.MAJOR, cost: 1, effect: 'Bleed 15% over 2s' },
+        ],
+        mid: [
+            { id: 'wide_arc', name: 'Wide Arc', type: NodeType.MAJOR, cost: 2, effect: 'Hits all enemies (AOE)' },
+            { id: 'decapitate', name: 'Decapitate', type: NodeType.MAJOR, cost: 1, effect: '+50% vs below 25% HP' },
+            { id: 'cleave_through', name: 'Cleave Through', type: NodeType.MAJOR, cost: 2, effect: 'Overkill hits next target' },
+            { id: 'intimidate', name: 'Intimidate', type: NodeType.MAJOR, cost: 1, effect: 'Targets -15% damage 2s' },
+            { id: 'bloodbath', name: 'Bloodbath', type: NodeType.MAJOR, cost: 1, effect: 'Heal 4% per hit' },
+        ],
+        deep: [
+            { id: 'massacre', name: 'Massacre', type: NodeType.MAJOR, cost: 2, effect: '+25% per target hit' },
+            { id: 'whirlwind_cleave', name: 'Whirlwind', type: NodeType.MAJOR, cost: 2, effect: 'Hits twice' },
+            { id: 'execution_cleave', name: 'Execution Cleave', type: NodeType.MAJOR, cost: 1, effect: 'Kills reset CD to min (1)' },
+            { id: 'terror', name: 'Terror', type: NodeType.MAJOR, cost: 1, effect: '20% chance target flees 1 turn' },
+            { id: 'reaper', name: 'Reaper', type: NodeType.CAPSTONE, cost: 1, effect: 'AOE, +40%, heals 10% per kill' },
+        ],
+    },
+    charge: {
+        early: [
+            { id: 'momentum', name: 'Momentum', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'speed_charge', name: 'Speed', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'impact_charge', name: 'Impact', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'stunning_impact', name: 'Stunning Impact', type: NodeType.MAJOR, cost: 1, effect: 'Stun +1 turn' },
+            { id: 'bull_rush', name: 'Bull Rush', type: NodeType.MINOR, cost: 1, effect: '+5% crit' },
+        ],
+        mid: [
+            { id: 'knockdown', name: 'Knockdown', type: NodeType.MAJOR, cost: 2, effect: 'Target knocked down, skip turn' },
+            { id: 'trampling', name: 'Trampling', type: NodeType.MAJOR, cost: 1, effect: 'Damage enemies in path' },
+            { id: 'unstoppable_charge', name: 'Unstoppable', type: NodeType.MAJOR, cost: 2, effect: 'Immune CC during charge' },
+            { id: 'battle_ready', name: 'Battle Ready', type: NodeType.MAJOR, cost: 1, effect: '+20% ATK for 2 turns after' },
+            { id: 'quick_charge', name: 'Quick Charge', type: NodeType.MAJOR, cost: 1, effect: '-1 CD (min 1)' },
+        ],
+        deep: [
+            { id: 'devastating_charge', name: 'Devastating', type: NodeType.MAJOR, cost: 2, effect: '+50% damage, stun +1' },
+            { id: 'war_path', name: 'War Path', type: NodeType.MAJOR, cost: 2, effect: 'Can charge multiple targets' },
+            { id: 'earthquake_charge', name: 'Earthquake', type: NodeType.MAJOR, cost: 1, effect: 'AOE stun on arrival' },
+            { id: 'juggernaut', name: 'Juggernaut', type: NodeType.MAJOR, cost: 1, effect: '+30% DEF for 3 turns after' },
+            { id: 'unstoppable_force', name: 'Unstoppable Force', type: NodeType.CAPSTONE, cost: 1, effect: '+60% damage, 3s stun, immune all during' },
+        ],
+    },
+    whirlwind: {
+        early: [
+            { id: 'faster_spin', name: 'Faster Spin', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'sharper_blades', name: 'Sharper', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'momentum_spin', name: 'Momentum', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'dervish', name: 'Dervish', type: NodeType.MINOR, cost: 1, effect: '+5% per enemy (max 25%)' },
+            { id: 'razor_wind', name: 'Razor Wind', type: NodeType.MAJOR, cost: 1, effect: 'Bleed 12% over 2s' },
+        ],
+        mid: [
+            { id: 'cyclone', name: 'Cyclone', type: NodeType.MAJOR, cost: 2, effect: 'Hits twice at 55% each' },
+            { id: 'unstoppable_spin', name: 'Unstoppable', type: NodeType.MAJOR, cost: 1, effect: 'Immune stun/stagger while spinning' },
+            { id: 'blood_cyclone', name: 'Blood Cyclone', type: NodeType.MAJOR, cost: 2, effect: 'Heal 4% per hit' },
+            { id: 'tornado', name: 'Tornado', type: NodeType.MAJOR, cost: 1, effect: 'Pulls enemies to you' },
+            { id: 'bladestorm', name: 'Bladestorm', type: NodeType.MAJOR, cost: 1, effect: '+1 hit per 3 enemies' },
+        ],
+        deep: [
+            { id: 'death_spin', name: 'Death Spin', type: NodeType.MAJOR, cost: 2, effect: '+35% damage' },
+            { id: 'endless_spin', name: 'Endless Spin', type: NodeType.MAJOR, cost: 2, effect: 'Can sustain 8% HP/turn, no CD' },
+            { id: 'execution_spin', name: 'Execution Spin', type: NodeType.MAJOR, cost: 1, effect: '+60% vs below 30% HP' },
+            { id: 'steel_tornado', name: 'Steel Tornado', type: NodeType.MAJOR, cost: 1, effect: '3 hits at 40% each' },
+            { id: 'avatar_of_war', name: 'Avatar of War', type: NodeType.CAPSTONE, cost: 1, effect: '+50% damage, heals 10% per kill, immune CC' },
+        ],
+    },
+    battle_cry: {
+        early: [
+            { id: 'louder', name: 'Louder', type: NodeType.MINOR, cost: 1, effect: '+5% ATK bonus' },
+            { id: 'inspiring', name: 'Inspiring', type: NodeType.MINOR, cost: 1, effect: '+5% ATK bonus' },
+            { id: 'rallying', name: 'Rallying', type: NodeType.MINOR, cost: 1, effect: '+5% ATK bonus' },
+            { id: 'longer_cry', name: 'Longer', type: NodeType.MINOR, cost: 1, effect: '+1 turn duration' },
+            { id: 'war_cry', name: 'War Cry', type: NodeType.MAJOR, cost: 1, effect: 'Enemies -10% damage 2s' },
+        ],
+        mid: [
+            { id: 'battle_roar', name: 'Battle Roar', type: NodeType.MAJOR, cost: 2, effect: 'Also +20% crit damage' },
+            { id: 'allies_too', name: 'Allies Too', type: NodeType.MAJOR, cost: 1, effect: 'Allies get 50% of buff' },
+            { id: 'fear', name: 'Fear', type: NodeType.MAJOR, cost: 2, effect: '25% chance enemies flee 1 turn' },
+            { id: 'adrenaline', name: 'Adrenaline', type: NodeType.MAJOR, cost: 1, effect: 'Also +15% SPD' },
+            { id: 'refresh', name: 'Refresh', type: NodeType.MAJOR, cost: 1, effect: 'Kill extends duration 1 turn' },
+        ],
+        deep: [
+            { id: 'berserker_rage', name: 'Berserker Rage', type: NodeType.MAJOR, cost: 2, effect: '+50% ATK, -20% DEF' },
+            { id: 'unstoppable_rage', name: 'Unstoppable', type: NodeType.MAJOR, cost: 2, effect: 'Immune CC during buff' },
+            { id: 'terrifying', name: 'Terrifying', type: NodeType.MAJOR, cost: 1, effect: 'Enemies can\'t target allies' },
+            { id: 'eternal_fury', name: 'Eternal Fury', type: NodeType.MAJOR, cost: 1, effect: 'Buff permanent at 60%' },
+            { id: 'warlord', name: 'Warlord', type: NodeType.CAPSTONE, cost: 1, effect: '+50% ATK, allies +30%, immune fear' },
+        ],
+    },
+    execute: {
+        early: [
+            { id: 'heavier_exec', name: 'Heavier', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'sharper_exec', name: 'Sharper', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'brutal_exec', name: 'Brutal', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'merciless', name: 'Merciless', type: NodeType.MINOR, cost: 1, effect: '+5% execute threshold' },
+            { id: 'bloodthirst', name: 'Bloodthirst', type: NodeType.MAJOR, cost: 1, effect: 'Heal 15% on kill' },
+        ],
+        mid: [
+            { id: 'decapitation', name: 'Decapitation', type: NodeType.MAJOR, cost: 2, effect: 'Kills can\'t resurrect' },
+            { id: 'cleaving_exec', name: 'Cleaving', type: NodeType.MAJOR, cost: 1, effect: 'Also hits adjacent 50%' },
+            { id: 'momentum_exec', name: 'Momentum', type: NodeType.MAJOR, cost: 2, effect: 'Kill = +20% next' },
+            { id: 'intimidating', name: 'Intimidating', type: NodeType.MAJOR, cost: 1, effect: 'Kill = enemies -20% damage 2s' },
+            { id: 'quick_finish', name: 'Quick Finish', type: NodeType.MAJOR, cost: 1, effect: '-1 CD (min 1)' },
+        ],
+        deep: [
+            { id: 'annihilate', name: 'Annihilate', type: NodeType.MAJOR, cost: 2, effect: '+10% threshold per kill (combat)' },
+            { id: 'slaughter', name: 'Slaughter', type: NodeType.MAJOR, cost: 2, effect: 'Threshold 35%' },
+            { id: 'endless_kills', name: 'Endless Kills', type: NodeType.MAJOR, cost: 1, effect: 'Kill = CD reset' },
+            { id: 'dread', name: 'Dread', type: NodeType.MAJOR, cost: 1, effect: 'Kill = nearby enemies stunned 1s' },
+            { id: 'executioner', name: 'Executioner', type: NodeType.CAPSTONE, cost: 1, effect: 'Threshold 40%, +60%, heal 25% on kill' },
+        ],
+    },
+
+    // ==================== ROGUE TREES ====================
+    backstab: {
+        early: [
+            { id: 'sharper_blade', name: 'Sharper', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'precision', name: 'Precision', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'deadly', name: 'Deadly', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'lethal', name: 'Lethal', type: NodeType.MINOR, cost: 1, effect: '+8% crit' },
+            { id: 'twist_knife', name: 'Twist Knife', type: NodeType.MAJOR, cost: 1, effect: 'Crit damage +35%' },
+        ],
+        mid: [
+            { id: 'assassinate_back', name: 'Assassinate', type: NodeType.MAJOR, cost: 2, effect: '+50% vs full HP' },
+            { id: 'shadow_strike', name: 'Shadow Strike', type: NodeType.MAJOR, cost: 1, effect: 'Can\'t miss' },
+            { id: 'ambush', name: 'Ambush', type: NodeType.MAJOR, cost: 2, effect: 'First combat attack +40%' },
+            { id: 'exploit', name: 'Exploit', type: NodeType.MAJOR, cost: 1, effect: 'Ignore 25% DEF' },
+            { id: 'dirty_fighting', name: 'Dirty Fighting', type: NodeType.MAJOR, cost: 1, effect: 'Poison 15% over 2s' },
+        ],
+        deep: [
+            { id: 'lacerate', name: 'Lacerate', type: NodeType.MAJOR, cost: 2, effect: 'Crits bleed 30% over 3s' },
+            { id: 'kill_confirm', name: 'Kill Confirm', type: NodeType.MAJOR, cost: 2, effect: 'Kill = -1 CD (min 1)' },
+            { id: 'death_mark_rogue', name: 'Death Mark', type: NodeType.MAJOR, cost: 1, effect: 'Crits mark +20% damage 2s' },
+            { id: 'throat_slit', name: 'Throat Slit', type: NodeType.MAJOR, cost: 1, effect: '+80% vs stunned/staggered' },
+            { id: 'master_assassin', name: 'Master Assassin', type: NodeType.CAPSTONE, cost: 1, effect: 'Always crits, +50% damage, ignore 40% DEF' },
+        ],
+    },
+    shadow_strike: {
+        early: [
+            { id: 'deeper_shadows', name: 'Deeper Shadows', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'quick_strike', name: 'Quick Strike', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'precise', name: 'Precise', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'deadly_strike', name: 'Deadly', type: NodeType.MINOR, cost: 1, effect: '+5% crit' },
+            { id: 'from_shadows', name: 'From Shadows', type: NodeType.MAJOR, cost: 1, effect: '+20% if stealthed' },
+        ],
+        mid: [
+            { id: 'vanishing_strike', name: 'Vanishing Strike', type: NodeType.MAJOR, cost: 2, effect: 'Reenter stealth after' },
+            { id: 'execute_strike', name: 'Execute', type: NodeType.MAJOR, cost: 1, effect: '+40% vs below 30% HP' },
+            { id: 'twin_fangs', name: 'Twin Fangs', type: NodeType.MAJOR, cost: 2, effect: 'Hits twice 60% each' },
+            { id: 'crippling', name: 'Crippling', type: NodeType.MAJOR, cost: 1, effect: 'Target -25% SPD 2s' },
+            { id: 'shadow_dance', name: 'Shadow Dance', type: NodeType.MAJOR, cost: 1, effect: 'Kill = free attack' },
+        ],
+        deep: [
+            { id: 'death_dealer', name: 'Death Dealer', type: NodeType.MAJOR, cost: 2, effect: '+100% from stealth' },
+            { id: 'phantom_blade', name: 'Phantom Blade', type: NodeType.MAJOR, cost: 2, effect: 'Ignore 50% DEF' },
+            { id: 'soul_strike', name: 'Soul Strike', type: NodeType.MAJOR, cost: 1, effect: 'True damage from stealth' },
+            { id: 'marked_for_death', name: 'Marked for Death', type: NodeType.MAJOR, cost: 1, effect: 'Target takes +30% 3s' },
+            { id: 'shadow_master', name: 'Shadow Master', type: NodeType.CAPSTONE, cost: 1, effect: 'Always stealthed, +60%, always crits' },
+        ],
+    },
+    evade: {
+        early: [
+            { id: 'quicker', name: 'Quicker', type: NodeType.MINOR, cost: 1, effect: '+3% dodge' },
+            { id: 'nimble', name: 'Nimble', type: NodeType.MINOR, cost: 1, effect: '+3% dodge' },
+            { id: 'agile', name: 'Agile', type: NodeType.MINOR, cost: 1, effect: '+3% dodge' },
+            { id: 'reflexes', name: 'Reflexes', type: NodeType.MINOR, cost: 1, effect: '+3% dodge' },
+            { id: 'counter_stance', name: 'Counter Stance', type: NodeType.MAJOR, cost: 1, effect: 'Dodge = counter 0.5× ATK' },
+        ],
+        mid: [
+            { id: 'blur', name: 'Blur', type: NodeType.MAJOR, cost: 2, effect: '+10% dodge, +10% SPD' },
+            { id: 'acrobatics', name: 'Acrobatics', type: NodeType.MAJOR, cost: 1, effect: 'Immune knockback' },
+            { id: 'slippery', name: 'Slippery', type: NodeType.MAJOR, cost: 2, effect: 'Dodge debuffs too' },
+            { id: 'riposte', name: 'Riposte', type: NodeType.MAJOR, cost: 1, effect: 'Counter = crit' },
+            { id: 'shadow_step', name: 'Shadow Step', type: NodeType.MAJOR, cost: 1, effect: 'Dodge grants stealth' },
+        ],
+        deep: [
+            { id: 'untouchable', name: 'Untouchable', type: NodeType.MAJOR, cost: 2, effect: '35% total dodge' },
+            { id: 'ghost', name: 'Ghost', type: NodeType.MAJOR, cost: 2, effect: 'First 2 attacks/combat miss' },
+            { id: 'wind_dancer', name: 'Wind Dancer', type: NodeType.MAJOR, cost: 1, effect: '+5% per dodge (combat)' },
+            { id: 'deadly_grace', name: 'Deadly Grace', type: NodeType.MAJOR, cost: 1, effect: 'Dodge = next attack +30%' },
+            { id: 'phantom', name: 'Phantom', type: NodeType.CAPSTONE, cost: 1, effect: '45% dodge, counter always crits +50%' },
+        ],
+    },
+    ambush: {
+        early: [
+            { id: 'deeper_stealth', name: 'Deeper Stealth', type: NodeType.MINOR, cost: 1, effect: '+10% next attack' },
+            { id: 'patient', name: 'Patient', type: NodeType.MINOR, cost: 1, effect: '+10% next attack' },
+            { id: 'calculated', name: 'Calculated', type: NodeType.MINOR, cost: 1, effect: '+10% next attack' },
+            { id: 'silent', name: 'Silent', type: NodeType.MINOR, cost: 1, effect: '+10% next attack' },
+            { id: 'quick_hide', name: 'Quick Hide', type: NodeType.MAJOR, cost: 1, effect: '-1 CD (min 1)' },
+        ],
+        mid: [
+            { id: 'vanish', name: 'Vanish', type: NodeType.MAJOR, cost: 2, effect: 'Become untargetable' },
+            { id: 'preparation', name: 'Preparation', type: NodeType.MAJOR, cost: 1, effect: 'Reset other skill CDs' },
+            { id: 'long_stealth', name: 'Long Stealth', type: NodeType.MAJOR, cost: 2, effect: 'Stealth lasts 2 turns' },
+            { id: 'opening_strike', name: 'Opening Strike', type: NodeType.MAJOR, cost: 1, effect: 'Stealth attack stuns 1s' },
+            { id: 'smoke_bomb', name: 'Smoke Bomb', type: NodeType.MAJOR, cost: 1, effect: 'Enemies -30% accuracy 2s' },
+        ],
+        deep: [
+            { id: 'assassins_mark', name: 'Assassin\'s Mark', type: NodeType.MAJOR, cost: 2, effect: 'Mark target +40% damage from you' },
+            { id: 'death_from_shadows', name: 'Death from Shadows', type: NodeType.MAJOR, cost: 2, effect: 'Stealth attack = 2× damage' },
+            { id: 'permanent_cloak', name: 'Permanent Cloak', type: NodeType.MAJOR, cost: 1, effect: 'Stay stealthed after attack 50%' },
+            { id: 'shadow_clone', name: 'Shadow Clone', type: NodeType.MAJOR, cost: 1, effect: 'Create decoy when stealthing' },
+            { id: 'shadow_lord', name: 'Shadow Lord', type: NodeType.CAPSTONE, cost: 1, effect: 'Permanent stealth, +80% from stealth, can\'t be revealed' },
+        ],
+    },
+    assassinate: {
+        early: [
+            { id: 'lethal_blade', name: 'Lethal', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'fatal', name: 'Fatal', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'deadly_assassinate', name: 'Deadly', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'executioner_blade', name: 'Executioner', type: NodeType.MINOR, cost: 1, effect: '+5% execute threshold' },
+            { id: 'quick_kill', name: 'Quick Kill', type: NodeType.MAJOR, cost: 1, effect: 'Execute at 25% HP' },
+        ],
+        mid: [
+            { id: 'massacre_assassin', name: 'Massacre', type: NodeType.MAJOR, cost: 2, effect: 'Kill = +25% next 2s' },
+            { id: 'vital_strike', name: 'Vital Strike', type: NodeType.MAJOR, cost: 1, effect: 'Always crits below 40%' },
+            { id: 'double_kill', name: 'Double Kill', type: NodeType.MAJOR, cost: 2, effect: 'Kill = free attack on another' },
+            { id: 'pain', name: 'Pain', type: NodeType.MAJOR, cost: 1, effect: 'Target can\'t heal 3s' },
+            { id: 'relentless', name: 'Relentless', type: NodeType.MAJOR, cost: 1, effect: 'Kill = CD reset' },
+        ],
+        deep: [
+            { id: 'heart_seeker', name: 'Heart Seeker', type: NodeType.MAJOR, cost: 2, effect: 'Ignore 60% DEF' },
+            { id: 'marked_execution', name: 'Marked Execution', type: NodeType.MAJOR, cost: 2, effect: 'Execute at 35%' },
+            { id: 'chain_kill', name: 'Chain Kill', type: NodeType.MAJOR, cost: 1, effect: 'Kill = attack nearest 50%' },
+            { id: 'perfect_kill', name: 'Perfect Kill', type: NodeType.MAJOR, cost: 1, effect: 'Execute heals full' },
+            { id: 'angel_of_death', name: 'Angel of Death', type: NodeType.CAPSTONE, cost: 1, effect: 'Execute at 45%, +80%, reset all CDs on kill' },
+        ],
+    },
 };
 
 Object.freeze(SKILL_TREES);
