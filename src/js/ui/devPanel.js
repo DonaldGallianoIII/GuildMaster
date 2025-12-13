@@ -59,6 +59,9 @@ const DevPanel = {
                         <button class="btn btn-secondary dev-btn" data-action="level-up-all">
                             Level Up All Heroes
                         </button>
+                        <button class="btn btn-secondary dev-btn" data-action="add-summoner-hero">
+                            Add Summoner Hero
+                        </button>
                     </div>
                 </div>
 
@@ -161,6 +164,9 @@ const DevPanel = {
             case 'level-up-all':
                 await this.levelUpAllHeroes();
                 break;
+            case 'add-summoner-hero':
+                await this.addSummonerHero();
+                break;
 
             // Quests
             case 'refresh-quests':
@@ -249,6 +255,53 @@ const DevPanel = {
 
         this.log(`Added hero: ${hero.name} (Lvl ${hero.level})`);
         Utils.toast(`New hero: ${hero.name}`, 'success');
+    },
+
+    /**
+     * Add a summoner hero specifically (for testing summon system)
+     */
+    async addSummonerHero() {
+        const names = [
+            'Necros', 'Beastlord', 'Summaria', 'Minion Master', 'The Summoner',
+        ];
+
+        const level = 5;
+        const bst = Utils.calcBST(level);
+
+        // High WILL build for summoning
+        const stats = {
+            atk: Math.floor(bst * 0.1),
+            will: Math.floor(bst * 0.5),  // High WILL for summon scaling
+            def: Math.floor(bst * 0.2),
+            spd: Math.floor(bst * 0.2),
+        };
+
+        // Summon skills - wolf, skeleton, golem
+        const summonSkills = [
+            { skillId: 'summon_wolf', points: 3, maxPoints: 5, stackCount: 1 },
+            { skillId: 'summon_skeleton', points: 2, maxPoints: 5, stackCount: 1 },
+            { skillId: 'summon_golem', points: 1, maxPoints: 5, stackCount: 1 },
+        ];
+
+        const hero = new Hero({
+            id: Utils.uuid(),
+            userId: GameState.player.id,
+            name: Utils.randomChoice(names),
+            portraitId: Utils.randomInt(1, 20),
+            level: level,
+            stats: stats,
+            skills: summonSkills,
+        });
+
+        // Save to database
+        await DB.heroes.save(hero);
+
+        // Add to local state
+        GameState._state.heroes.push(hero);
+        GameState.emit('heroHired', { hero });
+
+        this.log(`Added summoner hero: ${hero.name} (WILL: ${stats.will}, 3 summon skills)`);
+        Utils.toast(`Summoner hero: ${hero.name} (test summons!)`, 'success');
     },
 
     /**

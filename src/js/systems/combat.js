@@ -1711,13 +1711,33 @@ const CombatEngine = {
         const stats = effectiveStats || hero.stats;
         const casterWill = stats.will || 0;
 
-        // No WILL = no summons
-        if (casterWill <= 0) return summons;
+        // Debug: Show all hero skills with their activation types
+        const skillDetails = (hero.skills || []).map(s => {
+            const def = Skills.get(s.skillId);
+            return `${s.skillId}(${def?.activation || 'unknown'})`;
+        });
+        Utils.log(`[Summons] ${hero.name} has ${hero.skills?.length || 0} skills: [${skillDetails.join(', ')}]`);
+        Utils.log(`[Summons] WILL: ${casterWill}`);
+
+        // No WILL = no summons (but still show skills for debugging)
+        if (casterWill <= 0) {
+            Utils.log('[Summons] No WILL, skipping summon creation');
+            return summons;
+        }
 
         // Find all summon skills the hero has
-        for (const skillRef of hero.skills) {
+        let foundSummonSkills = 0;
+        for (const skillRef of hero.skills || []) {
             const skillDef = Skills.get(skillRef.skillId);
-            if (!skillDef || skillDef.activation !== SkillActivation.SUMMON) continue;
+
+            // Check if this is a summon skill
+            const isSummonSkill = skillDef && skillDef.activation === 'summon';
+            if (isSummonSkill) {
+                foundSummonSkills++;
+                Utils.log(`[Summons] Found summon skill: ${skillRef.skillId} (type: ${skillDef.summonType})`);
+            }
+
+            if (!skillDef || !isSummonSkill) continue;
 
             const template = SUMMON_TEMPLATES[skillDef.summonType];
             if (!template) {
@@ -1771,7 +1791,14 @@ const CombatEngine = {
 
             summons.push(summon);
 
-            Utils.log(`Created summon: ${template.name} (ATK:${finalStats.atk} DEF:${finalStats.def} SPD:${finalStats.spd} HP:${finalHp})`);
+            Utils.log(`[Summons] Created ${template.icon} ${template.name} - ATK:${finalStats.atk} DEF:${finalStats.def} SPD:${finalStats.spd} HP:${finalHp}`);
+        }
+
+        // Summary log
+        if (foundSummonSkills === 0) {
+            Utils.log(`[Summons] ${hero.name} has no summon skills - summon skills are: summon_wolf, summon_skeleton, summon_golem`);
+        } else {
+            Utils.log(`[Summons] Created ${summons.length} summon(s) from ${foundSummonSkills} summon skill(s)`);
         }
 
         return summons;
