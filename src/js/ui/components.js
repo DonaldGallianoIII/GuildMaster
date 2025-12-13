@@ -93,27 +93,27 @@ const UI = {
     // ==================== SKILL DISPLAY ====================
 
     /**
-     * Create skill tag
+     * Create skill tag (V3: uses points/maxPoints/stackCount)
      */
     createSkillTag(skillRef) {
         const skillId = typeof skillRef === 'string' ? skillRef : skillRef.skillId;
         const skillDef = Skills.get(skillId);
         if (!skillDef) return null;
 
-        const rank = skillRef.rank || 1;
-        const isDoubled = skillRef.isDoubled || false;
-        const isTripled = skillRef.isTripled || false;
+        // V3 skill system: points, maxPoints, stackCount
+        const points = skillRef.points || 0;
+        const maxPoints = skillRef.maxPoints || 5;
+        const stackCount = skillRef.stackCount || 1;
 
         let className = 'skill-tag';
-        if (isTripled) className += ' tripled';
-        else if (isDoubled) className += ' doubled';
+        if (stackCount >= 3) className += ' tripled';
+        else if (stackCount >= 2) className += ' doubled';
 
-        const maxRank = Skills.getMaxRank(isDoubled, isTripled);
-        const multiplier = isTripled ? '³' : isDoubled ? '²' : '';
+        const multiplier = stackCount >= 3 ? '³' : stackCount >= 2 ? '²' : '';
 
         return Utils.createElement('span', {
             className,
-            title: `${skillDef.description}\nRank: ${rank}/${maxRank}`,
+            title: `${skillDef.description}\nPoints: ${points}/${maxPoints}`,
         }, `${skillDef.icon} ${skillDef.name}${multiplier}`);
     },
 

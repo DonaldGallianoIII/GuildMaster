@@ -762,45 +762,44 @@ const Modals = {
     },
 
     /**
-     * Create interactive skill bubble
+     * Create interactive skill bubble (V3: uses points/maxPoints/stackCount)
      */
     _createSkillBubble(skillRef, hero) {
         const skillId = typeof skillRef === 'string' ? skillRef : skillRef.skillId;
         const skillDef = Skills.get(skillId);
         if (!skillDef) return '';
 
-        const rank = skillRef.rank || 1;
-        const maxRank = Skills.getMaxRank(skillRef.isDoubled, skillRef.isTripled);
-        const canUpgrade = hero.skillPoints > 0 && rank < maxRank;
+        // V3 skill system
+        const points = skillRef.points || 0;
+        const maxPoints = skillRef.maxPoints || 5;
+        const stackCount = skillRef.stackCount || 1;
+        const canUpgrade = hero.skillPoints > 0 && points < maxPoints;
 
         // Calculate current and next effect values
-        const currentValue = Skills.calcEffectValue(skillDef, rank);
-        const nextValue = rank < maxRank ? Skills.calcEffectValue(skillDef, rank + 1) : null;
+        const currentValue = Skills.calcEffectValue(skillDef, points);
+        const nextValue = points < maxPoints ? Skills.calcEffectValue(skillDef, points + 1) : null;
 
         // Format effect value display
         const formatEffect = (val) => {
-            if (skillDef.activation === SkillActivation.PASSIVE || skillDef.damageType === DamageType.NONE) {
-                return `${(val * 100).toFixed(0)}%`;
-            }
             return `${(val * 100).toFixed(0)}%`;
         };
 
         // Build scaling description
-        const scalingText = skillDef.scaling.length > 0
+        const scalingText = skillDef.scaling && skillDef.scaling.length > 0
             ? skillDef.scaling.map(s => s.toUpperCase()).join(' + ')
             : 'None';
 
-        // Rarity color class
-        const rarityClass = `skill-rarity-${skillDef.rarity}`;
-        const doubleClass = skillRef.isTripled ? 'tripled' : skillRef.isDoubled ? 'doubled' : '';
+        // Stack indicator classes
+        const stackClass = stackCount >= 3 ? 'tripled' : stackCount >= 2 ? 'doubled' : '';
+        const stackIndicator = stackCount >= 3 ? '³' : stackCount >= 2 ? '²' : '';
 
         return `
-            <div class="skill-bubble ${rarityClass} ${doubleClass}" data-skill-id="${skillId}">
+            <div class="skill-bubble ${stackClass}" data-skill-id="${skillId}">
                 <div class="skill-bubble-icon">${skillDef.icon}</div>
                 <div class="skill-bubble-content">
                     <div class="skill-bubble-header">
-                        <span class="skill-bubble-name">${Utils.escapeHtml(skillDef.name)}${skillRef.isTripled ? '³' : skillRef.isDoubled ? '²' : ''}</span>
-                        <span class="skill-bubble-rank">Rank ${rank}/${maxRank}</span>
+                        <span class="skill-bubble-name">${Utils.escapeHtml(skillDef.name)}${stackIndicator}</span>
+                        <span class="skill-bubble-rank">Points ${points}/${maxPoints}</span>
                     </div>
                     <div class="skill-bubble-desc">${Utils.escapeHtml(skillDef.description)}</div>
                     <div class="skill-bubble-info">
