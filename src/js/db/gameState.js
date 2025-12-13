@@ -554,18 +554,18 @@ const GameState = {
     // ==================== QUESTS ====================
 
     /**
-     * Generate a random quest from theme for a specific bracket and tier
-     * @param {string} bracket - 'novice', 'journeyman', or 'expert'
-     * @param {number} tier - 1, 2, or 3
+     * Generate a random quest from theme for a specific bracket and tag (Design Doc v2)
+     * @param {string} bracket - 'novice', 'apprentice', 'journeyman', 'veteran', 'expert', 'master', 'legendary'
+     * @param {string} tag - 'swarm', 'standard', or 'hunt'
      * @returns {Quest|null}
      */
-    generateQuestFromTheme(bracket, tier) {
+    generateQuestFromTheme(bracket, tag) {
         // Get themes available for this bracket
         const themes = Object.values(QUEST_THEMES).filter(t => t.brackets.includes(bracket));
 
-        // Filter out themes already on the board for this bracket+tier combo
+        // Filter out themes already on the board for this bracket+tag combo
         const boardThemeIds = this._state.questBoard
-            .filter(q => q.bracket === bracket && q.tier === tier)
+            .filter(q => q.bracket === bracket && q.tag === tag)
             .map(q => q.themeId);
         const available = themes.filter(t => !boardThemeIds.includes(t.id));
 
@@ -573,11 +573,11 @@ const GameState = {
             // Fall back to any theme for this bracket
             if (themes.length === 0) return null;
             const theme = Utils.randomChoice(themes);
-            return Quest.fromTheme(theme.id, bracket, tier, this._state.player?.id);
+            return Quest.fromTheme(theme.id, bracket, tag, this._state.player?.id);
         }
 
         const theme = Utils.randomChoice(available);
-        return Quest.fromTheme(theme.id, bracket, tier, this._state.player?.id);
+        return Quest.fromTheme(theme.id, bracket, tag, this._state.player?.id);
     },
 
     /**
@@ -593,17 +593,18 @@ const GameState = {
             [QuestDifficulty.HARD]: QuestBracket.EXPERT,
         };
         const bracket = bracketMap[difficulty] || QuestBracket.NOVICE;
-        const tier = Utils.randomInt(1, 3);
+        const tags = [QuestTag.SWARM, QuestTag.STANDARD, QuestTag.HUNT];
+        const tag = Utils.randomChoice(tags);
 
-        return this.generateQuestFromTheme(bracket, tier);
+        return this.generateQuestFromTheme(bracket, tag);
     },
 
     /**
      * Load quest board from Supabase, generate if empty or incomplete
-     * New system: 3 quests per bracket+tier combo (3 brackets × 3 tiers × 3 = 27 quests)
+     * Design Doc v2: 1 quest per bracket+tag combo (7 brackets × 3 tags = 21 quests)
      */
     async loadQuestBoard() {
-        const QUESTS_PER_TIER = 3;
+        const QUESTS_PER_TAG = 1; // 1 quest per bracket+tag combo
 
         // Check if we have valid quests in the board
         const validQuests = this._state.questBoard.filter(q => {
@@ -619,20 +620,28 @@ const GameState = {
 
         this._state.questBoard = validQuests;
 
-        // Generate quests for each bracket+tier combo
-        const brackets = [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN, QuestBracket.EXPERT];
-        const tiers = [1, 2, 3];
+        // Generate quests for each bracket+tag combo (Design Doc v2)
+        const brackets = [
+            QuestBracket.NOVICE,
+            QuestBracket.APPRENTICE,
+            QuestBracket.JOURNEYMAN,
+            QuestBracket.VETERAN,
+            QuestBracket.EXPERT,
+            QuestBracket.MASTER,
+            QuestBracket.LEGENDARY,
+        ];
+        const tags = [QuestTag.SWARM, QuestTag.STANDARD, QuestTag.HUNT];
         const newQuests = [];
 
         for (const bracket of brackets) {
-            for (const tier of tiers) {
-                // Count how many quests we already have for this bracket+tier
-                const existingCount = validQuests.filter(q => q.bracket === bracket && q.tier === tier).length;
-                const needed = QUESTS_PER_TIER - existingCount;
+            for (const tag of tags) {
+                // Count how many quests we already have for this bracket+tag
+                const existingCount = validQuests.filter(q => q.bracket === bracket && q.tag === tag).length;
+                const needed = QUESTS_PER_TAG - existingCount;
 
                 // Generate more quests if needed
                 for (let i = 0; i < needed; i++) {
-                    const quest = this.generateQuestFromTheme(bracket, tier);
+                    const quest = this.generateQuestFromTheme(bracket, tag);
                     if (quest) {
                         newQuests.push(quest);
                         this._state.questBoard.push(quest);
@@ -652,24 +661,32 @@ const GameState = {
 
     /**
      * Refresh quest board (regenerate all)
-     * New system: 3 quests per bracket+tier combo
+     * Design Doc v2: 1 quest per bracket+tag combo (7 brackets × 3 tags = 21 quests)
      */
     async refreshQuestBoard() {
-        const QUESTS_PER_TIER = 3;
+        const QUESTS_PER_TAG = 1;
 
         // Delete all current available quests
         await Promise.all(this._state.questBoard.map(q => DB.quests.delete(q.id)));
         this._state.questBoard = [];
 
-        // Generate fresh board with all bracket+tier combos
-        const brackets = [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN, QuestBracket.EXPERT];
-        const tiers = [1, 2, 3];
+        // Generate fresh board with all bracket+tag combos (Design Doc v2)
+        const brackets = [
+            QuestBracket.NOVICE,
+            QuestBracket.APPRENTICE,
+            QuestBracket.JOURNEYMAN,
+            QuestBracket.VETERAN,
+            QuestBracket.EXPERT,
+            QuestBracket.MASTER,
+            QuestBracket.LEGENDARY,
+        ];
+        const tags = [QuestTag.SWARM, QuestTag.STANDARD, QuestTag.HUNT];
         const newQuests = [];
 
         for (const bracket of brackets) {
-            for (const tier of tiers) {
-                for (let i = 0; i < QUESTS_PER_TIER; i++) {
-                    const quest = this.generateQuestFromTheme(bracket, tier);
+            for (const tag of tags) {
+                for (let i = 0; i < QUESTS_PER_TAG; i++) {
+                    const quest = this.generateQuestFromTheme(bracket, tag);
                     if (quest) newQuests.push(quest);
                 }
             }
@@ -695,8 +712,8 @@ const GameState = {
                 // Delete expired quest from database
                 savePromises.push(DB.quests.delete(quest.id));
 
-                // Generate replacement of same bracket+tier
-                const replacement = this.generateQuestFromTheme(quest.bracket, quest.tier);
+                // Generate replacement of same bracket+tag
+                const replacement = this.generateQuestFromTheme(quest.bracket, quest.tag || QuestTag.STANDARD);
                 if (replacement) {
                     this._state.questBoard[i] = replacement;
                     savePromises.push(DB.quests.save(replacement));

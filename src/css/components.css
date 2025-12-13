@@ -596,6 +596,38 @@
     background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
 }
 
+/* ==================== TAG BADGE (Design Doc v2) ==================== */
+.tag-badge {
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    text-transform: uppercase;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.5px;
+}
+
+.tag-badge.tag-swarm {
+    background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.tag-badge.tag-standard {
+    background: linear-gradient(135deg, #ffc107 0%, #f57c00 100%);
+    color: #2c1810;
+    text-shadow: none;
+}
+
+.tag-badge.tag-hunt {
+    background: linear-gradient(135deg, #e53935 0%, #b71c1c 100%);
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
 /* ==================== DANGER RATING ==================== */
 .quest-badges {
     display: flex;
