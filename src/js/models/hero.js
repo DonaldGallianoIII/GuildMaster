@@ -362,6 +362,7 @@ class Hero {
 
         let leveled = false;
         let skillPointsGained = 0;
+        const startLevel = this.level;
 
         while (this.xp >= this.xpToNextLevel && this.level < CONFIG.HERO.MAX_LEVEL) {
             this.xp -= this.xpToNextLevel;
@@ -370,10 +371,34 @@ class Hero {
             skillPointsGained += CONFIG.SKILLS.POINTS_PER_LEVEL;
             leveled = true;
 
-            // Heal to full HP on level up
-            this._currentHp = null;  // Will return maxHp (full health)
-
             Utils.log(`${this.name} leveled up to ${this.level}!`);
+        }
+
+        // Scale stats proportionally if leveled up
+        if (leveled && startLevel > 0) {
+            const oldBst = Utils.calcBST(startLevel);
+            const newBst = Utils.calcBST(this.level);
+            const scaleFactor = newBst / oldBst;
+
+            // Scale each stat proportionally
+            this.stats.atk = Math.floor(this.stats.atk * scaleFactor);
+            this.stats.will = Math.floor(this.stats.will * scaleFactor);
+            this.stats.def = Math.floor(this.stats.def * scaleFactor);
+            this.stats.spd = Math.floor(this.stats.spd * scaleFactor);
+
+            // Distribute any remaining points from rounding (favor ATK)
+            const currentBst = this.stats.atk + this.stats.will + this.stats.def + this.stats.spd;
+            const remainder = newBst - currentBst;
+            if (remainder > 0) {
+                this.stats.atk += remainder;
+            }
+
+            Utils.log(`Stats scaled: ATK ${this.stats.atk}, WILL ${this.stats.will}, DEF ${this.stats.def}, SPD ${this.stats.spd}`);
+        }
+
+        // Heal to full HP on level up (after stat scaling so maxHp is correct)
+        if (leveled) {
+            this._currentHp = null;  // Will return maxHp (full health)
         }
 
         return { leveled, newLevel: this.level, skillPointsGained };
