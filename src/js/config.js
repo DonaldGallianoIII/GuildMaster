@@ -84,74 +84,33 @@ const CONFIG = {
     },
 
     /**
-     * QUEST SETTINGS - Bracket/Tier System
+     * QUEST SETTINGS - Legacy settings (kept for backwards compatibility)
+     * NOTE: Duration is now in QUEST_BRACKETS, rewards in QUEST_REWARDS
      */
     QUESTS: {
-        // Duration per bracket (ms)
-        DURATION: {
-            novice: 2 * 60 * 1000,       // 2 min
-            journeyman: 5 * 60 * 1000,   // 5 min
-            expert: 10 * 60 * 1000,      // 10 min
-            // Legacy fallbacks
-            easy: 2 * 60 * 1000,
-            medium: 5 * 60 * 1000,
-            hard: 10 * 60 * 1000,
-        },
-        // Expiration timer per bracket (how long quest stays on board)
-        EXPIRATION: {
-            novice: 24 * 60 * 60 * 1000,      // 24 hours
-            journeyman: 24 * 60 * 60 * 1000,  // 24 hours
-            expert: 24 * 60 * 60 * 1000,      // 24 hours
-        },
-        // Recommended level ranges per bracket
-        LEVEL_RANGE: {
-            novice: { min: 1, max: 3 },
-            journeyman: { min: 4, max: 6 },
-            expert: { min: 7, max: 99 },
-        },
-        // Base gold rewards per bracket (modified by tier)
-        GOLD_REWARDS: {
-            novice: { min: 30, max: 60 },
-            journeyman: { min: 80, max: 150 },
-            expert: { min: 200, max: 400 },
-            // Legacy fallbacks
-            easy: { min: 30, max: 60 },
-            medium: { min: 80, max: 150 },
-            hard: { min: 200, max: 400 },
-        },
-        // Base XP per bracket (modified by tier)
-        XP_REWARDS: {
-            novice: 15,
-            journeyman: 50,
-            expert: 120,
-            // Legacy
-            easy: 15,
-            medium: 50,
-            hard: 120,
-        },
-        // Tier multipliers for rewards
-        TIER_MULTIPLIER: {
-            1: 1.0,   // Tier I - base rewards
-            2: 1.5,   // Tier II - 50% more
-            3: 2.0,   // Tier III - double
-        },
-        // Number of encounters per tier
-        ENCOUNTERS: {
-            1: 2,  // Tier I - 2 encounters
-            2: 3,  // Tier II - 3 encounters
-            3: 4,  // Tier III - 4 encounters
-            // Legacy
-            easy: 2,
-            medium: 3,
-            hard: 4,
-        },
+        // Expiration timer (how long quest stays on board before disappearing)
+        EXPIRATION: 24 * 60 * 60 * 1000,  // 24 hours for all brackets
     },
 
     /**
      * PER-ENEMY LOOT DROPS
      * Each mob killed rolls for loot based on tier
+     * XP ≈ 1.5× Souls, Gold ≈ Souls
      */
     ENEMY_LOOT: {
+        // XP drop per mob tier (awarded to hero on kill)
+        XP: {
+            fodder_trash: { min: 2, max: 3 },
+            fodder: { min: 3, max: 6 },
+            fodder_exalted: { min: 5, max: 9 },
+            standard_weak: { min: 8, max: 12 },
+            standard: { min: 10, max: 18 },
+            standard_exalted: { min: 15, max: 22 },
+            elite: { min: 22, max: 38 },
+            elite_exalted: { min: 38, max: 60 },
+            boss: { min: 75, max: 112 },
+            boss_legendary: { min: 120, max: 150 },
+        },
         // Gold drop per mob tier
         GOLD: {
             fodder_trash: { min: 1, max: 3 },
@@ -159,39 +118,37 @@ const CONFIG = {
             fodder_exalted: { min: 4, max: 8 },
             standard_weak: { min: 6, max: 12 },
             standard: { min: 8, max: 15 },
-            standard_strong: { min: 12, max: 20 },
-            elite_lesser: { min: 15, max: 30 },
+            standard_exalted: { min: 12, max: 20 },
             elite: { min: 25, max: 50 },
-            elite_greater: { min: 40, max: 80 },
-            boss_mini: { min: 50, max: 100 },
+            elite_exalted: { min: 40, max: 80 },
             boss: { min: 80, max: 150 },
-            boss_lord: { min: 150, max: 300 },
+            boss_legendary: { min: 150, max: 300 },
         },
         // Gear drop chance per mob tier (0-1)
         GEAR_CHANCE: {
             fodder_trash: 0,
-            fodder: 0.02,        // 2%
-            fodder_exalted: 0.05, // 5%
-            standard_weak: 0.08,
-            standard: 0.12,      // 12%
-            standard_strong: 0.18,
-            elite_lesser: 0.25,
-            elite: 0.35,         // 35%
-            elite_greater: 0.50,
-            boss_mini: 0.60,
-            boss: 0.80,          // 80%
-            boss_lord: 1.0,      // Guaranteed
+            fodder: 0.02,            // 2%
+            fodder_exalted: 0.05,    // 5%
+            standard_weak: 0.08,     // 8%
+            standard: 0.12,          // 12%
+            standard_exalted: 0.18,  // 18%
+            elite: 0.35,             // 35%
+            elite_exalted: 0.50,     // 50%
+            boss: 0.80,              // 80%
+            boss_legendary: 1.0,     // Guaranteed
         },
         // Gear rarity weights per mob tier
         GEAR_RARITY: {
+            fodder_trash: { common: 100, magic: 0, rare: 0, unique: 0 },
             fodder: { common: 95, magic: 5, rare: 0, unique: 0 },
             fodder_exalted: { common: 80, magic: 18, rare: 2, unique: 0 },
+            standard_weak: { common: 70, magic: 27, rare: 3, unique: 0 },
             standard: { common: 60, magic: 35, rare: 5, unique: 0 },
-            standard_strong: { common: 40, magic: 45, rare: 14, unique: 1 },
+            standard_exalted: { common: 40, magic: 45, rare: 14, unique: 1 },
             elite: { common: 20, magic: 50, rare: 27, unique: 3 },
-            elite_greater: { common: 10, magic: 40, rare: 42, unique: 8 },
+            elite_exalted: { common: 10, magic: 40, rare: 42, unique: 8 },
             boss: { common: 0, magic: 30, rare: 55, unique: 15 },
-            boss_lord: { common: 0, magic: 10, rare: 60, unique: 30 },
+            boss_legendary: { common: 0, magic: 10, rare: 60, unique: 30 },
         },
     },
 
@@ -249,46 +206,67 @@ const CONFIG = {
     QUEST_BRACKETS: {
         novice: {
             name: 'Novice Contracts',
+            duration: 2 * 60 * 1000,  // 2 minutes
             swarm: { enemies: [3, 4], encounters: null, tiers: ['fodder_trash'] },
             standard: { enemies: 2, encounters: 2, tiers: ['fodder', 'fodder_exalted'] },
             hunt: { enemies: 1, encounters: 1, tiers: ['standard_weak'] },
         },
         apprentice: {
             name: 'Apprentice Contracts',
+            duration: 2 * 60 * 1000,  // 2 minutes
             swarm: { enemies: [4, 5], encounters: null, tiers: ['fodder'] },
             standard: { enemies: 2, encounters: 2, tiers: ['fodder_exalted', 'standard_weak'] },
             hunt: { enemies: 1, encounters: 1, tiers: ['standard'] },
         },
         journeyman: {
             name: 'Journeyman Contracts',
+            duration: 2 * 60 * 1000,  // 2 minutes
             swarm: { enemies: [4, 5], encounters: null, tiers: ['fodder_exalted'] },
             standard: { enemies: 2, encounters: 2, tiers: ['standard_weak', 'standard'] },
             hunt: { enemies: 1, encounters: 1, tiers: ['standard_exalted'] },
         },
         veteran: {
             name: 'Veteran Contracts',
+            duration: 5 * 60 * 1000,  // 5 minutes
             swarm: { enemies: 7, encounters: null, tiers: ['standard_weak'] },
             standard: { enemies: 3, encounters: 3, tiers: ['standard', 'standard_exalted'] },
             hunt: { enemies: 1, encounters: 1, tiers: ['elite'] },
         },
         expert: {
             name: 'Expert Contracts',
+            duration: 5 * 60 * 1000,  // 5 minutes
             swarm: { enemies: 10, encounters: null, tiers: ['standard_exalted'] },
             standard: { enemies: 5, encounters: 5, tiers: ['standard_exalted', 'elite'] },
             hunt: { enemies: 1, encounters: 1, tiers: ['elite_exalted'] },
         },
         master: {
             name: 'Master Contracts',
+            duration: 10 * 60 * 1000,  // 10 minutes
             swarm: { enemies: 12, encounters: null, tiers: ['elite'] },
             standard: { enemies: 6, encounters: 6, tiers: ['elite', 'elite_exalted'] },
             hunt: { enemies: 2, encounters: 1, tiers: ['boss'] },
         },
         legendary: {
             name: 'Legendary Contracts',
+            duration: 10 * 60 * 1000,  // 10 minutes
             swarm: { enemies: 15, encounters: null, tiers: ['elite_exalted'] },
             standard: { enemies: 8, encounters: 8, tiers: ['elite_exalted', 'boss'] },
             hunt: { enemies: 1, encounters: 1, tiers: ['boss_legendary'] },
         },
+    },
+
+    /**
+     * QUEST REWARDS - Base XP and Gold per bracket (quest completion bonus)
+     * These are awarded on successful quest completion, separate from mob drops
+     */
+    QUEST_REWARDS: {
+        novice: { xp: 10, gold: { min: 20, max: 40 } },
+        apprentice: { xp: 20, gold: { min: 40, max: 80 } },
+        journeyman: { xp: 35, gold: { min: 70, max: 140 } },
+        veteran: { xp: 70, gold: { min: 150, max: 300 } },
+        expert: { xp: 140, gold: { min: 300, max: 600 } },
+        master: { xp: 300, gold: { min: 600, max: 1200 } },
+        legendary: { xp: 500, gold: { min: 1000, max: 2000 } },
     },
 
     /**
@@ -493,14 +471,8 @@ Object.freeze(CONFIG.SKILL_RARITY_WEIGHTS);
 Object.freeze(CONFIG.GEAR_RARITY_WEIGHTS);
 Object.freeze(CONFIG.RECRUITMENT);
 Object.freeze(CONFIG.QUESTS);
-Object.freeze(CONFIG.QUESTS.DURATION);
-Object.freeze(CONFIG.QUESTS.EXPIRATION);
-Object.freeze(CONFIG.QUESTS.LEVEL_RANGE);
-Object.freeze(CONFIG.QUESTS.GOLD_REWARDS);
-Object.freeze(CONFIG.QUESTS.XP_REWARDS);
-Object.freeze(CONFIG.QUESTS.TIER_MULTIPLIER);
-Object.freeze(CONFIG.QUESTS.ENCOUNTERS);
 Object.freeze(CONFIG.ENEMY_LOOT);
+Object.freeze(CONFIG.ENEMY_LOOT.XP);
 Object.freeze(CONFIG.ENEMY_LOOT.GOLD);
 Object.freeze(CONFIG.ENEMY_LOOT.GEAR_CHANCE);
 Object.freeze(CONFIG.ENEMY_LOOT.GEAR_RARITY);
@@ -508,6 +480,7 @@ Object.freeze(CONFIG.MOB_TIERS);
 Object.freeze(CONFIG.QUEST_TAGS);
 Object.freeze(CONFIG.TAG_DISPLAY);
 Object.freeze(CONFIG.QUEST_BRACKETS);
+Object.freeze(CONFIG.QUEST_REWARDS);
 Object.freeze(CONFIG.FREE_HIT);
 Object.freeze(CONFIG.BETWEEN_PACKS);
 Object.freeze(CONFIG.INHERITANCE);

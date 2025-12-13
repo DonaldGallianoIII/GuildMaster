@@ -1789,16 +1789,14 @@ class Quest {
      * Get total duration in ms
      */
     get duration() {
-        // New system: use bracket
-        if (this._bracket) {
-            return CONFIG.QUESTS.DURATION[this._bracket] || CONFIG.QUESTS.DURATION.novice;
+        // New system: use bracket duration from QUEST_BRACKETS
+        if (this._bracket && CONFIG.QUEST_BRACKETS[this._bracket]) {
+            return CONFIG.QUEST_BRACKETS[this._bracket].duration || 2 * 60 * 1000;
         }
 
-        // Legacy system
+        // Legacy fallback: 2 minutes default
         const templateDuration = this.template?.duration;
-        const configDuration = CONFIG.QUESTS.DURATION[this.difficulty];
-        const fallbackDuration = CONFIG.QUESTS.DURATION.easy;
-        const duration = templateDuration || configDuration || fallbackDuration;
+        const duration = templateDuration || 2 * 60 * 1000;
 
         // Debug: Log if duration is unexpectedly small
         if (duration < 60000) {
@@ -1809,29 +1807,24 @@ class Quest {
     }
 
     /**
-     * Get quest rewards based on bracket and tier
+     * Get quest base rewards from bracket (no tier multipliers)
+     * Note: This returns quest completion bonus only. Mob drops are calculated separately in combat.
      */
     get rewards() {
-        // New system: use bracket + tier multiplier
-        if (this._bracket) {
-            const baseGold = CONFIG.QUESTS.GOLD_REWARDS[this._bracket] || CONFIG.QUESTS.GOLD_REWARDS.novice;
-            const baseXp = CONFIG.QUESTS.XP_REWARDS[this._bracket] || CONFIG.QUESTS.XP_REWARDS.novice;
-            const multiplier = CONFIG.QUESTS.TIER_MULTIPLIER[this._tier] || 1;
-
+        // New system: use QUEST_REWARDS by bracket
+        if (this._bracket && CONFIG.QUEST_REWARDS[this._bracket]) {
+            const bracketRewards = CONFIG.QUEST_REWARDS[this._bracket];
             return {
-                gold: {
-                    min: Math.floor(baseGold.min * multiplier),
-                    max: Math.floor(baseGold.max * multiplier),
-                },
-                xp: Math.floor(baseXp * multiplier),
+                gold: bracketRewards.gold,
+                xp: bracketRewards.xp,
             };
         }
 
-        // Legacy system
-        const diff = this.difficulty;
+        // Legacy fallback: novice rewards
+        const fallback = CONFIG.QUEST_REWARDS.novice;
         return {
-            gold: CONFIG.QUESTS.GOLD_REWARDS[diff] || CONFIG.QUESTS.GOLD_REWARDS.easy,
-            xp: CONFIG.QUESTS.XP_REWARDS[diff] || CONFIG.QUESTS.XP_REWARDS.easy,
+            gold: fallback.gold,
+            xp: fallback.xp,
         };
     }
 

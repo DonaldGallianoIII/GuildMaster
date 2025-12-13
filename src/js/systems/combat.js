@@ -966,11 +966,16 @@ const CombatEngine = {
             success: true,
             heroSurvived: true,
             encounters: [],
-            totalXp: 0,
-            totalGold: 0,
-            totalSouls: 0,  // Soul drops from kills (Design Doc v2)
+            // Reward breakdown
+            questXp: 0,       // Base XP from quest completion
+            mobXp: 0,         // XP from enemy kills
+            totalXp: 0,       // questXp + mobXp
+            questGold: 0,     // Base gold from quest completion
+            mobGold: 0,       // Gold dropped by enemies
+            totalGold: 0,     // questGold + mobGold
+            totalSouls: 0,    // Soul drops from kills
             loot: [],
-            effectiveMaxHp: null, // Will be set after gear calculation
+            effectiveMaxHp: null,
         };
 
         const template = quest.template;
@@ -1043,12 +1048,22 @@ const CombatEngine = {
                 return item;
             }).filter(Boolean);
 
-            // Calculate soul drops from kills (Design Doc v2 - Soul Economy)
+            // Calculate drops from kills (souls, XP, gold)
             for (const mob of mobs) {
+                // Soul drops
                 const soulDrops = CONFIG.SOUL_DROPS[mob.tier];
                 if (soulDrops) {
-                    const souls = Utils.randomInt(soulDrops.min, soulDrops.max);
-                    results.totalSouls += souls;
+                    results.totalSouls += Utils.randomInt(soulDrops.min, soulDrops.max);
+                }
+                // XP drops
+                const xpDrops = CONFIG.ENEMY_LOOT.XP[mob.tier];
+                if (xpDrops) {
+                    results.mobXp += Utils.randomInt(xpDrops.min, xpDrops.max);
+                }
+                // Gold drops
+                const goldDrops = CONFIG.ENEMY_LOOT.GOLD[mob.tier];
+                if (goldDrops) {
+                    results.mobGold += Utils.randomInt(goldDrops.min, goldDrops.max);
                 }
             }
 
@@ -1068,11 +1083,17 @@ const CombatEngine = {
 
         // Calculate rewards if successful
         if (results.success) {
-            // Use quest.rewards (calculated from CONFIG based on difficulty)
-            const rewards = quest.rewards;
-            results.totalXp = rewards.xp;
-            results.totalGold = Utils.randomInt(rewards.gold.min, rewards.gold.max);
+            // Get quest base rewards from bracket (uses new QUEST_REWARDS config)
+            const bracketRewards = CONFIG.QUEST_REWARDS[quest.bracket];
+            if (bracketRewards) {
+                results.questXp = bracketRewards.xp;
+                results.questGold = Utils.randomInt(bracketRewards.gold.min, bracketRewards.gold.max);
+            }
         }
+
+        // Calculate totals (mob drops are earned regardless of quest success)
+        results.totalXp = results.questXp + results.mobXp;
+        results.totalGold = results.questGold + results.mobGold;
 
         return results;
     },
