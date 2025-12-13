@@ -1730,14 +1730,16 @@ class Quest {
     }
 
     /**
-     * Get quest tier (new system)
+     * Get quest tier (legacy - returns 1 for backwards compatibility)
+     * @deprecated Use tag instead
      */
     get tier() {
-        return this._tier || QuestTier.I;
+        return this._tier || 1;
     }
 
     /**
-     * Get tier display name (I, II, III)
+     * Get tier display name (I, II, III) - legacy
+     * @deprecated Use tag instead
      */
     get tierName() {
         return TIER_NAMES[this.tier] || 'I';
@@ -1752,11 +1754,12 @@ class Quest {
 
     /**
      * Get recommended level for this quest
+     * Design Doc v2: Based on bracket only (no level gates, but suggests difficulty)
      */
     get recommendedLevel() {
         const range = CONFIG.QUESTS.LEVEL_RANGE[this.bracket] || CONFIG.QUESTS.LEVEL_RANGE.novice;
-        // Higher tiers recommend higher end of bracket range
-        return Math.min(range.max, range.min + (this.tier - 1));
+        // Return middle of range
+        return Math.floor((range.min + range.max) / 2);
     }
 
     /**
@@ -2407,7 +2410,6 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         QuestBracket,
         QuestTag,
-        QuestTier,
         QuestDifficulty,
         QuestStatus,
         QUEST_EXPIRATION,
