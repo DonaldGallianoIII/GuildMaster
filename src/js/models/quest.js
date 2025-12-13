@@ -1870,17 +1870,21 @@ class Quest {
             return null;
         }
 
-        // Find the last encounter that had combat (where hero died)
+        // Find the encounter where hero died (victory: false)
         if (this.events && this.events.length > 0) {
-            // Look for encounter_end with victory: false to find when hero died
             for (const event of this.events) {
                 if (event.type === 'encounter_end' && event.data.victory === false) {
+                    Utils.log(`Hero death time found: ${event.time}ms (quest: ${this.name})`);
                     return event.time;
                 }
             }
+            Utils.warn(`No death event found in ${this.events.length} events for failed quest: ${this.name}`);
+        } else {
+            Utils.warn(`No events array for failed quest: ${this.name}`);
         }
 
         // Fallback: return full duration if we can't determine exact time
+        Utils.log(`Using fallback death time (full duration): ${this.duration}ms`);
         return this.duration;
     }
 
