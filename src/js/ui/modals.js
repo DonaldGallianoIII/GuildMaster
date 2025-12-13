@@ -1228,10 +1228,49 @@ const Modals = {
                 ${isVictory ? `
                     <div class="loot-display">
                         <h4 class="loot-header">Rewards</h4>
-                        <div style="margin-bottom: 1rem;">
-                            <span>💰 ${results.totalGold}g</span>
-                            ${results.totalSouls > 0 ? `<span style="margin-left: 1rem;">👻 ${results.totalSouls} souls</span>` : ''}
-                            <span style="margin-left: 1rem;">✨ ${results.totalXp} XP</span>
+                        <div class="rewards-breakdown" style="margin-bottom: 1rem;">
+                            <div class="reward-section" style="margin-bottom: 0.75rem;">
+                                <div style="color: var(--color-ink-faded); font-size: 0.85rem; margin-bottom: 0.25rem;">XP GAINED</div>
+                                <div style="display: flex; flex-direction: column; gap: 0.1rem; font-size: 0.9rem;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span>Quest Reward:</span>
+                                        <span>+${results.questXp || 0}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span>Enemies Slain:</span>
+                                        <span>+${results.mobXp || 0}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--color-border); padding-top: 0.2rem; font-weight: bold;">
+                                        <span>Total:</span>
+                                        <span>✨ ${results.totalXp} XP</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="reward-section" style="margin-bottom: 0.75rem;">
+                                <div style="color: var(--color-ink-faded); font-size: 0.85rem; margin-bottom: 0.25rem;">GOLD GAINED</div>
+                                <div style="display: flex; flex-direction: column; gap: 0.1rem; font-size: 0.9rem;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span>Quest Reward:</span>
+                                        <span>+${results.questGold || 0}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span>Enemy Drops:</span>
+                                        <span>+${results.mobGold || 0}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--color-border); padding-top: 0.2rem; font-weight: bold;">
+                                        <span>Total:</span>
+                                        <span>💰 ${results.totalGold}g</span>
+                                    </div>
+                                </div>
+                            </div>
+                            ${results.totalSouls > 0 ? `
+                                <div class="reward-section">
+                                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                                        <span>Souls:</span>
+                                        <span>👻 ${results.totalSouls}</span>
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                         ${results.loot.length > 0 ? `
                             <h4>Loot Found</h4>
