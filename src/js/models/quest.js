@@ -1966,30 +1966,40 @@ class Quest {
         // Store pre-calculated combat results
         this.combatResults = combatResults;
 
-        // Generate event timeline for peek system (using actual combat if available)
-        // This also calculates actual duration based on combat rounds
-        let actualDuration = this.duration;
+        // Determine quest duration:
+        // - Victory: Always use full bracket duration (e.g., 2 minutes for Novice)
+        // - Death: End early at the time of death
+        let questDuration = this.duration;  // Full bracket duration
+
+        // Generate event timeline for peek system
         if (combatResults && combatResults.encounters) {
-            actualDuration = this.generateEventsFromCombat(combatResults);
+            // Generate events and get the combat timeline duration
+            const combatDuration = this.generateEventsFromCombat(combatResults);
+
+            // Only shorten duration if hero died (quest failed)
+            if (!combatResults.success) {
+                questDuration = combatDuration;
+                Utils.log(`Hero died - quest ending early at ${Math.round(combatDuration / 1000)}s`);
+            }
         } else {
             this.generateEvents();
         }
 
-        // Set endsAt based on actual combat duration (may be shorter if hero dies early)
-        this.endsAt = new Date(Date.now() + actualDuration).toISOString();
+        // Set endsAt based on quest duration
+        this.endsAt = new Date(Date.now() + questDuration).toISOString();
 
-        Utils.log(`Quest started: ${this.name}, duration: ${Math.round(actualDuration / 1000)}s`);
+        Utils.log(`Quest started: ${this.name}, duration: ${Math.round(questDuration / 1000)}s`);
     }
 
     /**
      * Generate timeline of events from actual combat results
      * Shows real combat actions instead of placeholders
-     * @returns {number} Actual duration in ms based on combat rounds
+     * @returns {number} Combat duration in ms (for early death timing)
      */
     generateEventsFromCombat(combatResults) {
         const events = [];
 
-        // Calculate actual duration based on rounds fought
+        // Calculate combat duration based on rounds fought
         // Use realistic timing: ~5 seconds per round, ~10 seconds travel between encounters
         const SECONDS_PER_ROUND = 5000;  // 5 seconds per combat round
         const TRAVEL_TIME = 10000;       // 10 seconds between encounters
@@ -2011,17 +2021,19 @@ class Quest {
             }
         }
 
-        // Calculate actual duration: combat time + travel time
+        // Calculate combat duration (used for early death timing)
         const combatTime = totalRounds * SECONDS_PER_ROUND;
         const travelTime = Math.max(0, encountersCompleted - 1) * TRAVEL_TIME;
-        let actualDuration = combatTime + travelTime;
+        let combatDuration = combatTime + travelTime;
+        combatDuration = Math.max(MIN_DURATION, combatDuration);
+        combatDuration = Math.min(this.duration, combatDuration);
 
-        // Apply minimum duration and cap at max quest duration
-        actualDuration = Math.max(MIN_DURATION, actualDuration);
-        actualDuration = Math.min(this.duration, actualDuration);
+        // For event spacing, use full bracket duration for victories, combat duration for deaths
+        const heroWon = combatResults.success;
+        const eventDuration = heroWon ? this.duration : combatDuration;
 
-        // Now generate events scaled to actual duration
-        const encounterDuration = actualDuration / encountersCompleted;
+        // Now generate events scaled to event duration
+        const encounterDuration = eventDuration / encountersCompleted;
         let currentTime = 0;
 
         for (let i = 0; i < combatResults.encounters.length; i++) {
@@ -2107,9 +2119,9 @@ class Quest {
             }
         }
 
-        // Quest complete event at actual end time
+        // Quest complete event at the end of event timeline
         events.push({
-            time: actualDuration,
+            time: eventDuration,
             type: 'quest_complete',
             data: {
                 success: combatResults.success,
@@ -2121,7 +2133,8 @@ class Quest {
 
         this.events = events.sort((a, b) => a.time - b.time);
 
-        return actualDuration;
+        // Return combat duration (used for early death timing)
+        return combatDuration;
     }
 
     /**
