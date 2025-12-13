@@ -1960,7 +1960,6 @@ class Quest {
         this.heroId = heroId;
         this.status = QuestStatus.ACTIVE;
         this.startedAt = Utils.now();
-        this.endsAt = new Date(Date.now() + this.duration).toISOString();
         this.currentEncounter = 0;
         this.totalEncounters = this.encounters.length;
 
@@ -1968,27 +1967,67 @@ class Quest {
         this.combatResults = combatResults;
 
         // Generate event timeline for peek system (using actual combat if available)
+        // This also calculates actual duration based on combat rounds
+        let actualDuration = this.duration;
         if (combatResults && combatResults.encounters) {
-            this.generateEventsFromCombat(combatResults);
+            actualDuration = this.generateEventsFromCombat(combatResults);
         } else {
             this.generateEvents();
         }
 
-        Utils.log(`Quest started: ${this.name}`);
+        // Set endsAt based on actual combat duration (may be shorter if hero dies early)
+        this.endsAt = new Date(Date.now() + actualDuration).toISOString();
+
+        Utils.log(`Quest started: ${this.name}, duration: ${Math.round(actualDuration / 1000)}s`);
     }
 
     /**
      * Generate timeline of events from actual combat results
      * Shows real combat actions instead of placeholders
+     * @returns {number} Actual duration in ms based on combat rounds
      */
     generateEventsFromCombat(combatResults) {
         const events = [];
-        const encounterDuration = this.duration / this.totalEncounters;
+
+        // Calculate actual duration based on rounds fought
+        // Use realistic timing: ~5 seconds per round, ~10 seconds travel between encounters
+        const SECONDS_PER_ROUND = 5000;  // 5 seconds per combat round
+        const TRAVEL_TIME = 10000;       // 10 seconds between encounters
+        const MIN_DURATION = 30000;      // Minimum 30 seconds for any quest
+
+        let totalRounds = 0;
+        let encountersCompleted = 0;
+
+        for (const encResult of combatResults.encounters) {
+            const combatData = encResult.result;
+            if (combatData && combatData.rounds) {
+                totalRounds += combatData.rounds.length;
+            }
+            encountersCompleted++;
+
+            // Stop counting if hero died in this encounter
+            if (combatData && !combatData.victory) {
+                break;
+            }
+        }
+
+        // Calculate actual duration: combat time + travel time
+        const combatTime = totalRounds * SECONDS_PER_ROUND;
+        const travelTime = Math.max(0, encountersCompleted - 1) * TRAVEL_TIME;
+        let actualDuration = combatTime + travelTime;
+
+        // Apply minimum duration and cap at max quest duration
+        actualDuration = Math.max(MIN_DURATION, actualDuration);
+        actualDuration = Math.min(this.duration, actualDuration);
+
+        // Now generate events scaled to actual duration
+        const encounterDuration = actualDuration / encountersCompleted;
+        let currentTime = 0;
 
         for (let i = 0; i < combatResults.encounters.length; i++) {
             const encResult = combatResults.encounters[i];
             const combatData = encResult.result;
-            const encounterStart = i * encounterDuration;
+            const encounterStart = currentTime;
 
             // Encounter start event
             events.push({
@@ -2005,9 +2044,10 @@ class Quest {
 
             // Add actual combat actions as events
             if (combatData && combatData.rounds) {
-                const roundDuration = (encounterDuration - 200) / Math.max(combatData.rounds.length, 1);
+                const roundCount = combatData.rounds.length;
+                const roundDuration = (encounterDuration - 200) / Math.max(roundCount, 1);
 
-                for (let r = 0; r < combatData.rounds.length; r++) {
+                for (let r = 0; r < roundCount; r++) {
                     const round = combatData.rounds[r];
                     const roundTime = encounterStart + (r * roundDuration) + 100;
 
@@ -2046,7 +2086,7 @@ class Quest {
                 for (const evt of combatData.events) {
                     if (evt.type === 'REST') {
                         events.push({
-                            time: encounterStart + encounterDuration - 25, // Just after encounter end
+                            time: encounterStart + encounterDuration - 25,
                             type: 'rest',
                             data: {
                                 encounterIndex: i,
@@ -2057,11 +2097,18 @@ class Quest {
                     }
                 }
             }
+
+            currentTime += encounterDuration;
+
+            // Stop generating events if hero died
+            if (combatData && !combatData.victory) {
+                break;
+            }
         }
 
-        // Quest complete event
+        // Quest complete event at actual end time
         events.push({
-            time: this.duration,
+            time: actualDuration,
             type: 'quest_complete',
             data: {
                 success: combatResults.success,
@@ -2072,6 +2119,8 @@ class Quest {
         });
 
         this.events = events.sort((a, b) => a.time - b.time);
+
+        return actualDuration;
     }
 
     /**
