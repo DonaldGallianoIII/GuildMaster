@@ -1105,6 +1105,9 @@ const CombatEngine = {
                     // Skip if hero already dead
                     if (!heroCombatant.isAlive) continue;
 
+                    // Skip if this enemy was killed (e.g., by hero's AoE earlier this round)
+                    if (!actor.isAlive) continue;
+
                     // ENEMY TARGET SELECTION: Hero or summons?
                     // 40% chance to target a summon if any are alive
                     const livingSummons = summons.filter(s => s.isAlive);
