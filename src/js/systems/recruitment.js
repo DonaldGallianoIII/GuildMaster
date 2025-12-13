@@ -161,9 +161,9 @@ const RecruitmentSystem = {
 
         // Track current skill state for animation
         const currentSkills = {}; // { skillId: { element, stackCount } }
-        const FADE_DURATION = 400;
-        const MERGE_DURATION = 500;
-        const WAVE_DELAY = 300;
+        const FADE_DURATION = 300;
+        const MERGE_DURATION = 400;
+        const WAVE_DELAY = 200;
 
         for (let waveIndex = 0; waveIndex < rollWaves.length; waveIndex++) {
             const wave = rollWaves[waveIndex];
@@ -178,38 +178,53 @@ const RecruitmentSystem = {
                 const isMerge = wave.merges.some(m => m.skillId === skillId);
 
                 if (isMerge) {
-                    // MERGE ANIMATION: Show incoming skill, then collide with existing
+                    // MERGE ANIMATION: Show duplicate colliding into existing
                     const merge = wave.merges.find(m => m.skillId === skillId);
                     const existingData = currentSkills[skillId];
 
                     if (existingData) {
-                        // Create incoming skill element
+                        const targetRect = existingData.element.getBoundingClientRect();
+                        const containerRect = container.getBoundingClientRect();
+
+                        // Create incoming duplicate skill
                         const incoming = this.createAnimatedSkillTag(skillDef, 1);
-                        incoming.classList.add('skill-incoming');
+                        incoming.classList.add('skill-duplicate');
+
+                        // Position it to the right, then animate toward target
+                        const targetX = targetRect.left - containerRect.left;
+                        const targetY = targetRect.top - containerRect.top;
+                        incoming.style.cssText = `
+                            position: absolute;
+                            left: ${targetX + 100}px;
+                            top: ${targetY}px;
+                            z-index: 10;
+                        `;
                         container.appendChild(incoming);
 
-                        // Wait for fade in
-                        await this.sleep(FADE_DURATION);
+                        // Force reflow then animate
+                        incoming.offsetHeight;
+                        incoming.style.transition = `all ${MERGE_DURATION}ms ease-in`;
+                        incoming.style.left = `${targetX}px`;
+                        incoming.style.opacity = '0';
+                        incoming.style.transform = 'scale(0.5)';
 
-                        // Trigger merge animation
-                        incoming.classList.add('skill-merging');
+                        // Flash the target
                         existingData.element.classList.add('skill-merge-target');
 
-                        await this.sleep(MERGE_DURATION / 2);
+                        await this.sleep(MERGE_DURATION);
 
-                        // Remove incoming, update existing to new stack
+                        // Remove duplicate, upgrade target
                         incoming.remove();
                         existingData.stackCount = merge.toStack;
 
                         // Update the element with new stack count
                         const multiplier = merge.toStack >= 3 ? '³' : '²';
                         existingData.element.textContent = `${skillDef.icon} ${skillDef.name}${multiplier}`;
-                        existingData.element.classList.remove('doubled', 'tripled');
+                        existingData.element.classList.remove('doubled', 'tripled', 'skill-merge-target');
                         existingData.element.classList.add(merge.toStack >= 3 ? 'tripled' : 'doubled');
-                        existingData.element.classList.remove('skill-merge-target');
                         existingData.element.classList.add('skill-merged');
 
-                        await this.sleep(MERGE_DURATION / 2);
+                        await this.sleep(300);
                         existingData.element.classList.remove('skill-merged');
                     }
                 } else if (wave.newSkills.includes(skillId)) {
@@ -221,7 +236,7 @@ const RecruitmentSystem = {
                     currentSkills[skillId] = { element, stackCount: 1 };
 
                     // Stagger reveals slightly
-                    await this.sleep(FADE_DURATION + 100);
+                    await this.sleep(FADE_DURATION + 50);
                     element.classList.remove('skill-reveal');
                 }
             }
