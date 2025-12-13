@@ -1270,10 +1270,17 @@ const CombatEngine = {
             damageType = result.damageType;
             isCritical = result.isCritical;
 
-            // Handle healing skills
+            // Handle pure healing skills (target self, no damage)
             if (skillDef.target === SkillTarget.SELF && skillDef.baseValue > 0 && skillDef.damageType === DamageType.NONE) {
                 healing = Math.floor(actor.maxHp * this.getSkillEffectValue(skillDef, hero, skillId));
                 actor.heal(healing);
+            }
+
+            // Handle hybrid skills that deal damage AND heal self (e.g., Lay on Hands)
+            if (skillDef.selfHealPercent && skillDef.selfHealPercent > 0) {
+                const selfHeal = Math.floor(actor.maxHp * skillDef.selfHealPercent);
+                actor.heal(selfHeal);
+                healing += selfHeal;
             }
         } else {
             // Basic attack - physical (nerfed to 0.7× ATK so skills feel impactful)
