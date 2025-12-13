@@ -2064,6 +2064,7 @@ class Quest {
                                 actorName: action.actorName,
                                 targetName: action.targetName,
                                 actorIsHero: action.actorIsHero,
+                                targetIsHero: action.targetIsHero,  // Track if hero is target
                             },
                         });
                     }
