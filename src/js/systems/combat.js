@@ -962,11 +962,16 @@ const CombatEngine = {
             gearBonuses: gearBonuses,
         }, true, false);
 
-        // Create summons from hero's summon skills
-        const summons = this.createSummons(hero, effectiveStats);
-        if (summons.length > 0) {
-            Utils.log(`${hero.name} enters combat with ${summons.length} summon(s): ${summons.map(s => s.icon + s.name).join(', ')}`);
-        }
+        // Summons array - starts empty, hero must spend turn to summon
+        // Each summon tracks its sourceSkill so we know when it can be resummoned
+        const summons = [];
+
+        // Store summon creation context for when hero uses summon skills
+        const summonContext = {
+            hero,
+            effectiveStats,
+            summons,
+        };
 
         // Create all enemies (for AoE tracking)
         const allEnemies = mobs.map(mob => new Combatant(mob, false, false));
@@ -1021,9 +1026,9 @@ const CombatEngine = {
                     // Skip if enemy already dead (e.g., killed by thorns)
                     if (!currentEnemy.isAlive) continue;
 
-                    // Hero attacks - check for AoE
+                    // Hero attacks - check for AoE, pass summon context for summon skills
                     const livingEnemies = allEnemies.filter(e => e.isAlive);
-                    const action = this.executeAction(actor, [currentEnemy], livingEnemies, hero);
+                    const action = this.executeAction(actor, [currentEnemy], livingEnemies, hero, summonContext);
 
                     if (action) {
                         round.addAction(action);
@@ -1197,13 +1202,21 @@ const CombatEngine = {
      * @param {Array} allEnemies - All living enemies (for AoE/cleave)
      * @param {Hero} hero - The hero object for skill lookups
      */
-    executeAction(actor, targets, allEnemies, hero) {
+    executeAction(actor, targets, allEnemies, hero, summonContext = null) {
         // Select primary target
         const target = this.selectTarget(targets);
         if (!target) return null;
 
-        // Choose skill or basic attack (pass allEnemies for AoE/cleave decisions)
-        const { skillId, skillDef } = this.chooseSkill(actor, target, hero, allEnemies);
+        // Get summons array for skill selection
+        const summons = summonContext?.summons || [];
+
+        // Choose skill or basic attack (pass allEnemies and summons for decisions)
+        const { skillId, skillDef, isSummon } = this.chooseSkill(actor, target, hero, allEnemies, summons);
+
+        // HANDLE SUMMON SKILLS: Create summon instead of attacking
+        if (isSummon && skillDef && summonContext) {
+            return this.executeSummonSkill(actor, skillDef, skillId, summonContext);
+        }
 
         // Determine if this is an AoE/cleave attack
         const isAoE = skillDef && (skillDef.target === SkillTarget.AOE);
@@ -1326,28 +1339,43 @@ const CombatEngine = {
      * Works for both heroes AND enemies
      *
      * Priorities:
-     * 1. Execute skills on low HP targets
-     * 2. AoE/Cleave when multiple enemies alive
-     * 3. Highest damage skill available
-     * 4. Basic attack as fallback (when all skills on cooldown)
+     * 1. Summon skill if no summon from that skill is alive (high priority)
+     * 2. Execute skills on low HP targets
+     * 3. AoE/Cleave when multiple enemies alive
+     * 4. Highest damage skill available
+     * 5. Basic attack as fallback (when all skills on cooldown)
      */
-    chooseSkill(actor, target, hero, allEnemies = []) {
-        // Get all available active skills
+    chooseSkill(actor, target, hero, allEnemies = [], summons = []) {
+        // Get all available active AND summon skills
         const availableSkills = [];
         for (const skillRef of actor.skills) {
             const skillId = typeof skillRef === 'string' ? skillRef : skillRef.skillId;
             const skillDef = Skills.get(skillId);
 
             if (!skillDef) continue;
-            if (skillDef.activation !== SkillActivation.ACTIVE) continue;
+
+            // Allow both ACTIVE and SUMMON activation types
+            const isActive = skillDef.activation === SkillActivation.ACTIVE;
+            const isSummon = skillDef.activation === 'summon';
+            if (!isActive && !isSummon) continue;
+
             if (!actor.canUseSkill(skillId)) continue;
+
+            // For summon skills, check if summon from this skill is already alive
+            if (isSummon) {
+                const existingSummon = summons.find(s => s.sourceSkill === skillId && s.isAlive);
+                if (existingSummon) {
+                    // Can't summon if one is already alive
+                    continue;
+                }
+            }
 
             // Get skill tree points (heroes have points, enemies use 0)
             const rank = actor.isHero && hero
                 ? (hero.skills.find(s => s.skillId === skillId)?.points || 0)
                 : 0;
 
-            availableSkills.push({ skillId, skillDef, skillRef, rank });
+            availableSkills.push({ skillId, skillDef, skillRef, rank, isSummon });
         }
 
         // If no skills available (all on cooldown or none exist), return null for basic attack
@@ -1361,55 +1389,78 @@ const CombatEngine = {
         // Count living enemies (for hero) or allies (for enemy - not used yet)
         const livingEnemies = allEnemies.filter(e => e.isAlive).length;
 
+        // Count living summons for priority calculations
+        const livingSummonCount = summons.filter(s => s.isAlive).length;
+
         // Score each skill based on situation
         let bestSkill = null;
         let bestScore = -1;
 
-        for (const { skillId, skillDef, skillRef, rank } of availableSkills) {
+        for (const { skillId, skillDef, skillRef, rank, isSummon } of availableSkills) {
             let score = skillDef.baseValue || 1;
 
-            // Bonus for execute skills when target is low HP
-            if (skillDef.executeBonus && targetHpPercent < 0.5) {
-                // Execute bonus scales inversely with HP - huge bonus at low HP
-                score += (1 - targetHpPercent) * 2;
-            }
+            // SUMMON SKILLS: High priority when we have no summons or few summons
+            if (isSummon) {
+                // Base score for summoning (having minions is good)
+                score = 2.0;
 
-            // Bonus for AoE/Cleave when multiple enemies (for hero attacking)
-            if (actor.isHero) {
-                if (skillDef.target === SkillTarget.AOE && livingEnemies > 1) {
-                    score += livingEnemies * 0.5; // More enemies = more value
+                // Higher priority if we have no summons yet
+                if (livingSummonCount === 0) {
+                    score += 3.0; // Very high priority to get first summon out
+                } else if (livingSummonCount === 1) {
+                    score += 1.5; // Still prioritize getting more summons
                 }
-                if (skillDef.target === SkillTarget.CLEAVE && livingEnemies > 1) {
-                    score += Math.min(livingEnemies, 3) * 0.4;
+
+                // Bonus based on skill points invested
+                score += rank * 0.1;
+
+                // Skip the rest of combat-specific scoring for summon skills
+            } else {
+                // Regular combat skill scoring
+
+                // Bonus for execute skills when target is low HP
+                if (skillDef.executeBonus && targetHpPercent < 0.5) {
+                    // Execute bonus scales inversely with HP - huge bonus at low HP
+                    score += (1 - targetHpPercent) * 2;
                 }
-            }
 
-            // Bonus for high crit chance skills
-            if (skillDef.critBonus) {
-                score += skillDef.critBonus;
-            }
+                // Bonus for AoE/Cleave when multiple enemies (for hero attacking)
+                if (actor.isHero) {
+                    if (skillDef.target === SkillTarget.AOE && livingEnemies > 1) {
+                        score += livingEnemies * 0.5; // More enemies = more value
+                    }
+                    if (skillDef.target === SkillTarget.CLEAVE && livingEnemies > 1) {
+                        score += Math.min(livingEnemies, 3) * 0.4;
+                    }
+                }
 
-            // Slight bonus for higher rank skills (more invested = more reliable)
-            score += rank * 0.05;
+                // Bonus for high crit chance skills
+                if (skillDef.critBonus) {
+                    score += skillDef.critBonus;
+                }
 
-            // Prefer magical damage against low-WILL targets, physical against low-DEF
-            if (skillDef.damageType === DamageType.MAGICAL && target.will < target.def) {
-                score += 0.2;
-            } else if (skillDef.damageType === DamageType.PHYSICAL && target.def < target.will) {
-                score += 0.2;
-            }
+                // Slight bonus for higher rank skills (more invested = more reliable)
+                score += rank * 0.05;
 
-            // Prefer lower cooldown skills slightly (more usable)
-            const cooldown = Skills.getCooldownAtRank(skillDef, rank);
-            if (cooldown === 0) {
-                score += 0.3; // No cooldown is great
-            } else if (cooldown === 1) {
-                score += 0.1;
+                // Prefer magical damage against low-WILL targets, physical against low-DEF
+                if (skillDef.damageType === DamageType.MAGICAL && target.will < target.def) {
+                    score += 0.2;
+                } else if (skillDef.damageType === DamageType.PHYSICAL && target.def < target.will) {
+                    score += 0.2;
+                }
+
+                // Prefer lower cooldown skills slightly (more usable)
+                const cooldown = Skills.getCooldownAtRank(skillDef, rank);
+                if (cooldown === 0) {
+                    score += 0.3; // No cooldown is great
+                } else if (cooldown === 1) {
+                    score += 0.1;
+                }
             }
 
             if (score > bestScore) {
                 bestScore = score;
-                bestSkill = { skillId, skillDef, rank };
+                bestSkill = { skillId, skillDef, rank, isSummon };
             }
         }
 
@@ -1701,7 +1752,92 @@ const CombatEngine = {
     },
 
     /**
-     * Create summons for hero based on their summon skills
+     * Execute a summon skill - creates a summon as the hero's turn action
+     * @param {Combatant} actor - The hero using the summon skill
+     * @param {Object} skillDef - The summon skill definition
+     * @param {string} skillId - The skill ID
+     * @param {Object} summonContext - { hero, effectiveStats, summons }
+     * @returns {CombatAction} The summon action
+     */
+    executeSummonSkill(actor, skillDef, skillId, summonContext) {
+        const { hero, effectiveStats, summons } = summonContext;
+        const casterWill = effectiveStats?.will || hero.stats.will || 0;
+
+        const template = SUMMON_TEMPLATES[skillDef.summonType];
+        if (!template) {
+            Utils.warn(`Unknown summon type: ${skillDef.summonType}`);
+            return null;
+        }
+
+        // Get skill points for scaling
+        const skillRef = hero.skills.find(s => s.skillId === skillId);
+        const skillPoints = skillRef?.points || 0;
+
+        // Calculate summon stats based on caster's WILL and skill's percentage
+        const statPool = Math.floor(casterWill * (skillDef.summonStatPercent || 0.35));
+
+        // Distribute stats according to template weights
+        const summonStats = {
+            atk: Math.floor(statPool * template.statWeights.atk),
+            def: Math.floor(statPool * template.statWeights.def),
+            spd: Math.floor(statPool * template.statWeights.spd),
+            will: Math.floor(statPool * template.statWeights.will),
+        };
+
+        // Calculate HP: use caster's level and summon's DEF, then apply multiplier
+        const baseHp = Utils.calcHP(hero.level, summonStats.def);
+        const summonHp = Math.floor(baseHp * template.hpMultiplier);
+
+        // Skill points invested boost summon stats (3% per point)
+        const pointBonus = 1 + (skillPoints * 0.03);
+
+        const finalStats = {
+            atk: Math.max(1, Math.floor(summonStats.atk * pointBonus)),
+            def: Math.max(1, Math.floor(summonStats.def * pointBonus)),
+            spd: Math.max(1, Math.floor(summonStats.spd * pointBonus)),
+            will: Math.max(1, Math.floor(summonStats.will * pointBonus)),
+        };
+
+        const finalHp = Math.max(1, Math.floor(summonHp * pointBonus));
+
+        // Create the summon combatant
+        const summon = new Combatant({
+            id: Utils.uuid(),
+            name: `${template.name}`,
+            stats: finalStats,
+            level: hero.level,
+            maxHp: finalHp,
+            currentHp: finalHp,
+            skills: [], // Summons use basic attacks
+        }, false, true); // isHero=false, isSummon=true
+
+        // Store reference data for combat log and resummon tracking
+        summon.icon = template.icon;
+        summon.ownerName = hero.name;
+        summon.sourceSkill = skillId;
+
+        // Add to summons array
+        summons.push(summon);
+
+        Utils.log(`[Summons] ${hero.name} summons ${template.icon} ${template.name} - ATK:${finalStats.atk} DEF:${finalStats.def} SPD:${finalStats.spd} HP:${finalHp}`);
+
+        // Put skill on cooldown
+        actor.putOnCooldown(skillId, skillDef.cooldown || 2);
+
+        // Return summon action
+        return new CombatAction({
+            type: CombatActionType.SUMMON,
+            actorId: actor.id,
+            actorName: actor.name,
+            actorIsHero: actor.isHero,
+            skillId: skillId,
+            skillName: skillDef.name,
+            description: `${actor.name} summons ${template.icon} ${template.name}!`,
+        });
+    },
+
+    /**
+     * Create summons for hero based on their summon skills (DEPRECATED - summons now created via turn actions)
      * @param {Hero} hero - Hero with summon skills
      * @param {Object} effectiveStats - Hero's gear-enhanced stats
      * @returns {Array<Combatant>} Array of summon combatants
