@@ -2219,6 +2219,81 @@ const Skills = {
         }
         return modifier;
     },
+
+    /**
+     * Get the skill tree for a skill
+     * @param {string} skillId
+     * @returns {Object|null} { early: [], mid: [], deep: [] }
+     */
+    getTree(skillId) {
+        return SKILL_TREES[skillId] || null;
+    },
+
+    /**
+     * Get all nodes for a skill as a flat array
+     * @param {string} skillId
+     * @returns {Array} Array of node objects
+     */
+    getTreeNodes(skillId) {
+        const tree = this.getTree(skillId);
+        if (!tree) return [];
+
+        return [
+            ...tree.early,
+            ...tree.mid,
+            ...tree.deep,
+        ];
+    },
+
+    /**
+     * Get unlocked nodes for a hero's skill
+     * @param {Object} heroSkill - { skillId, points, maxPoints, stackCount }
+     * @returns {Array} Array of unlocked node objects
+     */
+    getUnlockedNodes(heroSkill) {
+        const nodes = this.getTreeNodes(heroSkill.skillId);
+        const points = heroSkill.points || 0;
+        return nodes.slice(0, points);
+    },
+
+    /**
+     * Get the next node to unlock for a skill
+     * @param {Object} heroSkill - { skillId, points, maxPoints, stackCount }
+     * @returns {Object|null} Next node or null if maxed
+     */
+    getNextNode(heroSkill) {
+        const nodes = this.getTreeNodes(heroSkill.skillId);
+        const points = heroSkill.points || 0;
+        const maxPoints = heroSkill.maxPoints || 5;
+
+        if (points >= maxPoints || points >= nodes.length) {
+            return null;
+        }
+
+        return nodes[points];
+    },
+
+    /**
+     * Get skill tree progress info
+     * @param {Object} heroSkill
+     * @returns {Object} { current, max, tier, nextNode }
+     */
+    getTreeProgress(heroSkill) {
+        const points = heroSkill.points || 0;
+        const maxPoints = heroSkill.maxPoints || 5;
+
+        let tier = TreeTier.EARLY;
+        if (points > 10) tier = TreeTier.DEEP;
+        else if (points > 5) tier = TreeTier.MID;
+
+        return {
+            current: points,
+            max: maxPoints,
+            tier,
+            nextNode: this.getNextNode(heroSkill),
+            isMaxed: points >= maxPoints,
+        };
+    },
 };
 
 Object.freeze(Skills);
@@ -2233,6 +2308,7 @@ if (typeof module !== 'undefined' && module.exports) {
         NodeType,
         TreeTier,
         SKILL_DEFINITIONS,
+        SKILL_TREES,
         Skills,
     };
 }

@@ -479,9 +479,9 @@ class Hero {
     }
 
     /**
-     * Upgrade a skill by spending skill points
+     * Upgrade a skill by spending skill points (V3: skill tree system)
      * @param {string} skillId
-     * @returns {boolean} Success
+     * @returns {Object|false} { success, nodeUnlocked } or false on failure
      */
     upgradeSkill(skillId) {
         const skill = this.getSkill(skillId);
@@ -495,19 +495,49 @@ class Hero {
             return false;
         }
 
-        // Determine max rank based on doubled/tripled status
-        let maxRank = CONFIG.SKILLS.MAX_RANK_BASE;
-        if (skill.isTripled) maxRank = CONFIG.SKILLS.MAX_RANK_TRIPLED;
-        else if (skill.isDoubled) maxRank = CONFIG.SKILLS.MAX_RANK_DOUBLED;
+        // Check if skill tree is at max
+        const maxPoints = skill.maxPoints || 5;
+        const currentPoints = skill.points || 0;
 
-        if (skill.rank >= maxRank) {
-            Utils.error('Skill already at max rank');
+        if (currentPoints >= maxPoints) {
+            Utils.error('Skill already at max points');
             return false;
         }
 
-        skill.rank++;
+        // Spend the point
+        skill.points = currentPoints + 1;
         this.skillPoints--;
-        return true;
+
+        Utils.log(`${this.name} invested point ${skill.points}/${maxPoints} in ${skillId}`);
+        return { success: true, newPoints: skill.points, maxPoints };
+    }
+
+    /**
+     * Get total skill points invested across all skills
+     * @returns {number}
+     */
+    getTotalSkillPointsInvested() {
+        return this.skills.reduce((sum, skill) => sum + (skill.points || 0), 0);
+    }
+
+    /**
+     * Get remaining skill points that could be allocated
+     * @returns {number}
+     */
+    getUnspentSkillPoints() {
+        return this.skillPoints;
+    }
+
+    /**
+     * Check if a specific skill tree node is unlocked
+     * @param {string} skillId
+     * @param {number} nodeIndex - 0-14 for the 15 nodes
+     * @returns {boolean}
+     */
+    isSkillNodeUnlocked(skillId, nodeIndex) {
+        const skill = this.getSkill(skillId);
+        if (!skill) return false;
+        return (skill.points || 0) > nodeIndex;
     }
 
     /**
