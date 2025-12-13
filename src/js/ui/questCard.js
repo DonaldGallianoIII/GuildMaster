@@ -87,8 +87,8 @@ const QuestCard = {
 
         // Add tag badge and danger rating
         const badgeSection = Utils.createElement('div', { className: 'quest-badges' });
-        // Add tag badge only for non-standard tags (swarm, hunt)
-        if (quest.tag && quest.tag !== 'standard') {
+        // Add tag badge for all quest tags (swarm, standard, hunt)
+        if (quest.tag) {
             badgeSection.appendChild(this.createTagBadge(quest.tag));
         }
         const highestHeroLevel = options.heroLevel || 1;
