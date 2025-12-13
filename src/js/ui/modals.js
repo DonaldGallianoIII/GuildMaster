@@ -233,13 +233,23 @@ const Modals = {
                 btn.onclick = () => {
                     const stat = btn.dataset.stat;
                     const delta = parseInt(btn.dataset.delta);
-                    const newValue = allocation[stat] + delta;
+                    const currentTotal = allocation.atk + allocation.will + allocation.def + allocation.spd;
 
-                    // Validate
-                    if (newValue < 0) return;
-                    if (delta > 0 && (allocation.atk + allocation.will + allocation.def + allocation.spd) >= totalBST) return;
+                    // Calculate actual delta (clamp to valid range)
+                    let actualDelta = delta;
 
-                    allocation[stat] = newValue;
+                    if (delta < 0) {
+                        // Can't go below 0
+                        actualDelta = Math.max(delta, -allocation[stat]);
+                    } else {
+                        // Can't exceed remaining points
+                        const pointsRemaining = totalBST - currentTotal;
+                        actualDelta = Math.min(delta, pointsRemaining);
+                    }
+
+                    if (actualDelta === 0) return;
+
+                    allocation[stat] += actualDelta;
                     updateUI();
                 };
             });
@@ -264,16 +274,18 @@ const Modals = {
      * Create allocator row HTML
      */
     _createAllocatorRow(stat, label, value, remaining) {
-        const maxBar = 20; // Visual max for bar
-        const barPercent = (value / maxBar) * 100;
+        const maxBar = 50; // Visual max for bar (higher since base stats increased)
+        const barPercent = Math.min((value / maxBar) * 100, 100);
 
         return `
             <div class="allocator-row stat-${stat}">
                 <div class="allocator-label">${label}</div>
                 <div class="allocator-controls">
-                    <button class="allocator-btn" data-stat="${stat}" data-delta="-1" ${value <= 0 ? 'disabled' : ''}>-</button>
+                    <button class="allocator-btn allocator-btn-large" data-stat="${stat}" data-delta="-10" ${value < 10 ? 'disabled' : ''}>-10</button>
+                    <button class="allocator-btn" data-stat="${stat}" data-delta="-1" ${value <= 0 ? 'disabled' : ''}>−</button>
                     <span class="allocator-value">${value}</span>
                     <button class="allocator-btn" data-stat="${stat}" data-delta="1" ${remaining <= 0 ? 'disabled' : ''}>+</button>
+                    <button class="allocator-btn allocator-btn-large" data-stat="${stat}" data-delta="10" ${remaining < 10 ? 'disabled' : ''}>+10</button>
                 </div>
                 <div class="allocator-bar">
                     <div class="allocator-bar-fill" style="width: ${barPercent}%"></div>
