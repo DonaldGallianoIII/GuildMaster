@@ -272,6 +272,10 @@ const PeekSystem = {
                     calculatedHp = Math.min(hero.maxHp, calculatedHp + event.data.healing);
                 }
             }
+            // Rest healing between encounters
+            if (event.type === 'rest' && event.data?.heal) {
+                calculatedHp = Math.min(hero.maxHp, calculatedHp + event.data.heal);
+            }
         }
 
         this._questHp[quest.id] = calculatedHp;

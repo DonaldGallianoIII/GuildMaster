@@ -479,9 +479,9 @@ const QUEST_THEMES = {
         description: 'Giant rats have overrun the area.',
         icon: '🐀',
         brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE],
-        fodder: ['sewer_rat', 'plague_rat', 'giant_rat'],
-        standard: ['giant_rat', 'rat_king'],
-        elite: ['rat_king'],
+        fodder: ['rat'],
+        standard: ['cave_spider', 'kobold'],
+        elite: ['ghoul'],
     },
     bat_roost: {
         id: 'bat_roost',
@@ -489,9 +489,9 @@ const QUEST_THEMES = {
         description: 'A cave echoing with the screeches of bats.',
         icon: '🦇',
         brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE],
-        fodder: ['cave_bat', 'vampire_bat', 'dire_bat'],
-        standard: ['swarm_bat', 'blood_wing'],
-        elite: ['blood_wing'],
+        fodder: ['bat'],
+        standard: ['cave_spider', 'giant_spider'],
+        elite: ['ghoul'],
     },
     snake_pit: {
         id: 'snake_pit',
@@ -499,9 +499,9 @@ const QUEST_THEMES = {
         description: 'A nest of venomous snakes.',
         icon: '🐍',
         brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE],
-        fodder: ['viper', 'constrictor'],
-        standard: ['giant_snake', 'king_cobra'],
-        elite: ['basilisk'],
+        fodder: ['snake'],
+        standard: ['cave_spider', 'bandit'],
+        elite: ['ghoul'],
     },
     beetle_burrow: {
         id: 'beetle_burrow',
@@ -509,9 +509,9 @@ const QUEST_THEMES = {
         description: 'Chitinous insects swarm in the darkness.',
         icon: '🪲',
         brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE],
-        fodder: ['cockroach', 'giant_beetle', 'scarab'],
-        standard: ['stag_beetle', 'fire_beetle'],
-        elite: ['emperor_scorpion'],
+        fodder: ['slime', 'rat'],
+        standard: ['cave_spider', 'giant_spider'],
+        elite: ['ghoul'],
     },
 
     // ==================== APPRENTICE-JOURNEYMAN THEMES (BEASTS, GOBLINOID) ====================
@@ -521,9 +521,9 @@ const QUEST_THEMES = {
         description: 'A network of tunnels infested with goblins.',
         icon: '🕳️',
         brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE, QuestBracket.JOURNEYMAN],
-        fodder: ['goblin_runt', 'goblin', 'goblin_scout'],
-        standard: ['goblin_warrior', 'goblin_brute', 'goblin_archer'],
-        elite: ['goblin_shaman', 'goblin_chief'],
+        fodder: ['goblin', 'kobold'],
+        standard: ['goblin_brute', 'orc'],
+        elite: ['goblin_shaman', 'orc_berserker'],
     },
     wolf_territory: {
         id: 'wolf_territory',
@@ -531,9 +531,9 @@ const QUEST_THEMES = {
         description: 'A forest where wolves have made their home.',
         icon: '🐺',
         brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE, QuestBracket.JOURNEYMAN],
-        fodder: ['wolf_pup', 'wolf'],
+        fodder: ['wolf'],
         standard: ['dire_wolf', 'alpha_wolf'],
-        elite: ['worg', 'winter_wolf'],
+        elite: ['wyvern'],
     },
     boar_thicket: {
         id: 'boar_thicket',
@@ -541,9 +541,9 @@ const QUEST_THEMES = {
         description: 'Wild boars roam this dense forest.',
         icon: '🐗',
         brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE, QuestBracket.JOURNEYMAN],
-        fodder: ['wild_boar'],
-        standard: ['dire_boar', 'razorback'],
-        elite: ['war_boar'],
+        fodder: ['boar'],
+        standard: ['dire_wolf', 'orc'],
+        elite: ['treant'],
     },
     spider_nest: {
         id: 'spider_nest',
@@ -551,9 +551,9 @@ const QUEST_THEMES = {
         description: 'Webs cover every surface in this lair.',
         icon: '🕷️',
         brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE, QuestBracket.JOURNEYMAN],
-        fodder: ['spider_hatchling', 'cave_spider'],
-        standard: ['giant_spider', 'poison_spider'],
-        elite: ['broodmother', 'widow_queen'],
+        fodder: ['cave_spider', 'giant_spider'],
+        standard: ['giant_spider', 'ghoul'],
+        elite: ['wraith', 'vampire'],
     },
     scorpion_desert: {
         id: 'scorpion_desert',
@@ -561,9 +561,9 @@ const QUEST_THEMES = {
         description: 'Deadly stingers lurk beneath the sand.',
         icon: '🦂',
         brackets: [QuestBracket.APPRENTICE, QuestBracket.JOURNEYMAN],
-        fodder: ['scorpion', 'centipede'],
-        standard: ['giant_scorpion', 'giant_centipede'],
-        elite: ['emperor_scorpion', 'carrion_crawler'],
+        fodder: ['snake', 'imp'],
+        standard: ['orc', 'bandit'],
+        elite: ['orc_berserker', 'bandit_chief'],
     },
 
     // ==================== JOURNEYMAN-VETERAN THEMES (HUMANOID, ORC_BRUTE, UNDEAD) ====================
@@ -573,9 +573,9 @@ const QUEST_THEMES = {
         description: 'A camp of dangerous outlaws.',
         icon: '🏴',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
-        fodder: ['thug', 'bandit', 'bandit_archer'],
-        standard: ['bandit_brute', 'bandit_captain'],
-        elite: ['bandit_lord', 'bandit_king'],
+        fodder: ['bandit', 'kobold'],
+        standard: ['bandit_leader', 'orc_berserker'],
+        elite: ['bandit_chief', 'orc_warlord'],
     },
     orc_camp: {
         id: 'orc_camp',
@@ -583,9 +583,9 @@ const QUEST_THEMES = {
         description: 'Brutal orcs have set up camp here.',
         icon: '👹',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
-        fodder: ['orc_whelp', 'orc_warrior'],
-        standard: ['orc_raider', 'orc_berserker'],
-        elite: ['orc_warchief', 'orc_chieftain'],
+        fodder: ['orc', 'orc_warrior'],
+        standard: ['orc_berserker', 'goblin_shaman'],
+        elite: ['orc_warlord', 'troll'],
     },
     skeleton_crypt: {
         id: 'skeleton_crypt',
@@ -594,8 +594,8 @@ const QUEST_THEMES = {
         icon: '💀',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
         fodder: ['skeleton', 'skeleton_warrior'],
-        standard: ['skeleton_archer', 'skeleton_knight'],
-        elite: ['skeleton_mage', 'skeleton_lord'],
+        standard: ['skeleton_mage', 'ghoul'],
+        elite: ['wraith', 'vampire'],
     },
     zombie_graveyard: {
         id: 'zombie_graveyard',
@@ -603,9 +603,9 @@ const QUEST_THEMES = {
         description: 'The restless dead rise from their graves.',
         icon: '🧟',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
-        fodder: ['shambling_corpse', 'zombie', 'bloated_zombie'],
-        standard: ['plague_zombie', 'zombie_hulk'],
-        elite: ['zombie_lord'],
+        fodder: ['zombie', 'skeleton'],
+        standard: ['ghoul', 'skeleton_mage'],
+        elite: ['wraith', 'vampire'],
     },
     pirate_cove: {
         id: 'pirate_cove',
@@ -613,9 +613,9 @@ const QUEST_THEMES = {
         description: 'Cutthroats and rogues stash their loot here.',
         icon: '🏴‍☠️',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
-        fodder: ['pirate_deckhand', 'pirate'],
-        standard: ['pirate_gunner', 'pirate_first_mate'],
-        elite: ['pirate_captain', 'dread_pirate'],
+        fodder: ['bandit', 'kobold'],
+        standard: ['bandit_leader', 'dark_mage'],
+        elite: ['bandit_chief', 'drake'],
     },
     cultist_shrine: {
         id: 'cultist_shrine',
@@ -623,9 +623,9 @@ const QUEST_THEMES = {
         description: 'Dark rituals are performed at this unholy place.',
         icon: '🕯️',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN, QuestBracket.EXPERT],
-        fodder: ['cultist_initiate', 'cultist'],
-        standard: ['cultist_zealot', 'dark_acolyte'],
-        elite: ['cult_priest', 'cult_fanatic'],
+        fodder: ['cultist', 'imp'],
+        standard: ['dark_mage', 'skeleton_mage'],
+        elite: ['vampire', 'demon'],
     },
     hobgoblin_fort: {
         id: 'hobgoblin_fort',
@@ -633,9 +633,9 @@ const QUEST_THEMES = {
         description: 'A disciplined tribe of hobgoblins.',
         icon: '🏰',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
-        fodder: ['hobgoblin', 'hobgoblin_soldier'],
-        standard: ['hobgoblin_captain', 'bugbear'],
-        elite: ['hobgoblin_warlord', 'hobgoblin_devastator'],
+        fodder: ['goblin', 'orc'],
+        standard: ['goblin_brute', 'orc_berserker'],
+        elite: ['goblin_shaman', 'orc_warlord'],
     },
     haunted_manor: {
         id: 'haunted_manor',
@@ -643,9 +643,9 @@ const QUEST_THEMES = {
         description: 'Spirits and ghouls prowl these halls.',
         icon: '👻',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN, QuestBracket.EXPERT],
-        fodder: ['ghost', 'ghoul'],
-        standard: ['specter', 'crypt_ghoul', 'wraith'],
-        elite: ['banshee', 'wight'],
+        fodder: ['ghoul', 'skeleton'],
+        standard: ['skeleton_mage', 'wraith'],
+        elite: ['vampire', 'lich'],
     },
     troll_lair: {
         id: 'troll_lair',
@@ -653,9 +653,9 @@ const QUEST_THEMES = {
         description: 'Monstrous trolls dwell in this foul den.',
         icon: '🌉',
         brackets: [QuestBracket.VETERAN, QuestBracket.EXPERT],
-        fodder: ['troll_whelp', 'troll'],
-        standard: ['cave_troll', 'war_troll'],
-        elite: ['dire_troll', 'troll_king'],
+        fodder: ['troll', 'orc'],
+        standard: ['orc_warlord', 'treant'],
+        elite: ['drake', 'giant'],
     },
     bear_den: {
         id: 'bear_den',
@@ -663,9 +663,9 @@ const QUEST_THEMES = {
         description: 'Massive bears guard their territory.',
         icon: '🐻',
         brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
-        fodder: ['black_bear', 'brown_bear'],
-        standard: ['cave_bear', 'dire_bear'],
-        elite: ['werebear'],
+        fodder: ['wolf', 'boar'],
+        standard: ['dire_wolf', 'alpha_wolf'],
+        elite: ['treant', 'wyvern'],
     },
 
     // ==================== EXPERT-MASTER THEMES (DRACONIC, DEMON, HIGH-TIER UNDEAD) ====================
@@ -675,10 +675,10 @@ const QUEST_THEMES = {
         description: 'A dragon guards its treasure hoard.',
         icon: '🐉',
         brackets: [QuestBracket.EXPERT, QuestBracket.MASTER, QuestBracket.LEGENDARY],
-        fodder: ['kobold', 'kobold_warrior', 'kobold_skirmisher'],
-        standard: ['drake_hatchling', 'fire_drake', 'wyvern'],
-        elite: ['young_dragon', 'adult_dragon'],
-        boss: ['ancient_dragon'],
+        fodder: ['kobold', 'drake'],
+        standard: ['drake', 'wyvern'],
+        elite: ['wyvern', 'demon'],
+        boss: ['dragon', 'hydra'],
     },
     demon_portal: {
         id: 'demon_portal',
@@ -686,10 +686,10 @@ const QUEST_THEMES = {
         description: 'A tear into the demon realm.',
         icon: '🔥',
         brackets: [QuestBracket.EXPERT, QuestBracket.MASTER, QuestBracket.LEGENDARY],
-        fodder: ['imp', 'dretch', 'lemure'],
-        standard: ['hellhound', 'shadow_demon', 'succubus'],
-        elite: ['pit_fiend', 'balor'],
-        boss: ['demon_prince'],
+        fodder: ['imp', 'cultist'],
+        standard: ['dark_mage', 'vampire'],
+        elite: ['demon', 'lich'],
+        boss: ['demon_lord', 'dragon'],
     },
     lich_tower: {
         id: 'lich_tower',
@@ -697,10 +697,10 @@ const QUEST_THEMES = {
         description: 'A tower of dark necromancy.',
         icon: '🗼',
         brackets: [QuestBracket.EXPERT, QuestBracket.MASTER, QuestBracket.LEGENDARY],
-        fodder: ['skeleton', 'skeleton_warrior', 'ghost'],
-        standard: ['skeleton_mage', 'wraith', 'wight'],
-        elite: ['lich_apprentice', 'lich'],
-        boss: ['archlich'],
+        fodder: ['skeleton', 'skeleton_warrior'],
+        standard: ['skeleton_mage', 'wraith'],
+        elite: ['vampire', 'lich'],
+        boss: ['lich', 'demon_lord'],
     },
     giant_fortress: {
         id: 'giant_fortress',
@@ -708,10 +708,10 @@ const QUEST_THEMES = {
         description: 'A mountain fortress of giants.',
         icon: '🏔️',
         brackets: [QuestBracket.VETERAN, QuestBracket.EXPERT, QuestBracket.MASTER],
-        fodder: ['orc_warrior', 'orc_raider'],
-        standard: ['ogre', 'two_headed_ogre', 'hill_giant'],
-        elite: ['stone_giant', 'frost_giant'],
-        boss: ['titan'],
+        fodder: ['orc_warrior', 'troll'],
+        standard: ['orc_warlord', 'treant'],
+        elite: ['giant', 'drake'],
+        boss: ['giant', 'hydra'],
     },
     dark_temple: {
         id: 'dark_temple',
@@ -719,10 +719,10 @@ const QUEST_THEMES = {
         description: 'A temple to forbidden gods.',
         icon: '⛪',
         brackets: [QuestBracket.EXPERT, QuestBracket.MASTER, QuestBracket.LEGENDARY],
-        fodder: ['cultist', 'cultist_zealot', 'dark_acolyte'],
-        standard: ['cult_priest', 'cult_fanatic', 'shadow_demon'],
-        elite: ['lich', 'balor'],
-        boss: ['demon_prince'],
+        fodder: ['cultist', 'imp'],
+        standard: ['dark_mage', 'vampire'],
+        elite: ['lich', 'demon'],
+        boss: ['demon_lord'],
     },
     vampire_castle: {
         id: 'vampire_castle',
@@ -730,10 +730,10 @@ const QUEST_THEMES = {
         description: 'The undead aristocracy rules from here.',
         icon: '🧛',
         brackets: [QuestBracket.EXPERT, QuestBracket.MASTER, QuestBracket.LEGENDARY],
-        fodder: ['ghost', 'ghoul', 'vampire_spawn'],
-        standard: ['wight', 'revenant', 'vampire'],
-        elite: ['vampire_lord', 'nosferatu'],
-        boss: ['death_knight'],
+        fodder: ['ghoul', 'skeleton'],
+        standard: ['wraith', 'vampire'],
+        elite: ['vampire', 'lich'],
+        boss: ['demon_lord', 'dragon'],
     },
     wyvern_eyrie: {
         id: 'wyvern_eyrie',
@@ -741,10 +741,10 @@ const QUEST_THEMES = {
         description: 'Flying terrors nest in the peaks.',
         icon: '🐲',
         brackets: [QuestBracket.VETERAN, QuestBracket.EXPERT, QuestBracket.MASTER],
-        fodder: ['wyvern_hatchling', 'kobold_skirmisher'],
-        standard: ['wyvern', 'wyvern_matriarch'],
-        elite: ['young_dragon'],
-        boss: ['adult_dragon'],
+        fodder: ['kobold', 'harpy'],
+        standard: ['wyvern', 'drake'],
+        elite: ['wyvern', 'demon'],
+        boss: ['dragon', 'hydra'],
     },
     abyssal_rift: {
         id: 'abyssal_rift',
@@ -752,10 +752,10 @@ const QUEST_THEMES = {
         description: 'Horrors from the deepest hells emerge.',
         icon: '🌀',
         brackets: [QuestBracket.MASTER, QuestBracket.LEGENDARY],
-        fodder: ['lemure', 'dretch', 'imp'],
-        standard: ['bone_devil', 'chain_devil', 'ice_devil'],
-        elite: ['pit_fiend', 'balor'],
-        boss: ['demon_prince'],
+        fodder: ['imp', 'cultist'],
+        standard: ['demon', 'vampire'],
+        elite: ['demon', 'lich'],
+        boss: ['demon_lord'],
     },
     mummy_tomb: {
         id: 'mummy_tomb',
@@ -763,10 +763,10 @@ const QUEST_THEMES = {
         description: 'Ancient kings slumber in eternal unrest.',
         icon: '🏛️',
         brackets: [QuestBracket.VETERAN, QuestBracket.EXPERT, QuestBracket.MASTER],
-        fodder: ['skeleton', 'mummy'],
-        standard: ['mummy_guardian', 'barrow_wight'],
-        elite: ['mummy_lord'],
-        boss: ['demilich'],
+        fodder: ['skeleton', 'zombie'],
+        standard: ['skeleton_mage', 'wraith'],
+        elite: ['vampire', 'lich'],
+        boss: ['lich', 'demon_lord'],
     },
 };
 
@@ -1661,9 +1661,10 @@ class Quest {
         this.heroId = data.heroId || data.hero_id || null;
         this.userId = data.userId || data.user_id || null;
 
-        // Bracket/Tier system (new)
+        // Bracket/Tag system (Design Doc v2)
         this._bracket = data.bracket || null;
-        this._tier = data.tier || null;
+        this._tag = data.tag || null;
+        this._tier = data.tier || null; // Legacy, deprecated
 
         // Status
         this.status = data.status || QuestStatus.AVAILABLE;
@@ -1743,6 +1744,13 @@ class Quest {
      */
     get tierName() {
         return TIER_NAMES[this.tier] || 'I';
+    }
+
+    /**
+     * Get quest tag (swarm, standard, hunt)
+     */
+    get tag() {
+        return this._tag || QuestTag.STANDARD;
     }
 
     /**
@@ -1870,17 +1878,21 @@ class Quest {
             return null;
         }
 
-        // Find the last encounter that had combat (where hero died)
+        // Find the encounter where hero died (victory: false)
         if (this.events && this.events.length > 0) {
-            // Look for encounter_end with victory: false to find when hero died
             for (const event of this.events) {
                 if (event.type === 'encounter_end' && event.data.victory === false) {
+                    Utils.log(`Hero death time found: ${event.time}ms (quest: ${this.name})`);
                     return event.time;
                 }
             }
+            Utils.warn(`No death event found in ${this.events.length} events for failed quest: ${this.name}`);
+        } else {
+            Utils.warn(`No events array for failed quest: ${this.name}`);
         }
 
         // Fallback: return full duration if we can't determine exact time
+        Utils.log(`Using fallback death time (full duration): ${this.duration}ms`);
         return this.duration;
     }
 
@@ -2169,6 +2181,7 @@ class Quest {
             hero_id: this.heroId,
             user_id: this.userId,
             bracket: this._bracket,
+            tag: this._tag,
             tier: this._tier,
             status: this.status,
             started_at: this.startedAt,
@@ -2196,6 +2209,7 @@ class Quest {
             heroId: row.hero_id,
             userId: row.user_id,
             bracket: row.bracket,
+            tag: row.tag,
             tier: row.tier,
             status: row.status,
             startedAt: row.started_at,

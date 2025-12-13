@@ -759,8 +759,8 @@ const GameState = {
             return null;
         }
 
-        // Remove from board and generate replacement of same bracket+tier
-        const replacement = this.generateQuestFromTheme(quest.bracket, quest.tier);
+        // Remove from board and generate replacement of same bracket+tag
+        const replacement = this.generateQuestFromTheme(quest.bracket, quest.tag);
         if (replacement) {
             this._state.questBoard[boardIndex] = replacement;
             // Save replacement to Supabase
