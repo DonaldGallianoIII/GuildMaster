@@ -84,12 +84,22 @@ const CONFIG = {
     },
 
     /**
-     * QUEST SETTINGS - Legacy settings (kept for backwards compatibility)
+     * QUEST SETTINGS
      * NOTE: Duration is now in QUEST_BRACKETS, rewards in QUEST_REWARDS
      */
     QUESTS: {
         // Expiration timer (how long quest stays on board before disappearing)
         EXPIRATION: 24 * 60 * 60 * 1000,  // 24 hours for all brackets
+        // Recommended level ranges per bracket (for UI display)
+        LEVEL_RANGE: {
+            novice: { min: 1, max: 2 },
+            apprentice: { min: 2, max: 3 },
+            journeyman: { min: 3, max: 4 },
+            veteran: { min: 5, max: 6 },
+            expert: { min: 7, max: 8 },
+            master: { min: 9, max: 10 },
+            legendary: { min: 10, max: 99 },
+        },
     },
 
     /**
@@ -471,6 +481,7 @@ Object.freeze(CONFIG.SKILL_RARITY_WEIGHTS);
 Object.freeze(CONFIG.GEAR_RARITY_WEIGHTS);
 Object.freeze(CONFIG.RECRUITMENT);
 Object.freeze(CONFIG.QUESTS);
+Object.freeze(CONFIG.QUESTS.LEVEL_RANGE);
 Object.freeze(CONFIG.ENEMY_LOOT);
 Object.freeze(CONFIG.ENEMY_LOOT.XP);
 Object.freeze(CONFIG.ENEMY_LOOT.GOLD);
