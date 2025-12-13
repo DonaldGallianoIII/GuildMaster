@@ -2208,6 +2208,19 @@ const Skills = {
     },
 
     /**
+     * Get cooldown at specific point investment
+     * V3: Points don't affect cooldown (may add tree nodes that do)
+     * @param {Object} skillDef - Skill definition
+     * @param {number} points - Points invested
+     * @returns {number} Cooldown in rounds
+     */
+    getCooldownAtRank(skillDef, points) {
+        // For now, points don't affect cooldown
+        // Tree nodes could modify this in the future
+        return this.getCooldown(skillDef);
+    },
+
+    /**
      * Calculate hire cost modifier based on skills
      * Stack count increases cost
      */
@@ -2293,6 +2306,31 @@ const Skills = {
             nextNode: this.getNextNode(heroSkill),
             isMaxed: points >= maxPoints,
         };
+    },
+
+    /**
+     * Calculate effect value based on skill and invested points
+     * V3: Each point increases base value by ~3% (compounding)
+     * @param {Object} skillDef - Skill definition
+     * @param {number} points - Points invested (0-15)
+     * @returns {number} Calculated effect value
+     */
+    calcEffectValue(skillDef, points) {
+        if (!skillDef) return 0;
+        const baseValue = skillDef.baseValue || 1.0;
+        // Each point adds ~3% effectiveness (compounding)
+        // 0 points = baseValue, 15 points = baseValue * 1.55
+        return baseValue * Math.pow(1.03, points || 0);
+    },
+
+    /**
+     * Get max rank for legacy compatibility
+     * @deprecated Use maxPoints from skill object instead
+     */
+    getMaxRank(isDoubled, isTripled) {
+        if (isTripled) return 15;
+        if (isDoubled) return 10;
+        return 5;
     },
 };
 

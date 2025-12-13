@@ -1257,10 +1257,10 @@ const CombatEngine = {
             if (skillDef.activation !== SkillActivation.ACTIVE) continue;
             if (!actor.canUseSkill(skillId)) continue;
 
-            // Get rank (heroes have rank info, enemies use rank 1)
+            // Get skill tree points (heroes have points, enemies use 0)
             const rank = actor.isHero && hero
-                ? (hero.skills.find(s => s.skillId === skillId)?.rank || 1)
-                : 1;
+                ? (hero.skills.find(s => s.skillId === skillId)?.points || 0)
+                : 0;
 
             availableSkills.push({ skillId, skillDef, skillRef, rank });
         }
@@ -1399,21 +1399,21 @@ const CombatEngine = {
     },
 
     /**
-     * Get skill rank from hero
+     * Get skill points from hero (V3: uses points instead of rank)
      */
     getSkillRank(actor, skillId, hero) {
-        if (!actor.isHero) return 1;
+        if (!actor.isHero) return 0;
 
         const skillRef = hero.skills.find(s => s.skillId === skillId);
-        return skillRef?.rank || 1;
+        return skillRef?.points || 0;
     },
 
     /**
-     * Get skill effect value at current rank
+     * Get skill effect value at current point investment
      */
     getSkillEffectValue(skillDef, hero, skillId) {
-        const rank = hero?.skills?.find(s => s.skillId === skillId)?.rank || 1;
-        return Skills.calcEffectValue(skillDef, rank);
+        const points = hero?.skills?.find(s => s.skillId === skillId)?.points || 0;
+        return Skills.calcEffectValue(skillDef, points);
     },
 
     /**
@@ -1425,12 +1425,12 @@ const CombatEngine = {
 
         // Check for skill-based passive (e.g., Leech skill)
         if (actor.isHero && hero) {
-            // Hero: use hero object for rank info
+            // Hero: use hero object for points info
             const skillRef = hero.skills.find(s => s.skillId === passiveId);
             if (skillRef) {
                 const skillDef = Skills.get(passiveId);
                 if (skillDef && skillDef.activation === SkillActivation.PASSIVE) {
-                    totalValue += Skills.calcEffectValue(skillDef, skillRef.rank);
+                    totalValue += Skills.calcEffectValue(skillDef, skillRef.points || 0);
                 }
             }
         } else {
@@ -1441,8 +1441,8 @@ const CombatEngine = {
             if (hasSkill) {
                 const skillDef = Skills.get(passiveId);
                 if (skillDef && skillDef.activation === SkillActivation.PASSIVE) {
-                    // Enemies use rank 1
-                    totalValue += Skills.calcEffectValue(skillDef, 1);
+                    // Enemies use 0 points (base value only)
+                    totalValue += Skills.calcEffectValue(skillDef, 0);
                 }
             }
         }
@@ -1475,13 +1475,13 @@ const CombatEngine = {
             return actor.skills.some(s => (typeof s === 'string' ? s : s.skillId) === skillId);
         };
 
-        // Helper to get skill rank
+        // Helper to get skill points (V3)
         const getSkillRank = (skillId) => {
             if (actor.isHero && hero) {
                 const ref = hero.skills.find(s => s.skillId === skillId);
-                return ref?.rank || 1;
+                return ref?.points || 0;
             }
-            return 1; // Enemies use rank 1
+            return 0; // Enemies use 0 points
         };
 
         // Check for Second Wind (heal at low HP)
@@ -1587,7 +1587,7 @@ const CombatEngine = {
                 const thornsSkill = hero?.skills.find(s => s.skillId === 'thorns');
                 if (thornsSkill) {
                     const skillDef = Skills.get('thorns');
-                    const reflectPercent = Skills.calcEffectValue(skillDef, thornsSkill.rank);
+                    const reflectPercent = Skills.calcEffectValue(skillDef, thornsSkill.points || 0);
                     const thornsDamage = Math.floor(lastAction.damage * reflectPercent);
 
                     const attacker = allCombatants.find(c => c.id === lastAction.actorId);
