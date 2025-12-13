@@ -431,6 +431,7 @@ class CombatAction {
         this.actorId = data.actorId || null;
         this.actorName = data.actorName || 'Unknown';
         this.actorIsHero = data.actorIsHero || false;
+        this.isSummon = data.isSummon || false;   // Actor is a summon
         this.targetId = data.targetId || null;
         this.targetName = data.targetName || 'Unknown';
         this.skillId = data.skillId || null;
@@ -872,6 +873,50 @@ class Combatant {
 }
 
 /**
+ * Summon type templates - defines base stat distributions
+ * Stats are multiplied by (casterWill * summonStatPercent)
+ */
+const SUMMON_TEMPLATES = {
+    skeleton: {
+        name: 'Skeleton',
+        icon: '💀',
+        // Balanced - equal ATK/DEF, low SPD/WILL
+        statWeights: { atk: 0.35, def: 0.35, spd: 0.20, will: 0.10 },
+        hpMultiplier: 0.8,  // 80% of caster's base HP formula
+    },
+    wolf: {
+        name: 'Wolf',
+        icon: '🐺',
+        // Fast attacker - high ATK/SPD, low DEF
+        statWeights: { atk: 0.40, def: 0.15, spd: 0.40, will: 0.05 },
+        hpMultiplier: 0.6,  // Fragile
+    },
+    golem: {
+        name: 'Stone Golem',
+        icon: '🗿',
+        // Tank - high DEF, low ATK/SPD
+        statWeights: { atk: 0.15, def: 0.55, spd: 0.10, will: 0.20 },
+        hpMultiplier: 1.2,  // Beefy
+    },
+    imp: {
+        name: 'Imp',
+        icon: '😈',
+        // Glass cannon caster
+        statWeights: { atk: 0.10, def: 0.10, spd: 0.30, will: 0.50 },
+        hpMultiplier: 0.5,
+    },
+    spirit: {
+        name: 'Spirit',
+        icon: '👻',
+        // Support - balanced with WILL focus
+        statWeights: { atk: 0.15, def: 0.25, spd: 0.25, will: 0.35 },
+        hpMultiplier: 0.7,
+    },
+};
+
+Object.freeze(SUMMON_TEMPLATES);
+
+/**
  * Main Combat Engine
  */
 const CombatEngine = {
@@ -916,6 +961,12 @@ const CombatEngine = {
             skills: hero.skills,
             gearBonuses: gearBonuses,
         }, true, false);
+
+        // Create summons from hero's summon skills
+        const summons = this.createSummons(hero, effectiveStats);
+        if (summons.length > 0) {
+            Utils.log(`${hero.name} enters combat with ${summons.length} summon(s): ${summons.map(s => s.icon + s.name).join(', ')}`);
+        }
 
         // Create all enemies (for AoE tracking)
         const allEnemies = mobs.map(mob => new Combatant(mob, false, false));
@@ -1000,21 +1051,55 @@ const CombatEngine = {
                         round.addAction(t);
                         if (t.damage && t.actorIsHero) result.totalDamageDealt += t.damage;
                     });
+
+                    // SUMMONS ATTACK after hero's turn
+                    const livingSummons = summons.filter(s => s.isAlive);
+                    for (const summon of livingSummons) {
+                        // Find target - attack current enemy if alive, otherwise any living enemy
+                        let summonTarget = currentEnemy.isAlive ? currentEnemy : allEnemies.find(e => e.isAlive);
+                        if (!summonTarget) break;
+
+                        const summonAction = this.executeSummonAttack(summon, summonTarget);
+                        if (summonAction) {
+                            round.addAction(summonAction);
+                            result.totalDamageDealt += summonAction.damage || 0;
+                            if (summonAction.killed) {
+                                result.enemiesKilled++;
+                            }
+                        }
+                    }
                 } else {
                     // Skip if hero already dead
                     if (!heroCombatant.isAlive) continue;
 
-                    // Enemy attacks hero
-                    const action = this.executeAction(actor, [heroCombatant], allEnemies, hero);
+                    // ENEMY TARGET SELECTION: Hero or summons?
+                    // 40% chance to target a summon if any are alive
+                    const livingSummons = summons.filter(s => s.isAlive);
+                    let enemyTarget = heroCombatant;
+                    let targetIsSummon = false;
+
+                    if (livingSummons.length > 0 && Math.random() < 0.4) {
+                        // Target a random summon
+                        enemyTarget = livingSummons[Math.floor(Math.random() * livingSummons.length)];
+                        targetIsSummon = true;
+                    }
+
+                    // Enemy attacks chosen target
+                    const action = this.executeAction(actor, [enemyTarget], allEnemies, hero);
 
                     if (action) {
                         round.addAction(action);
-                        result.totalDamageTaken += action.damage || 0;
+                        // Only count damage to hero as damage taken
+                        if (!targetIsSummon) {
+                            result.totalDamageTaken += action.damage || 0;
+                        }
                     }
 
-                    // Check for hero triggered abilities (thorns, second wind, etc.)
-                    const heroTriggers = this.checkTriggers(heroCombatant, action, allEnemies, hero, questTriggers);
-                    heroTriggers.forEach(t => round.addAction(t));
+                    // Check for hero triggered abilities (thorns, second wind, etc.) - only if hero was hit
+                    if (!targetIsSummon) {
+                        const heroTriggers = this.checkTriggers(heroCombatant, action, allEnemies, hero, questTriggers);
+                        heroTriggers.forEach(t => round.addAction(t));
+                    }
 
                     // Check for enemy triggered abilities (second wind, etc.) - enemies don't use quest triggers
                     const enemyTriggers = this.checkTriggers(actor, action, allEnemies, hero, null);
@@ -1616,12 +1701,107 @@ const CombatEngine = {
     },
 
     /**
-     * Create summons for hero
+     * Create summons for hero based on their summon skills
+     * @param {Hero} hero - Hero with summon skills
+     * @param {Object} effectiveStats - Hero's gear-enhanced stats
+     * @returns {Array<Combatant>} Array of summon combatants
      */
-    createSummons(hero) {
-        // TODO: Implement summon system based on WILL and summon loadout
-        // For now, return empty array
-        return [];
+    createSummons(hero, effectiveStats = null) {
+        const summons = [];
+        const stats = effectiveStats || hero.stats;
+        const casterWill = stats.will || 0;
+
+        // No WILL = no summons
+        if (casterWill <= 0) return summons;
+
+        // Find all summon skills the hero has
+        for (const skillRef of hero.skills) {
+            const skillDef = Skills.get(skillRef.skillId);
+            if (!skillDef || skillDef.activation !== SkillActivation.SUMMON) continue;
+
+            const template = SUMMON_TEMPLATES[skillDef.summonType];
+            if (!template) {
+                Utils.warn(`Unknown summon type: ${skillDef.summonType}`);
+                continue;
+            }
+
+            // Calculate summon stats based on caster's WILL and skill's percentage
+            const statPool = Math.floor(casterWill * (skillDef.summonStatPercent || 0.35));
+
+            // Distribute stats according to template weights
+            const summonStats = {
+                atk: Math.floor(statPool * template.statWeights.atk),
+                def: Math.floor(statPool * template.statWeights.def),
+                spd: Math.floor(statPool * template.statWeights.spd),
+                will: Math.floor(statPool * template.statWeights.will),
+            };
+
+            // Calculate HP: use caster's level and summon's DEF, then apply multiplier
+            const baseHp = Utils.calcHP(hero.level, summonStats.def);
+            const summonHp = Math.floor(baseHp * template.hpMultiplier);
+
+            // Skill points invested boost summon stats (3% per point)
+            const skillPoints = skillRef.points || 0;
+            const pointBonus = 1 + (skillPoints * 0.03);
+
+            const finalStats = {
+                atk: Math.max(1, Math.floor(summonStats.atk * pointBonus)),
+                def: Math.max(1, Math.floor(summonStats.def * pointBonus)),
+                spd: Math.max(1, Math.floor(summonStats.spd * pointBonus)),
+                will: Math.max(1, Math.floor(summonStats.will * pointBonus)),
+            };
+
+            const finalHp = Math.max(1, Math.floor(summonHp * pointBonus));
+
+            // Create the summon combatant
+            const summon = new Combatant({
+                id: Utils.uuid(),
+                name: `${template.name}`,
+                stats: finalStats,
+                level: hero.level,
+                maxHp: finalHp,
+                currentHp: finalHp,
+                skills: [], // Summons use basic attacks
+            }, false, true); // isHero=false, isSummon=true
+
+            // Store reference data for combat log
+            summon.icon = template.icon;
+            summon.ownerName = hero.name;
+            summon.sourceSkill = skillDef.id;
+
+            summons.push(summon);
+
+            Utils.log(`Created summon: ${template.name} (ATK:${finalStats.atk} DEF:${finalStats.def} SPD:${finalStats.spd} HP:${finalHp})`);
+        }
+
+        return summons;
+    },
+
+    /**
+     * Execute a summon's attack
+     * @param {Combatant} summon - The summon attacking
+     * @param {Combatant} target - Target enemy
+     * @returns {CombatAction} The attack action
+     */
+    executeSummonAttack(summon, target) {
+        if (!summon.isAlive || !target.isAlive) return null;
+
+        // Summons use basic physical attacks at 0.8× ATK (slightly better than hero basic)
+        const damage = Utils.calcPhysicalDamage(Math.floor(summon.atk * 0.8), target.def);
+        const { killed } = target.takeDamage(damage);
+
+        return new CombatAction({
+            type: CombatActionType.ATTACK,
+            actorId: summon.id,
+            actorName: `${summon.icon} ${summon.name}`,
+            actorIsHero: false,
+            isSummon: true,
+            targetId: target.id,
+            targetName: target.name,
+            damage,
+            killed,
+            description: `${summon.icon} ${summon.name} attacks ${target.name} for ${damage} damage!${killed ? ` ${target.name} slain!` : ''}`,
+        });
     },
 
     /**
