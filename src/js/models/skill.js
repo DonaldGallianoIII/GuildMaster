@@ -1235,6 +1235,240 @@ const SKILL_TREES = {
             { id: 'storm_lord', name: 'Storm Lord', type: NodeType.CAPSTONE, cost: 1, effect: '+40% damage, -1 CD (min 1), always wets' },
         ],
     },
+
+    // ==================== NECROMANCER TREES ====================
+    soul_rend: {
+        early: [
+            { id: 'deeper_cut', name: 'Deeper Cut', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'soul_siphon', name: 'Soul Siphon', type: NodeType.MAJOR, cost: 1, effect: 'Heal 15% of damage dealt' },
+            { id: 'rending', name: 'Rending', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'pain', name: 'Pain', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'torment', name: 'Torment', type: NodeType.MINOR, cost: 1, effect: '+5% crit' },
+        ],
+        mid: [
+            { id: 'spirit_crush', name: 'Spirit Crush', type: NodeType.MAJOR, cost: 2, effect: 'Target -20% damage for 2s' },
+            { id: 'rend_asunder', name: 'Rend Asunder', type: NodeType.MAJOR, cost: 2, effect: 'Becomes Cleave, -15% damage' },
+            { id: 'dot_rend', name: 'DOT', type: NodeType.MAJOR, cost: 1, effect: '+25% DOT over 2s' },
+            { id: 'devour', name: 'Devour', type: NodeType.MAJOR, cost: 1, effect: 'Kill = next rend +30%' },
+            { id: 'essence_burn', name: 'Essence Burn', type: NodeType.MAJOR, cost: 1, effect: 'Also 8% max HP true damage' },
+        ],
+        deep: [
+            { id: 'reapers_touch', name: 'Reaper\'s Touch', type: NodeType.MAJOR, cost: 2, effect: '+60% vs below 30% HP' },
+            { id: 'soul_tear', name: 'Soul Tear', type: NodeType.MAJOR, cost: 2, effect: 'Target WILL counts as 25% for resist' },
+            { id: 'oblivion', name: 'Oblivion', type: NodeType.MAJOR, cost: 1, effect: 'Kills prevent resurrection' },
+            { id: 'mass_rend', name: 'Mass Rend', type: NodeType.MAJOR, cost: 1, effect: 'AOE at 60% damage' },
+            { id: 'soul_eater', name: 'Soul Eater', type: NodeType.CAPSTONE, cost: 1, effect: '+40% damage, heals 30%, always crits dying' },
+        ],
+    },
+    life_drain: {
+        early: [
+            { id: 'deeper_drain', name: 'Deeper Drain', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'more_healing', name: 'More Healing', type: NodeType.MINOR, cost: 1, effect: '+10% heal' },
+            { id: 'thirst', name: 'Thirst', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'hunger', name: 'Hunger', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'efficient_drain', name: 'Efficient', type: NodeType.MAJOR, cost: 1, effect: 'Heal = 60% of damage' },
+        ],
+        mid: [
+            { id: 'sanguine_feast', name: 'Sanguine Feast', type: NodeType.MAJOR, cost: 2, effect: 'Overheal = temp HP shield' },
+            { id: 'mass_drain', name: 'Mass Drain', type: NodeType.MAJOR, cost: 2, effect: 'AOE at 50% damage, heals total' },
+            { id: 'vampiric_aura', name: 'Vampiric Aura', type: NodeType.MAJOR, cost: 1, effect: 'Allies leech 5% during your turn' },
+            { id: 'essence_thief', name: 'Essence Thief', type: NodeType.MAJOR, cost: 1, effect: 'Target -15% damage dealt' },
+            { id: 'crimson_pact', name: 'Crimson Pact', type: NodeType.MAJOR, cost: 1, effect: 'Costs 10% HP, +50% damage' },
+        ],
+        deep: [
+            { id: 'exsanguinate', name: 'Exsanguinate', type: NodeType.MAJOR, cost: 2, effect: 'Kill = cooldown reset to min (1)' },
+            { id: 'blood_magic', name: 'Blood Magic', type: NodeType.MAJOR, cost: 2, effect: 'Heal = 80% of damage' },
+            { id: 'life_link', name: 'Life Link', type: NodeType.MAJOR, cost: 1, effect: 'Can drain ally to heal self or vice versa' },
+            { id: 'drain_soul', name: 'Drain Soul', type: NodeType.MAJOR, cost: 1, effect: 'Damage = 1.2×, ignore 30% WILL' },
+            { id: 'vampire_lord', name: 'Vampire Lord', type: NodeType.CAPSTONE, cost: 1, effect: 'Heal = 100%, +30% damage, overheal permanent' },
+        ],
+    },
+    raise_skeleton: {
+        early: [
+            { id: 'stronger_bones', name: 'Stronger Bones', type: NodeType.MINOR, cost: 1, effect: '+10% skeleton stats' },
+            { id: 'hardened_bones', name: 'Hardened', type: NodeType.MINOR, cost: 1, effect: '+10% skeleton stats' },
+            { id: 'armed', name: 'Armed', type: NodeType.MINOR, cost: 1, effect: '+10% skeleton stats' },
+            { id: 'reinforced', name: 'Reinforced', type: NodeType.MINOR, cost: 1, effect: '+10% skeleton stats' },
+            { id: 'skeleton_mage', name: 'Skeleton Mage', type: NodeType.MAJOR, cost: 1, effect: 'Casts Spark instead of melee' },
+        ],
+        mid: [
+            { id: 'skeleton_archer', name: 'Skeleton Archer', type: NodeType.MAJOR, cost: 1, effect: 'Ranged attacks' },
+            { id: 'army', name: 'Army', type: NodeType.MAJOR, cost: 2, effect: 'Raise 2 at 75% stats each' },
+            { id: 'bone_armor', name: 'Bone Armor', type: NodeType.MAJOR, cost: 1, effect: 'Skeletons +30% DEF' },
+            { id: 'unholy_frenzy', name: 'Unholy Frenzy', type: NodeType.MAJOR, cost: 2, effect: '+25% SPD, -15% DEF' },
+            { id: 'reassemble', name: 'Reassemble', type: NodeType.MAJOR, cost: 1, effect: 'Revives after 2 turns' },
+        ],
+        deep: [
+            { id: 'bone_giant', name: 'Bone Giant', type: NodeType.MAJOR, cost: 2, effect: 'Single skeleton, 2.5× stats, slow' },
+            { id: 'legion', name: 'Legion', type: NodeType.MAJOR, cost: 2, effect: 'Raise 4 at 60% stats' },
+            { id: 'exploding_bones', name: 'Exploding Bones', type: NodeType.MAJOR, cost: 1, effect: 'Death = 0.5× WILL AOE' },
+            { id: 'command_dead', name: 'Command Dead', type: NodeType.MAJOR, cost: 1, effect: 'Can raise slain enemies' },
+            { id: 'lord_of_bones', name: 'Lord of Bones', type: NodeType.CAPSTONE, cost: 1, effect: 'Skeletons +50% stats, unlimited count' },
+        ],
+    },
+    corpse_explosion: {
+        early: [
+            { id: 'bigger_boom', name: 'Bigger Boom', type: NodeType.MINOR, cost: 1, effect: '+12% damage' },
+            { id: 'splatter', name: 'Splatter', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'gore', name: 'Gore', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'visceral', name: 'Visceral', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'wider_blast', name: 'Wider Blast', type: NodeType.MAJOR, cost: 1, effect: 'AOE instead of Cleave' },
+        ],
+        mid: [
+            { id: 'chain_reaction', name: 'Chain Reaction', type: NodeType.MAJOR, cost: 2, effect: 'Can trigger other corpses' },
+            { id: 'poison_cloud', name: 'Poison Cloud', type: NodeType.MAJOR, cost: 1, effect: 'Leaves poison 2s' },
+            { id: 'bone_shrapnel', name: 'Bone Shrapnel', type: NodeType.MAJOR, cost: 2, effect: 'Physical damage instead' },
+            { id: 'volatile_bodies', name: 'Volatile Bodies', type: NodeType.MAJOR, cost: 1, effect: '+35% damage' },
+            { id: 'quick_decay', name: 'Quick Decay', type: NodeType.MAJOR, cost: 1, effect: '-1 CD (min 1)' },
+        ],
+        deep: [
+            { id: 'plague_bearer', name: 'Plague Bearer', type: NodeType.MAJOR, cost: 2, effect: 'Kills become plague corpses (auto-explode)' },
+            { id: 'deathbomb', name: 'Deathbomb', type: NodeType.MAJOR, cost: 2, effect: 'Corpse damage = 50% corpse max HP' },
+            { id: 'corpse_lance', name: 'Corpse Lance', type: NodeType.MAJOR, cost: 1, effect: 'Single target, 2× damage' },
+            { id: 'necrotic_burst', name: 'Necrotic Burst', type: NodeType.MAJOR, cost: 1, effect: 'Explosion heals undead allies' },
+            { id: 'master_of_death', name: 'Master of Death', type: NodeType.CAPSTONE, cost: 1, effect: 'Enemies killed always leave corpse, +50% damage' },
+        ],
+    },
+    death_mark: {
+        early: [
+            { id: 'stronger_mark', name: 'Stronger Mark', type: NodeType.MINOR, cost: 1, effect: '+5% damage taken' },
+            { id: 'longer_mark', name: 'Longer Mark', type: NodeType.MINOR, cost: 1, effect: '+1s duration' },
+            { id: 'deeper_mark', name: 'Deeper Mark', type: NodeType.MINOR, cost: 1, effect: '+5% damage taken' },
+            { id: 'lasting', name: 'Lasting', type: NodeType.MINOR, cost: 1, effect: '+1s duration' },
+            { id: 'spreading_mark', name: 'Spreading', type: NodeType.MAJOR, cost: 1, effect: 'On death, mark jumps to nearest' },
+        ],
+        mid: [
+            { id: 'mass_mark', name: 'Mass Mark', type: NodeType.MAJOR, cost: 2, effect: 'All enemies, but +15% only' },
+            { id: 'execution_mark', name: 'Execution Mark', type: NodeType.MAJOR, cost: 1, effect: '+40% vs below 30% HP' },
+            { id: 'hunters_mark', name: 'Hunter\'s Mark', type: NodeType.MAJOR, cost: 2, effect: 'Your attacks can\'t miss marked' },
+            { id: 'doomed', name: 'Doomed', type: NodeType.MAJOR, cost: 1, effect: 'Marked can\'t heal' },
+            { id: 'mark_of_pain', name: 'Mark of Pain', type: NodeType.MAJOR, cost: 1, effect: 'Marked take 0.15× WILL DOT/turn' },
+        ],
+        deep: [
+            { id: 'reapers_due', name: 'Reaper\'s Due', type: NodeType.MAJOR, cost: 2, effect: 'If survives, take 40% current HP' },
+            { id: 'eternal_mark', name: 'Eternal Mark', type: NodeType.MAJOR, cost: 2, effect: 'Mark never expires' },
+            { id: 'death_sentence', name: 'Death Sentence', type: NodeType.MAJOR, cost: 1, effect: 'Marked below 15% = instant death' },
+            { id: 'mark_of_legion', name: 'Mark of the Legion', type: NodeType.MAJOR, cost: 1, effect: 'Marked takes +10% per ally attacking' },
+            { id: 'herald_of_death', name: 'Herald of Death', type: NodeType.CAPSTONE, cost: 1, effect: 'Mark +40% damage, spreads on death always' },
+        ],
+    },
+
+    // ==================== PALADIN TREES ====================
+    holy_smite: {
+        early: [
+            { id: 'divine_power', name: 'Divine Power', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'righteous', name: 'Righteous', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'holy', name: 'Holy', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'blessed', name: 'Blessed', type: NodeType.MINOR, cost: 1, effect: '+5% crit' },
+            { id: 'radiant', name: 'Radiant', type: NodeType.MAJOR, cost: 1, effect: '+40% vs undead/demons' },
+        ],
+        mid: [
+            { id: 'blinding_light', name: 'Blinding Light', type: NodeType.MAJOR, cost: 2, effect: 'Target -25% accuracy 2s' },
+            { id: 'consecrate', name: 'Consecrate', type: NodeType.MAJOR, cost: 1, effect: 'Leaves holy ground (heals allies 3%/turn)' },
+            { id: 'judgment_smite', name: 'Judgment', type: NodeType.MAJOR, cost: 2, effect: '+30% vs enemies that hit allies' },
+            { id: 'zealot', name: 'Zealot', type: NodeType.MAJOR, cost: 1, effect: '+25% damage, -10% DEF' },
+            { id: 'purify', name: 'Purify', type: NodeType.MAJOR, cost: 1, effect: 'Removes 1 buff from target' },
+        ],
+        deep: [
+            { id: 'martyrs_blow', name: 'Martyr\'s Blow', type: NodeType.MAJOR, cost: 2, effect: 'Costs 15% HP, +60% damage' },
+            { id: 'divine_fury', name: 'Divine Fury', type: NodeType.MAJOR, cost: 2, effect: 'At full HP, always crits' },
+            { id: 'exorcism', name: 'Exorcism', type: NodeType.MAJOR, cost: 1, effect: 'Instant kill undead/demon below 25%' },
+            { id: 'holy_explosion', name: 'Holy Explosion', type: NodeType.MAJOR, cost: 1, effect: 'Cleave, -20% damage' },
+            { id: 'avatar_of_light', name: 'Avatar of Light', type: NodeType.CAPSTONE, cost: 1, effect: '+40% damage, heals you 20% on kill' },
+        ],
+    },
+    lay_on_hands: {
+        early: [
+            { id: 'greater_heal', name: 'Greater Heal', type: NodeType.MINOR, cost: 1, effect: '+12% healing' },
+            { id: 'blessed_touch', name: 'Blessed Touch', type: NodeType.MINOR, cost: 1, effect: '+10% healing' },
+            { id: 'soothing', name: 'Soothing', type: NodeType.MINOR, cost: 1, effect: '+10% healing' },
+            { id: 'mending', name: 'Mending', type: NodeType.MINOR, cost: 1, effect: '+10% healing' },
+            { id: 'self_heal', name: 'Self Heal', type: NodeType.MAJOR, cost: 1, effect: 'Also heals self 25% when healing ally' },
+        ],
+        mid: [
+            { id: 'mass_heal', name: 'Mass Heal', type: NodeType.MAJOR, cost: 2, effect: 'All allies 50% amount' },
+            { id: 'overheal', name: 'Overheal', type: NodeType.MAJOR, cost: 1, effect: 'Excess = HP shield' },
+            { id: 'cleanse', name: 'Cleanse', type: NodeType.MAJOR, cost: 2, effect: 'Also removes 1 debuff' },
+            { id: 'renewal', name: 'Renewal', type: NodeType.MAJOR, cost: 1, effect: '+25% HOT over 2 turns' },
+            { id: 'emergency', name: 'Emergency', type: NodeType.MAJOR, cost: 1, effect: '+50% to targets below 30% HP' },
+        ],
+        deep: [
+            { id: 'resurrection', name: 'Resurrection', type: NodeType.MAJOR, cost: 2, effect: 'Revive ally at 25% HP (once/quest)' },
+            { id: 'divine_light', name: 'Divine Light', type: NodeType.MAJOR, cost: 2, effect: 'Heal = 1.0 × WILL' },
+            { id: 'sacrifice_heal', name: 'Sacrifice', type: NodeType.MAJOR, cost: 1, effect: 'Costs 20% HP, heal +80%' },
+            { id: 'beacon', name: 'Beacon', type: NodeType.MAJOR, cost: 1, effect: 'Healed ally +20% damage 2 turns' },
+            { id: 'miracle', name: 'Miracle', type: NodeType.CAPSTONE, cost: 1, effect: '-1 CD (min 1), heal +50%, can res once more' },
+        ],
+    },
+    divine_shield: {
+        early: [
+            { id: 'stronger_shield', name: 'Stronger Shield', type: NodeType.MINOR, cost: 1, effect: '+12% absorb' },
+            { id: 'blessed_barrier', name: 'Blessed Barrier', type: NodeType.MINOR, cost: 1, effect: '+10% absorb' },
+            { id: 'holy_ward', name: 'Holy Ward', type: NodeType.MINOR, cost: 1, effect: '+10% absorb' },
+            { id: 'reinforced_shield', name: 'Reinforced', type: NodeType.MINOR, cost: 1, effect: '+10% absorb' },
+            { id: 'sanctuary', name: 'Sanctuary', type: NodeType.MAJOR, cost: 1, effect: 'Can cast on ally' },
+        ],
+        mid: [
+            { id: 'reflective', name: 'Reflective', type: NodeType.MAJOR, cost: 2, effect: '35% blocked reflects back' },
+            { id: 'debuff_block', name: 'Debuff Block', type: NodeType.MAJOR, cost: 1, effect: 'Also blocks debuffs' },
+            { id: 'renewal_shield', name: 'Renewal', type: NodeType.MAJOR, cost: 2, effect: 'Shield break = heal 20%' },
+            { id: 'aura_shield', name: 'Aura Shield', type: NodeType.MAJOR, cost: 1, effect: 'Allies get 30% of your shield' },
+            { id: 'steadfast', name: 'Steadfast', type: NodeType.MAJOR, cost: 1, effect: 'Unbroken shield = +25% next' },
+        ],
+        deep: [
+            { id: 'holy_fortress', name: 'Holy Fortress', type: NodeType.MAJOR, cost: 2, effect: 'Shield = 0.8 × WILL' },
+            { id: 'martyrdom', name: 'Martyrdom', type: NodeType.MAJOR, cost: 2, effect: 'Absorb ally damage too' },
+            { id: 'divine_aegis', name: 'Divine Aegis', type: NodeType.MAJOR, cost: 1, effect: 'Shield persists until broken' },
+            { id: 'radiant_barrier', name: 'Radiant Barrier', type: NodeType.MAJOR, cost: 1, effect: 'Damages attackers 0.2× WILL' },
+            { id: 'invincible', name: 'Invincible', type: NodeType.CAPSTONE, cost: 1, effect: 'Shield 1.0 × WILL, immune to all while active' },
+        ],
+    },
+    holy_aura: {
+        early: [
+            { id: 'stronger_aura', name: 'Stronger Aura', type: NodeType.MINOR, cost: 1, effect: '+1% HP regen' },
+            { id: 'wider_aura', name: 'Wider Aura', type: NodeType.MINOR, cost: 1, effect: '+1% HP regen' },
+            { id: 'blessed_aura', name: 'Blessed Aura', type: NodeType.MINOR, cost: 1, effect: '+1% HP regen' },
+            { id: 'holy_presence', name: 'Holy Presence', type: NodeType.MINOR, cost: 1, effect: '+1% HP regen' },
+            { id: 'ally_regen', name: 'Ally Regen', type: NodeType.MAJOR, cost: 1, effect: 'Allies also regen 2%' },
+        ],
+        mid: [
+            { id: 'cleansing_aura', name: 'Cleansing Aura', type: NodeType.MAJOR, cost: 2, effect: 'Removes 1 debuff/turn' },
+            { id: 'damage_reduction', name: 'Damage Reduction', type: NodeType.MAJOR, cost: 1, effect: 'Allies take -10% damage' },
+            { id: 'holy_damage', name: 'Holy Damage', type: NodeType.MAJOR, cost: 2, effect: 'Nearby enemies take 0.1× WILL/turn' },
+            { id: 'resist_evil', name: 'Resist Evil', type: NodeType.MAJOR, cost: 1, effect: '+25% vs undead/demons' },
+            { id: 'empowering', name: 'Empowering', type: NodeType.MAJOR, cost: 1, effect: 'Allies +10% damage' },
+        ],
+        deep: [
+            { id: 'sanctuary_aura', name: 'Sanctuary', type: NodeType.MAJOR, cost: 2, effect: 'Allies can\'t die while you\'re above 50%' },
+            { id: 'divine_protection', name: 'Divine Protection', type: NodeType.MAJOR, cost: 2, effect: 'First fatal hit on ally blocked' },
+            { id: 'aura_of_might', name: 'Aura of Might', type: NodeType.MAJOR, cost: 1, effect: 'Allies +20% all stats' },
+            { id: 'purifying_light', name: 'Purifying Light', type: NodeType.MAJOR, cost: 1, effect: 'Undead/demons -30% damage' },
+            { id: 'avatar_of_hope', name: 'Avatar of Hope', type: NodeType.CAPSTONE, cost: 1, effect: 'Regen 8%, allies 5%, immune CC' },
+        ],
+    },
+    consecration: {
+        early: [
+            { id: 'stronger_ground', name: 'Stronger Ground', type: NodeType.MINOR, cost: 1, effect: '+12% effects' },
+            { id: 'wider_ground', name: 'Wider', type: NodeType.MINOR, cost: 1, effect: '+15% radius' },
+            { id: 'holier', name: 'Holier', type: NodeType.MINOR, cost: 1, effect: '+10% effects' },
+            { id: 'blessed_ground', name: 'Blessed', type: NodeType.MINOR, cost: 1, effect: '+10% effects' },
+            { id: 'extended', name: 'Extended', type: NodeType.MAJOR, cost: 1, effect: '+1 turn duration' },
+        ],
+        mid: [
+            { id: 'holy_fire', name: 'Holy Fire', type: NodeType.MAJOR, cost: 2, effect: 'Enemies burn +20%' },
+            { id: 'sanctuary_ground', name: 'Sanctuary', type: NodeType.MAJOR, cost: 1, effect: 'Allies +20% DEF in zone' },
+            { id: 'purifying_ground', name: 'Purifying', type: NodeType.MAJOR, cost: 2, effect: 'Cleanses 1 debuff/turn' },
+            { id: 'smite_ground', name: 'Smite Ground', type: NodeType.MAJOR, cost: 1, effect: 'Undead/demons 2× damage' },
+            { id: 'longer_ground', name: 'Longer', type: NodeType.MAJOR, cost: 1, effect: '+2 turn duration' },
+        ],
+        deep: [
+            { id: 'moving_blessing', name: 'Moving Blessing', type: NodeType.MAJOR, cost: 2, effect: 'Zone follows caster' },
+            { id: 'divine_judgment', name: 'Divine Judgment', type: NodeType.MAJOR, cost: 2, effect: 'Enemies can\'t heal in zone' },
+            { id: 'eternal_light', name: 'Eternal Light', type: NodeType.MAJOR, cost: 1, effect: 'Zone permanent, 60% effect' },
+            { id: 'hallowed_ground', name: 'Hallowed Ground', type: NodeType.MAJOR, cost: 1, effect: 'Allies resurrect in zone (once each)' },
+            { id: 'sacred_domain', name: 'Sacred Domain', type: NodeType.CAPSTONE, cost: 1, effect: '+50% all effects, zone is entire battlefield' },
+        ],
+    },
 };
 
 Object.freeze(SKILL_TREES);
