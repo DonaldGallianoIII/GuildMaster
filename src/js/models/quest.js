@@ -2269,8 +2269,8 @@ class Quest {
         // Generate encounters based on bracket and tag
         const selectedEncounters = generateEncountersForTag(theme, bracket, tag);
 
-        // Calculate expiration time based on bracket
-        const expirationDuration = CONFIG.QUESTS.EXPIRATION[bracket] || CONFIG.QUESTS.EXPIRATION.novice;
+        // Calculate expiration time (same for all brackets)
+        const expirationDuration = CONFIG.QUESTS.EXPIRATION;
         const expiresAt = new Date(Date.now() + expirationDuration).toISOString();
 
         return new Quest({
