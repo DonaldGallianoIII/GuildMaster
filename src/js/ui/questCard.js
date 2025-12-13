@@ -266,6 +266,10 @@ const QuestCard = {
                                 displayHp = Math.min(options.hero.maxHp, displayHp + event.data.healing);
                             }
                         }
+                        // Rest healing between encounters
+                        if (event.type === 'rest' && event.data?.heal) {
+                            displayHp = Math.min(options.hero.maxHp, displayHp + event.data.heal);
+                        }
                     }
                 }
 

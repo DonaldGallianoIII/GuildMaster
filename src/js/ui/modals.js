@@ -990,6 +990,10 @@ const Modals = {
                         this._questDisplayHp[quest.id] = Math.min(hero.maxHp, this._questDisplayHp[quest.id] + event.data.healing);
                     }
                 }
+                // Rest healing between encounters
+                if (event.type === 'rest' && event.data?.heal) {
+                    this._questDisplayHp[quest.id] = Math.min(hero.maxHp, this._questDisplayHp[quest.id] + event.data.heal);
+                }
 
                 // Format and add new log entry
                 const formatted = this._formatCombatEvent(event, hero);

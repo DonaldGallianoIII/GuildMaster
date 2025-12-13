@@ -85,12 +85,18 @@ const HeroCard = {
                 const events = activeQuest.getCurrentEvents();
                 for (const event of events) {
                     if (event.type === 'combat_action' && event.data) {
+                        // Enemy dealing damage to hero
                         if (!event.data.actorIsHero && event.data.damage) {
                             displayHp = Math.max(0, displayHp - event.data.damage);
                         }
+                        // Hero healing (Second Wind, lifesteal, etc.)
                         if (event.data.actorIsHero && event.data.healing) {
                             displayHp = Math.min(hero.maxHp, displayHp + event.data.healing);
                         }
+                    }
+                    // Rest healing between encounters
+                    if (event.type === 'rest' && event.data?.heal) {
+                        displayHp = Math.min(hero.maxHp, displayHp + event.data.heal);
                     }
                 }
             }

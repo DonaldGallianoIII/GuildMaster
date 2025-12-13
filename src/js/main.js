@@ -369,6 +369,10 @@ const App = {
                             displayHp = Math.min(hero.maxHp, displayHp + event.data.healing);
                         }
                     }
+                    // Rest healing between encounters
+                    if (event.type === 'rest' && event.data?.heal) {
+                        displayHp = Math.min(hero.maxHp, displayHp + event.data.heal);
+                    }
                 }
 
                 const hpFill = hpSection.querySelector('.hp-bar-fill');
