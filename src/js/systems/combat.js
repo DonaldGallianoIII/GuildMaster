@@ -1000,15 +1000,19 @@ const CombatEngine = {
             undying_used: false,
         };
 
+        // Calculate total gear BST for elite/boss scaling (sum of atk, def, spd, will bonuses)
+        const heroGearBst = (gearBonuses.atk || 0) + (gearBonuses.def || 0) +
+                           (gearBonuses.spd || 0) + (gearBonuses.will || 0);
+
         // Run each encounter
         for (let i = 0; i < encounters.length; i++) {
             const encounter = encounters[i];
 
-            // Create mob instances scaled to hero level
+            // Create mob instances scaled to hero level (with gear scaling for elite/boss)
             // encounter.mobTiers contains the spawn tier for each mob (for BESTIARY mobs)
             const mobs = encounter.mobs.map((mobId, idx) => {
                 const tier = encounter.mobTiers ? encounter.mobTiers[idx] : null;
-                return Quests.createMobInstance(mobId, hero.level, tier);
+                return Quests.createMobInstance(mobId, hero.level, tier, heroGearBst);
             }).filter(Boolean);  // Filter out any null mobs (unknown IDs)
 
             // Skip empty encounters (all mobs failed to create)

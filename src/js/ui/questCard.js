@@ -38,13 +38,28 @@ const QuestCard = {
     },
 
     /**
-     * Create tier badge
+     * Create tier badge (legacy)
      */
     createTierBadge(tier) {
         const tierNames = { 1: 'I', 2: 'II', 3: 'III' };
         return Utils.createElement('span', {
             className: `tier-badge tier-${tier}`,
         }, tierNames[tier] || 'I');
+    },
+
+    /**
+     * Create tag badge (Design Doc v2)
+     * @param {string} tag - Quest tag (swarm, standard, hunt)
+     * @returns {HTMLElement}
+     */
+    createTagBadge(tag) {
+        const tagDisplay = CONFIG.TAG_DISPLAY[tag] || { icon: '📦', label: 'STANDARD', color: 'yellow' };
+        const badge = Utils.createElement('span', {
+            className: `tag-badge tag-${tag}`,
+            style: `--tag-color: var(--color-${tagDisplay.color}, var(--color-gold))`,
+        });
+        badge.innerHTML = `${tagDisplay.icon} ${tagDisplay.label}`;
+        return badge;
     },
 
     /**
@@ -70,8 +85,12 @@ const QuestCard = {
         `;
         headerContent.appendChild(nameSection);
 
-        // Add danger rating (tier badge removed - tier is shown in accordion bar header)
+        // Add tag badge and danger rating
         const badgeSection = Utils.createElement('div', { className: 'quest-badges' });
+        // Add tag badge if quest has tag
+        if (quest.tag) {
+            badgeSection.appendChild(this.createTagBadge(quest.tag));
+        }
         const highestHeroLevel = options.heroLevel || 1;
         badgeSection.appendChild(this.createDangerRating(quest, highestHeroLevel));
         headerContent.appendChild(badgeSection);
@@ -284,6 +303,7 @@ const QuestCard = {
 
     /**
      * Render quest board with vertical accordion and horizontal quest carousels
+     * Design Doc v2: 7 brackets (novice through legendary)
      */
     renderBoard(container, quests, options = {}) {
         container.innerHTML = '';
@@ -293,50 +313,30 @@ const QuestCard = {
             return;
         }
 
-        // Define tiers with plus system naming
-        const tiers = {
-            'novice': { name: 'Novice', order: 1 },
-            'novice_plus': { name: 'Novice+', order: 2 },
-            'novice_plus2': { name: 'Novice++', order: 3 },
-            'novice_plus3': { name: 'Novice+++', order: 4 },
-            'intermediate': { name: 'Intermediate', order: 5 },
-            'intermediate_plus': { name: 'Intermediate+', order: 6 },
-            'intermediate_plus2': { name: 'Intermediate++', order: 7 },
-            'intermediate_plus3': { name: 'Intermediate+++', order: 8 },
-            'expert': { name: 'Expert', order: 9 },
+        // Define brackets (Design Doc v2) - use CONFIG for names
+        const brackets = {
+            'novice': { name: CONFIG.QUEST_BRACKETS.novice?.name || 'Novice Contracts', order: 1 },
+            'apprentice': { name: CONFIG.QUEST_BRACKETS.apprentice?.name || 'Apprentice Contracts', order: 2 },
+            'journeyman': { name: CONFIG.QUEST_BRACKETS.journeyman?.name || 'Journeyman Contracts', order: 3 },
+            'veteran': { name: CONFIG.QUEST_BRACKETS.veteran?.name || 'Veteran Contracts', order: 4 },
+            'expert': { name: CONFIG.QUEST_BRACKETS.expert?.name || 'Expert Contracts', order: 5 },
+            'master': { name: CONFIG.QUEST_BRACKETS.master?.name || 'Master Contracts', order: 6 },
+            'legendary': { name: CONFIG.QUEST_BRACKETS.legendary?.name || 'Legendary Contracts', order: 7 },
         };
 
-        // Map old bracket/tier combo to new tier system
-        const mapQuestToTier = (quest) => {
-            const bracket = quest.bracket || 'novice';
-            const tier = quest.tier || 1;
-
-            if (bracket === 'novice') {
-                if (tier === 1) return 'novice';
-                if (tier === 2) return 'novice_plus';
-                if (tier === 3) return 'novice_plus2';
-            } else if (bracket === 'journeyman') {
-                if (tier === 1) return 'novice_plus3';
-                if (tier === 2) return 'intermediate';
-                if (tier === 3) return 'intermediate_plus';
-            } else if (bracket === 'expert') {
-                if (tier === 1) return 'intermediate_plus2';
-                if (tier === 2) return 'intermediate_plus3';
-                if (tier === 3) return 'expert';
-            }
-            return 'novice';
-        };
-
-        // Group quests by tier
-        const tierGroups = {};
-        for (const tierId of Object.keys(tiers)) {
-            tierGroups[tierId] = [];
+        // Group quests by bracket
+        const bracketGroups = {};
+        for (const bracketId of Object.keys(brackets)) {
+            bracketGroups[bracketId] = [];
         }
 
         for (const quest of quests) {
-            const tierId = mapQuestToTier(quest);
-            if (tierGroups[tierId]) {
-                tierGroups[tierId].push(quest);
+            const bracketId = quest.bracket || 'novice';
+            if (bracketGroups[bracketId]) {
+                bracketGroups[bracketId].push(quest);
+            } else {
+                // Fallback for unknown brackets
+                bracketGroups['novice'].push(quest);
             }
         }
 
@@ -348,35 +348,35 @@ const QuestCard = {
             className: 'quest-tier-accordion',
         });
 
-        // Create tier bars in order
-        const sortedTiers = Object.entries(tiers).sort((a, b) => a[1].order - b[1].order);
+        // Create bracket bars in order
+        const sortedBrackets = Object.entries(brackets).sort((a, b) => a[1].order - b[1].order);
 
-        for (const [tierId, tierInfo] of sortedTiers) {
-            const tierQuests = tierGroups[tierId];
+        for (const [bracketId, bracketInfo] of sortedBrackets) {
+            const bracketQuests = bracketGroups[bracketId];
 
-            // Skip empty tiers
-            if (tierQuests.length === 0) continue;
+            // Skip empty brackets
+            if (bracketQuests.length === 0) continue;
 
-            const tierBar = Utils.createElement('div', {
+            const bracketBar = Utils.createElement('div', {
                 className: 'tier-bar',
-                dataset: { tier: tierId },
+                dataset: { bracket: bracketId },
             });
 
-            // Tier header (clickable)
+            // Bracket header (clickable)
             const header = Utils.createElement('div', {
                 className: 'tier-bar-header',
             });
             header.innerHTML = `
-                <span class="tier-bar-name">${Utils.escapeHtml(tierInfo.name)}</span>
-                <span class="tier-bar-count"><span>${tierQuests.length} contracts</span></span>
+                <span class="tier-bar-name">${Utils.escapeHtml(bracketInfo.name)}</span>
+                <span class="tier-bar-count"><span>${bracketQuests.length} contracts</span></span>
                 <span class="tier-bar-arrow">▶</span>
             `;
 
             // Click to expand/collapse (accordion - only one open)
             header.addEventListener('click', () => {
-                const wasExpanded = tierBar.classList.contains('expanded');
+                const wasExpanded = bracketBar.classList.contains('expanded');
 
-                // Close all other tiers
+                // Close all other brackets
                 accordion.querySelectorAll('.tier-bar.expanded').forEach(bar => {
                     bar.classList.remove('expanded');
                     bar.querySelector('.tier-bar-arrow').textContent = '▶';
@@ -384,12 +384,12 @@ const QuestCard = {
 
                 // Toggle this one
                 if (!wasExpanded) {
-                    tierBar.classList.add('expanded');
+                    bracketBar.classList.add('expanded');
                     header.querySelector('.tier-bar-arrow').textContent = '▼';
                 }
             });
 
-            tierBar.appendChild(header);
+            bracketBar.appendChild(header);
 
             // Quest carousel (horizontal scroll)
             const carousel = Utils.createElement('div', {
@@ -400,7 +400,7 @@ const QuestCard = {
                 className: 'carousel-track',
             });
 
-            for (const quest of tierQuests) {
+            for (const quest of bracketQuests) {
                 const card = this.createBoardCard(quest, { ...options, heroLevel: highestHeroLevel });
                 if (card) {
                     card.classList.add('carousel-card');
@@ -409,8 +409,8 @@ const QuestCard = {
             }
 
             carousel.appendChild(carouselTrack);
-            tierBar.appendChild(carousel);
-            accordion.appendChild(tierBar);
+            bracketBar.appendChild(carousel);
+            accordion.appendChild(bracketBar);
         }
 
         container.appendChild(accordion);

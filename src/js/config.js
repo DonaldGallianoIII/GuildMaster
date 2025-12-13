@@ -198,27 +198,97 @@ const CONFIG = {
     /**
      * MOB TIER SYSTEM (Design Doc v2 - Dynamic scaling based on hero level)
      * Enemies are stat templates; tier determines BST multiplier
-     * bstMult: Multiplier for BST relative to hero's BST (hero BST = level × 100)
-     * hpMult: HP multiplier for enemy survivability
+     * bst: Multiplier for BST relative to hero's BASE BST (hero BST = level × 100)
+     * hp: HP multiplier for enemy survivability
+     * gearScale: How much of hero's gear bonus applies to this tier (0 = none, 0.25 = 25%)
      */
     MOB_TIERS: {
         // Fodder Tiers - easy kills, swarm enemies
-        fodder_trash: { bstMult: 0.60, hpMult: 0.6, label: 'Fodder Trash' },
-        fodder: { bstMult: 0.70, hpMult: 0.7, label: 'Fodder' },
-        fodder_exalted: { bstMult: 0.80, hpMult: 0.8, label: 'Fodder Exalted' },
+        fodder_trash: { bst: 0.75, hp: 0.90, label: 'Trash', gearScale: 0 },
+        fodder: { bst: 0.85, hp: 1.00, label: 'Fodder', gearScale: 0 },
+        fodder_exalted: { bst: 0.95, hp: 1.10, label: 'Fodder+', gearScale: 0 },
 
         // Standard Tiers - fair fights
-        standard_weak: { bstMult: 0.85, hpMult: 0.85, label: 'Standard Weak' },
-        standard: { bstMult: 0.90, hpMult: 0.9, label: 'Standard' },
-        standard_exalted: { bstMult: 1.00, hpMult: 1.0, label: 'Standard Exalted' },
+        standard_weak: { bst: 1.05, hp: 1.20, label: 'Common-', gearScale: 0 },
+        standard: { bst: 1.15, hp: 1.25, label: 'Common', gearScale: 0 },
+        standard_exalted: { bst: 1.25, hp: 1.40, label: 'Common+', gearScale: 0 },
 
-        // Elite Tiers - dangerous, mini-boss
-        elite: { bstMult: 1.20, hpMult: 1.2, label: 'Elite' },
-        elite_exalted: { bstMult: 1.50, hpMult: 1.5, label: 'Elite Exalted' },
+        // Elite Tiers - dangerous, mini-boss (scale with 10% of hero gear)
+        elite: { bst: 1.45, hp: 1.70, label: 'Elite', gearScale: 0.10 },
+        elite_exalted: { bst: 1.60, hp: 2.20, label: 'Elite+', gearScale: 0.10 },
 
-        // Boss Tiers - major threats
-        boss: { bstMult: 2.00, hpMult: 2.0, label: 'Boss' },
-        boss_legendary: { bstMult: 3.00, hpMult: 3.0, label: 'Legendary Boss' },
+        // Boss Tiers - major threats (scale with 25% of hero gear)
+        boss: { bst: 2.10, hp: 3.20, label: 'Boss', gearScale: 0.25 },
+        boss_legendary: { bst: 2.60, hp: 3.70, label: 'Legendary', gearScale: 0.25 },
+    },
+
+    /**
+     * QUEST TAGS - Control encounter structure and reward focus
+     */
+    QUEST_TAGS: {
+        SWARM: 'swarm',       // Many weak enemies, soul farming
+        STANDARD: 'standard', // Mixed encounters, balanced
+        HUNT: 'hunt',         // Single/few strong enemies, loot focus
+    },
+
+    /**
+     * QUEST TAG DISPLAY
+     */
+    TAG_DISPLAY: {
+        swarm: { icon: '🐀', label: 'SWARM', color: 'green' },
+        standard: { icon: '📦', label: 'STANDARD', color: 'yellow' },
+        hunt: { icon: '⚔️', label: 'HUNT', color: 'red' },
+    },
+
+    /**
+     * QUEST CONFIG - Bracket × Tag definitions
+     * enemies: total enemy count (or [min, max] range)
+     * encounters: number of encounters (null = 1 enemy per encounter for swarm)
+     * tiers: enemy tier pool to draw from
+     */
+    QUEST_BRACKETS: {
+        novice: {
+            name: 'Novice Contracts',
+            swarm: { enemies: [3, 4], encounters: null, tiers: ['fodder_trash'] },
+            standard: { enemies: 2, encounters: 2, tiers: ['fodder', 'fodder_exalted'] },
+            hunt: { enemies: 1, encounters: 1, tiers: ['standard_weak'] },
+        },
+        apprentice: {
+            name: 'Apprentice Contracts',
+            swarm: { enemies: [4, 5], encounters: null, tiers: ['fodder'] },
+            standard: { enemies: 2, encounters: 2, tiers: ['fodder_exalted', 'standard_weak'] },
+            hunt: { enemies: 1, encounters: 1, tiers: ['standard'] },
+        },
+        journeyman: {
+            name: 'Journeyman Contracts',
+            swarm: { enemies: [4, 5], encounters: null, tiers: ['fodder_exalted'] },
+            standard: { enemies: 2, encounters: 2, tiers: ['standard_weak', 'standard'] },
+            hunt: { enemies: 1, encounters: 1, tiers: ['standard_exalted'] },
+        },
+        veteran: {
+            name: 'Veteran Contracts',
+            swarm: { enemies: 7, encounters: null, tiers: ['standard_weak'] },
+            standard: { enemies: 3, encounters: 3, tiers: ['standard', 'standard_exalted'] },
+            hunt: { enemies: 1, encounters: 1, tiers: ['elite'] },
+        },
+        expert: {
+            name: 'Expert Contracts',
+            swarm: { enemies: 10, encounters: null, tiers: ['standard_exalted'] },
+            standard: { enemies: 5, encounters: 5, tiers: ['standard_exalted', 'elite'] },
+            hunt: { enemies: 1, encounters: 1, tiers: ['elite_exalted'] },
+        },
+        master: {
+            name: 'Master Contracts',
+            swarm: { enemies: 12, encounters: null, tiers: ['elite'] },
+            standard: { enemies: 6, encounters: 6, tiers: ['elite', 'elite_exalted'] },
+            hunt: { enemies: 2, encounters: 1, tiers: ['boss'] },
+        },
+        legendary: {
+            name: 'Legendary Contracts',
+            swarm: { enemies: 15, encounters: null, tiers: ['elite_exalted'] },
+            standard: { enemies: 8, encounters: 8, tiers: ['elite_exalted', 'boss'] },
+            hunt: { enemies: 1, encounters: 1, tiers: ['boss_legendary'] },
+        },
     },
 
     /**
@@ -435,6 +505,9 @@ Object.freeze(CONFIG.ENEMY_LOOT.GOLD);
 Object.freeze(CONFIG.ENEMY_LOOT.GEAR_CHANCE);
 Object.freeze(CONFIG.ENEMY_LOOT.GEAR_RARITY);
 Object.freeze(CONFIG.MOB_TIERS);
+Object.freeze(CONFIG.QUEST_TAGS);
+Object.freeze(CONFIG.TAG_DISPLAY);
+Object.freeze(CONFIG.QUEST_BRACKETS);
 Object.freeze(CONFIG.FREE_HIT);
 Object.freeze(CONFIG.BETWEEN_PACKS);
 Object.freeze(CONFIG.INHERITANCE);

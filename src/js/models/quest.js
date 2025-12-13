@@ -4,44 +4,47 @@
  * ============================================
  * Quests are timed missions heroes can be sent on.
  *
- * QUEST STRUCTURE:
- * - Brackets: Novice (Lv 1-3), Journeyman (Lv 4-6), Expert (Lv 7+)
- * - Tiers: I (solo), II (geared), III (challenge)
- * - Pack size scales with tier, not mob stats
- * - Duration based on bracket
- * - Loot rolls per enemy killed
+ * QUEST STRUCTURE (Design Doc v2):
+ * - 7 Brackets: Novice → Legendary (no level gates, any hero can attempt)
+ * - 3 Tags: Swarm (many weak), Standard (mixed), Hunt (few strong)
+ * - Enemies scale to hero level, gear is the only edge
+ * - Duration based on bracket and tag
  *
  * ROTATION SYSTEM:
  * - Quests appear on the board with expiration timers
  * - Accordion UI organized by bracket
- * - Each bracket shows I/II/III tier quests
+ * - Each bracket shows quests for each tag
  * ============================================
  */
 
 /**
- * Quest brackets (level ranges)
+ * Quest brackets (7 tiers, no level gates)
  * @readonly
  * @enum {string}
  */
 const QuestBracket = {
-    NOVICE: 'novice',           // Lv 1-3
-    JOURNEYMAN: 'journeyman',   // Lv 4-6
-    EXPERT: 'expert',           // Lv 7+
+    NOVICE: 'novice',
+    APPRENTICE: 'apprentice',
+    JOURNEYMAN: 'journeyman',
+    VETERAN: 'veteran',
+    EXPERT: 'expert',
+    MASTER: 'master',
+    LEGENDARY: 'legendary',
 };
 
 /**
- * Quest tiers (difficulty within bracket)
+ * Quest tags - control encounter structure and reward focus
  * @readonly
- * @enum {number}
+ * @enum {string}
  */
-const QuestTier = {
-    I: 1,    // Solo/ungeared - 1-2 fodder per encounter
-    II: 2,   // Basic gear - 2-3 fodder per encounter
-    III: 3,  // Good gear - 3-4 fodder + standard per encounter
+const QuestTag = {
+    SWARM: 'swarm',       // Many weak enemies, soul farming
+    STANDARD: 'standard', // Mixed encounters, balanced
+    HUNT: 'hunt',         // Single/few strong enemies, loot focus
 };
 
 /**
- * Quest difficulty levels (legacy, mapped from bracket)
+ * Quest difficulty levels (legacy, mapped from bracket for backwards compatibility)
  * @readonly
  * @enum {string}
  */
@@ -64,38 +67,35 @@ const QuestStatus = {
 };
 
 Object.freeze(QuestBracket);
-Object.freeze(QuestTier);
+Object.freeze(QuestTag);
 Object.freeze(QuestDifficulty);
 Object.freeze(QuestStatus);
 
 /**
- * Quest expiration times (how long quest stays on board) - legacy, use CONFIG.QUESTS.EXPIRATION
+ * Quest expiration times (how long quest stays on board)
  */
 const QUEST_EXPIRATION = {
-    easy: 10 * 60 * 1000,
-    medium: 15 * 60 * 1000,
-    hard: 20 * 60 * 1000,
+    // By bracket (in milliseconds)
     novice: 10 * 60 * 1000,
+    apprentice: 12 * 60 * 1000,
     journeyman: 15 * 60 * 1000,
+    veteran: 18 * 60 * 1000,
     expert: 20 * 60 * 1000,
+    master: 25 * 60 * 1000,
+    legendary: 30 * 60 * 1000,
 };
 
 /**
- * Tier display names
- */
-const TIER_NAMES = {
-    1: 'I',
-    2: 'II',
-    3: 'III',
-};
-
-/**
- * Bracket display names
+ * Bracket display names - now pulled from CONFIG.QUEST_BRACKETS
  */
 const BRACKET_NAMES = {
     novice: 'Novice Contracts',
+    apprentice: 'Apprentice Contracts',
     journeyman: 'Journeyman Contracts',
+    veteran: 'Veteran Contracts',
     expert: 'Expert Contracts',
+    master: 'Master Contracts',
+    legendary: 'Legendary Contracts',
 };
 
 /**
@@ -472,33 +472,13 @@ Object.freeze(MOB_DEFINITIONS);
  * ============================================
  */
 const QUEST_THEMES = {
-    // ==================== NOVICE THEMES (VERMIN, BEASTS, GOBLINOID) ====================
-    goblin_tunnel: {
-        id: 'goblin_tunnel',
-        name: 'Goblin Tunnels',
-        description: 'A network of tunnels infested with goblins.',
-        icon: '🕳️',
-        brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
-        fodder: ['goblin_runt', 'goblin', 'goblin_scout'],
-        standard: ['goblin_warrior', 'goblin_brute', 'goblin_archer'],
-        elite: ['goblin_shaman', 'goblin_chief'],
-    },
-    wolf_territory: {
-        id: 'wolf_territory',
-        name: 'Wolf Territory',
-        description: 'A forest where wolves have made their home.',
-        icon: '🐺',
-        brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
-        fodder: ['wolf_pup', 'wolf'],
-        standard: ['dire_wolf', 'alpha_wolf'],
-        elite: ['worg', 'winter_wolf'],
-    },
+    // ==================== NOVICE-APPRENTICE THEMES (VERMIN, LOW BEASTS) ====================
     rat_infestation: {
         id: 'rat_infestation',
         name: 'Rat Infestation',
         description: 'Giant rats have overrun the area.',
         icon: '🐀',
-        brackets: [QuestBracket.NOVICE],
+        brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE],
         fodder: ['sewer_rat', 'plague_rat', 'giant_rat'],
         standard: ['giant_rat', 'rat_king'],
         elite: ['rat_king'],
@@ -508,69 +488,91 @@ const QUEST_THEMES = {
         name: 'Bat Roost',
         description: 'A cave echoing with the screeches of bats.',
         icon: '🦇',
-        brackets: [QuestBracket.NOVICE],
+        brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE],
         fodder: ['cave_bat', 'vampire_bat', 'dire_bat'],
         standard: ['swarm_bat', 'blood_wing'],
         elite: ['blood_wing'],
-    },
-    boar_thicket: {
-        id: 'boar_thicket',
-        name: 'Boar Thicket',
-        description: 'Wild boars roam this dense forest.',
-        icon: '🐗',
-        brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
-        fodder: ['wild_boar'],
-        standard: ['dire_boar', 'razorback'],
-        elite: ['war_boar'],
     },
     snake_pit: {
         id: 'snake_pit',
         name: 'Snake Pit',
         description: 'A nest of venomous snakes.',
         icon: '🐍',
-        brackets: [QuestBracket.NOVICE],
+        brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE],
         fodder: ['viper', 'constrictor'],
         standard: ['giant_snake', 'king_cobra'],
         elite: ['basilisk'],
-    },
-    spider_nest: {
-        id: 'spider_nest',
-        name: 'Spider Nest',
-        description: 'Webs cover every surface in this lair.',
-        icon: '🕷️',
-        brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
-        fodder: ['spider_hatchling', 'cave_spider'],
-        standard: ['giant_spider', 'poison_spider'],
-        elite: ['broodmother', 'widow_queen'],
     },
     beetle_burrow: {
         id: 'beetle_burrow',
         name: 'Beetle Burrow',
         description: 'Chitinous insects swarm in the darkness.',
         icon: '🪲',
-        brackets: [QuestBracket.NOVICE],
+        brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE],
         fodder: ['cockroach', 'giant_beetle', 'scarab'],
         standard: ['stag_beetle', 'fire_beetle'],
         elite: ['emperor_scorpion'],
+    },
+
+    // ==================== APPRENTICE-JOURNEYMAN THEMES (BEASTS, GOBLINOID) ====================
+    goblin_tunnel: {
+        id: 'goblin_tunnel',
+        name: 'Goblin Tunnels',
+        description: 'A network of tunnels infested with goblins.',
+        icon: '🕳️',
+        brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE, QuestBracket.JOURNEYMAN],
+        fodder: ['goblin_runt', 'goblin', 'goblin_scout'],
+        standard: ['goblin_warrior', 'goblin_brute', 'goblin_archer'],
+        elite: ['goblin_shaman', 'goblin_chief'],
+    },
+    wolf_territory: {
+        id: 'wolf_territory',
+        name: 'Wolf Territory',
+        description: 'A forest where wolves have made their home.',
+        icon: '🐺',
+        brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE, QuestBracket.JOURNEYMAN],
+        fodder: ['wolf_pup', 'wolf'],
+        standard: ['dire_wolf', 'alpha_wolf'],
+        elite: ['worg', 'winter_wolf'],
+    },
+    boar_thicket: {
+        id: 'boar_thicket',
+        name: 'Boar Thicket',
+        description: 'Wild boars roam this dense forest.',
+        icon: '🐗',
+        brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE, QuestBracket.JOURNEYMAN],
+        fodder: ['wild_boar'],
+        standard: ['dire_boar', 'razorback'],
+        elite: ['war_boar'],
+    },
+    spider_nest: {
+        id: 'spider_nest',
+        name: 'Spider Nest',
+        description: 'Webs cover every surface in this lair.',
+        icon: '🕷️',
+        brackets: [QuestBracket.NOVICE, QuestBracket.APPRENTICE, QuestBracket.JOURNEYMAN],
+        fodder: ['spider_hatchling', 'cave_spider'],
+        standard: ['giant_spider', 'poison_spider'],
+        elite: ['broodmother', 'widow_queen'],
     },
     scorpion_desert: {
         id: 'scorpion_desert',
         name: 'Scorpion Desert',
         description: 'Deadly stingers lurk beneath the sand.',
         icon: '🦂',
-        brackets: [QuestBracket.NOVICE, QuestBracket.JOURNEYMAN],
+        brackets: [QuestBracket.APPRENTICE, QuestBracket.JOURNEYMAN],
         fodder: ['scorpion', 'centipede'],
         standard: ['giant_scorpion', 'giant_centipede'],
         elite: ['emperor_scorpion', 'carrion_crawler'],
     },
 
-    // ==================== JOURNEYMAN THEMES (HUMANOID, ORC_BRUTE, UNDEAD) ====================
+    // ==================== JOURNEYMAN-VETERAN THEMES (HUMANOID, ORC_BRUTE, UNDEAD) ====================
     bandit_hideout: {
         id: 'bandit_hideout',
         name: 'Bandit Hideout',
         description: 'A camp of dangerous outlaws.',
         icon: '🏴',
-        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
         fodder: ['thug', 'bandit', 'bandit_archer'],
         standard: ['bandit_brute', 'bandit_captain'],
         elite: ['bandit_lord', 'bandit_king'],
@@ -580,7 +582,7 @@ const QUEST_THEMES = {
         name: 'Orc Camp',
         description: 'Brutal orcs have set up camp here.',
         icon: '👹',
-        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
         fodder: ['orc_whelp', 'orc_warrior'],
         standard: ['orc_raider', 'orc_berserker'],
         elite: ['orc_warchief', 'orc_chieftain'],
@@ -590,7 +592,7 @@ const QUEST_THEMES = {
         name: 'Skeleton Crypt',
         description: 'The dead walk in these ancient halls.',
         icon: '💀',
-        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
         fodder: ['skeleton', 'skeleton_warrior'],
         standard: ['skeleton_archer', 'skeleton_knight'],
         elite: ['skeleton_mage', 'skeleton_lord'],
@@ -600,7 +602,7 @@ const QUEST_THEMES = {
         name: 'Zombie Graveyard',
         description: 'The restless dead rise from their graves.',
         icon: '🧟',
-        brackets: [QuestBracket.JOURNEYMAN],
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
         fodder: ['shambling_corpse', 'zombie', 'bloated_zombie'],
         standard: ['plague_zombie', 'zombie_hulk'],
         elite: ['zombie_lord'],
@@ -610,7 +612,7 @@ const QUEST_THEMES = {
         name: 'Pirate Cove',
         description: 'Cutthroats and rogues stash their loot here.',
         icon: '🏴‍☠️',
-        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
         fodder: ['pirate_deckhand', 'pirate'],
         standard: ['pirate_gunner', 'pirate_first_mate'],
         elite: ['pirate_captain', 'dread_pirate'],
@@ -620,7 +622,7 @@ const QUEST_THEMES = {
         name: 'Cultist Shrine',
         description: 'Dark rituals are performed at this unholy place.',
         icon: '🕯️',
-        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN, QuestBracket.EXPERT],
         fodder: ['cultist_initiate', 'cultist'],
         standard: ['cultist_zealot', 'dark_acolyte'],
         elite: ['cult_priest', 'cult_fanatic'],
@@ -630,7 +632,7 @@ const QUEST_THEMES = {
         name: 'Hobgoblin Fort',
         description: 'A disciplined tribe of hobgoblins.',
         icon: '🏰',
-        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
         fodder: ['hobgoblin', 'hobgoblin_soldier'],
         standard: ['hobgoblin_captain', 'bugbear'],
         elite: ['hobgoblin_warlord', 'hobgoblin_devastator'],
@@ -640,7 +642,7 @@ const QUEST_THEMES = {
         name: 'Haunted Manor',
         description: 'Spirits and ghouls prowl these halls.',
         icon: '👻',
-        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.EXPERT],
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN, QuestBracket.EXPERT],
         fodder: ['ghost', 'ghoul'],
         standard: ['specter', 'crypt_ghoul', 'wraith'],
         elite: ['banshee', 'wight'],
@@ -650,7 +652,7 @@ const QUEST_THEMES = {
         name: 'Troll Lair',
         description: 'Monstrous trolls dwell in this foul den.',
         icon: '🌉',
-        brackets: [QuestBracket.JOURNEYMAN],
+        brackets: [QuestBracket.VETERAN, QuestBracket.EXPERT],
         fodder: ['troll_whelp', 'troll'],
         standard: ['cave_troll', 'war_troll'],
         elite: ['dire_troll', 'troll_king'],
@@ -660,102 +662,111 @@ const QUEST_THEMES = {
         name: 'Bear Den',
         description: 'Massive bears guard their territory.',
         icon: '🐻',
-        brackets: [QuestBracket.JOURNEYMAN],
+        brackets: [QuestBracket.JOURNEYMAN, QuestBracket.VETERAN],
         fodder: ['black_bear', 'brown_bear'],
         standard: ['cave_bear', 'dire_bear'],
         elite: ['werebear'],
     },
 
-    // ==================== EXPERT THEMES (DRACONIC, DEMON, HIGH-TIER UNDEAD) ====================
+    // ==================== EXPERT-MASTER THEMES (DRACONIC, DEMON, HIGH-TIER UNDEAD) ====================
     dragon_lair: {
         id: 'dragon_lair',
         name: 'Dragon Lair',
         description: 'A dragon guards its treasure hoard.',
         icon: '🐉',
-        brackets: [QuestBracket.EXPERT],
+        brackets: [QuestBracket.EXPERT, QuestBracket.MASTER, QuestBracket.LEGENDARY],
         fodder: ['kobold', 'kobold_warrior', 'kobold_skirmisher'],
         standard: ['drake_hatchling', 'fire_drake', 'wyvern'],
-        elite: ['young_dragon', 'adult_dragon', 'ancient_dragon'],
+        elite: ['young_dragon', 'adult_dragon'],
+        boss: ['ancient_dragon'],
     },
     demon_portal: {
         id: 'demon_portal',
         name: 'Demon Portal',
         description: 'A tear into the demon realm.',
         icon: '🔥',
-        brackets: [QuestBracket.EXPERT],
+        brackets: [QuestBracket.EXPERT, QuestBracket.MASTER, QuestBracket.LEGENDARY],
         fodder: ['imp', 'dretch', 'lemure'],
         standard: ['hellhound', 'shadow_demon', 'succubus'],
-        elite: ['pit_fiend', 'demon_prince', 'balor'],
+        elite: ['pit_fiend', 'balor'],
+        boss: ['demon_prince'],
     },
     lich_tower: {
         id: 'lich_tower',
         name: 'Lich Tower',
         description: 'A tower of dark necromancy.',
         icon: '🗼',
-        brackets: [QuestBracket.EXPERT],
+        brackets: [QuestBracket.EXPERT, QuestBracket.MASTER, QuestBracket.LEGENDARY],
         fodder: ['skeleton', 'skeleton_warrior', 'ghost'],
         standard: ['skeleton_mage', 'wraith', 'wight'],
-        elite: ['lich_apprentice', 'lich', 'archlich'],
+        elite: ['lich_apprentice', 'lich'],
+        boss: ['archlich'],
     },
     giant_fortress: {
         id: 'giant_fortress',
         name: 'Giant Fortress',
         description: 'A mountain fortress of giants.',
         icon: '🏔️',
-        brackets: [QuestBracket.EXPERT],
+        brackets: [QuestBracket.VETERAN, QuestBracket.EXPERT, QuestBracket.MASTER],
         fodder: ['orc_warrior', 'orc_raider'],
         standard: ['ogre', 'two_headed_ogre', 'hill_giant'],
-        elite: ['stone_giant', 'frost_giant', 'titan'],
+        elite: ['stone_giant', 'frost_giant'],
+        boss: ['titan'],
     },
     dark_temple: {
         id: 'dark_temple',
         name: 'Dark Temple',
         description: 'A temple to forbidden gods.',
         icon: '⛪',
-        brackets: [QuestBracket.EXPERT],
+        brackets: [QuestBracket.EXPERT, QuestBracket.MASTER, QuestBracket.LEGENDARY],
         fodder: ['cultist', 'cultist_zealot', 'dark_acolyte'],
         standard: ['cult_priest', 'cult_fanatic', 'shadow_demon'],
-        elite: ['lich', 'demon_prince', 'balor'],
+        elite: ['lich', 'balor'],
+        boss: ['demon_prince'],
     },
     vampire_castle: {
         id: 'vampire_castle',
         name: 'Vampire Castle',
         description: 'The undead aristocracy rules from here.',
         icon: '🧛',
-        brackets: [QuestBracket.EXPERT],
+        brackets: [QuestBracket.EXPERT, QuestBracket.MASTER, QuestBracket.LEGENDARY],
         fodder: ['ghost', 'ghoul', 'vampire_spawn'],
         standard: ['wight', 'revenant', 'vampire'],
-        elite: ['vampire_lord', 'nosferatu', 'death_knight'],
+        elite: ['vampire_lord', 'nosferatu'],
+        boss: ['death_knight'],
     },
     wyvern_eyrie: {
         id: 'wyvern_eyrie',
         name: 'Wyvern Eyrie',
         description: 'Flying terrors nest in the peaks.',
         icon: '🐲',
-        brackets: [QuestBracket.EXPERT],
+        brackets: [QuestBracket.VETERAN, QuestBracket.EXPERT, QuestBracket.MASTER],
         fodder: ['wyvern_hatchling', 'kobold_skirmisher'],
         standard: ['wyvern', 'wyvern_matriarch'],
-        elite: ['young_dragon', 'adult_dragon'],
+        elite: ['young_dragon'],
+        boss: ['adult_dragon'],
     },
     abyssal_rift: {
         id: 'abyssal_rift',
         name: 'Abyssal Rift',
         description: 'Horrors from the deepest hells emerge.',
         icon: '🌀',
-        brackets: [QuestBracket.EXPERT],
+        brackets: [QuestBracket.MASTER, QuestBracket.LEGENDARY],
         fodder: ['lemure', 'dretch', 'imp'],
         standard: ['bone_devil', 'chain_devil', 'ice_devil'],
-        elite: ['pit_fiend', 'balor', 'demon_prince'],
+        elite: ['pit_fiend', 'balor'],
+        boss: ['demon_prince'],
     },
     mummy_tomb: {
         id: 'mummy_tomb',
         name: 'Mummy Tomb',
         description: 'Ancient kings slumber in eternal unrest.',
         icon: '🏛️',
-        brackets: [QuestBracket.EXPERT],
+        brackets: [QuestBracket.VETERAN, QuestBracket.EXPERT, QuestBracket.MASTER],
         fodder: ['skeleton', 'mummy'],
         standard: ['mummy_guardian', 'barrow_wight'],
-        elite: ['mummy_lord', 'demilich'],
+        elite: ['mummy_lord'],
+        boss: ['demilich'],
     },
 };
 
@@ -794,60 +805,179 @@ function mobExists(mobId) {
 }
 
 /**
- * Generate encounters for a quest based on tier
- * Reduced mob counts for better early game balance
- * @param {Object} theme - Quest theme
- * @param {number} tier - Quest tier (1, 2, or 3)
+ * Generate encounters based on bracket, tag, and theme (Design Doc v2)
+ * Tags: swarm (many weak enemies, 1 per encounter), standard (mixed across encounters), hunt (few strong, all in one)
+ * @param {Object} theme - Quest theme with fodder/standard/elite/boss pools
+ * @param {string} bracket - Quest bracket (novice, apprentice, journeyman, veteran, expert, master, legendary)
+ * @param {string} tag - Quest tag (swarm, standard, hunt)
  * @returns {Array} Array of encounter objects with mob IDs and spawn tiers
  */
-function generateEncountersForTier(theme, tier) {
+function generateEncountersForTag(theme, bracket, tag) {
     const encounters = [];
-    const numEncounters = CONFIG.QUESTS.ENCOUNTERS[tier] || 2;
+    const bracketConfig = CONFIG.QUEST_BRACKETS[bracket];
 
-    // Get mob pools (convert to arrays if single values, filter out undefined)
-    // Now checks BESTIARY in addition to MOB_DEFINITIONS
-    const fodderPool = (Array.isArray(theme.fodder) ? theme.fodder : [theme.fodder]).filter(m => m && mobExists(m));
-    const standardPool = (Array.isArray(theme.standard) ? theme.standard : [theme.standard]).filter(m => m && mobExists(m));
-
-    // Fallback if pools are empty
-    if (fodderPool.length === 0) {
-        fodderPool.push('sewer_rat'); // Default fodder (BESTIARY)
-    }
-    if (standardPool.length === 0) {
-        standardPool.push('giant_rat'); // Default standard (BESTIARY)
+    if (!bracketConfig) {
+        Utils.error(`Unknown quest bracket: ${bracket}`);
+        return [];
     }
 
-    for (let i = 0; i < numEncounters; i++) {
-        const mobs = [];
-        const mobTiers = []; // Track what tier each mob should spawn at
+    const tagConfig = bracketConfig[tag];
+    if (!tagConfig) {
+        Utils.error(`Unknown quest tag: ${tag} for bracket ${bracket}`);
+        return [];
+    }
 
-        // Tier determines pack composition (REDUCED COUNTS for balance)
-        if (tier === 1) {
-            // Tier I: 1 fodder (solo encounter)
-            mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
-            mobTiers.push('fodder');
-        } else if (tier === 2) {
-            // Tier II: 1-2 fodder (reduced from 2-3)
-            const count = Utils.randomInt(1, 2);
-            for (let j = 0; j < count; j++) {
-                mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
-                mobTiers.push('fodder');
+    // Get mob pools from theme, mapped to tier pools
+    // Theme has: fodder, standard, elite, boss arrays
+    // We map these to the specific tiers in tagConfig.tiers
+    const getMobPoolForTier = (tierName) => {
+        // Map tier names to theme pools
+        if (tierName.startsWith('fodder')) {
+            return (Array.isArray(theme.fodder) ? theme.fodder : [theme.fodder]).filter(m => m && mobExists(m));
+        } else if (tierName.startsWith('standard')) {
+            return (Array.isArray(theme.standard) ? theme.standard : [theme.standard]).filter(m => m && mobExists(m));
+        } else if (tierName.startsWith('elite')) {
+            const elitePool = (Array.isArray(theme.elite) ? theme.elite : [theme.elite]).filter(m => m && mobExists(m));
+            // Fallback to standard if no elite pool
+            if (elitePool.length === 0) {
+                return (Array.isArray(theme.standard) ? theme.standard : [theme.standard]).filter(m => m && mobExists(m));
+            }
+            return elitePool;
+        } else if (tierName.startsWith('boss')) {
+            const bossPool = (Array.isArray(theme.boss) ? theme.boss : [theme.boss]).filter(m => m && mobExists(m));
+            // Fallback to elite, then standard if no boss pool
+            if (bossPool.length === 0) {
+                const elitePool = (Array.isArray(theme.elite) ? theme.elite : [theme.elite]).filter(m => m && mobExists(m));
+                if (elitePool.length > 0) return elitePool;
+                return (Array.isArray(theme.standard) ? theme.standard : [theme.standard]).filter(m => m && mobExists(m));
+            }
+            return bossPool;
+        }
+        // Default fallback
+        return (Array.isArray(theme.fodder) ? theme.fodder : [theme.fodder]).filter(m => m && mobExists(m));
+    };
+
+    // Determine total enemies (can be fixed number or range)
+    const totalEnemies = Array.isArray(tagConfig.enemies)
+        ? Utils.randomInt(tagConfig.enemies[0], tagConfig.enemies[1])
+        : tagConfig.enemies;
+
+    // Get tier pools and pick random tier for each enemy
+    const availableTiers = tagConfig.tiers;
+
+    if (tag === 'swarm') {
+        // SWARM: 1 enemy per encounter (encounters = null means totalEnemies separate encounters)
+        for (let i = 0; i < totalEnemies; i++) {
+            const tier = availableTiers[Math.floor(Math.random() * availableTiers.length)];
+            const pool = getMobPoolForTier(tier);
+            if (pool.length === 0) continue;
+
+            const mobId = pool[Math.floor(Math.random() * pool.length)];
+            encounters.push({
+                mobs: [mobId],
+                mobTiers: [tier]
+            });
+        }
+    } else if (tag === 'standard') {
+        // STANDARD: Distribute enemies across encounters
+        const numEncounters = tagConfig.encounters || Math.max(2, totalEnemies);
+        const enemiesPerEncounter = Math.floor(totalEnemies / numEncounters);
+        const remainder = totalEnemies % numEncounters;
+
+        for (let i = 0; i < numEncounters; i++) {
+            const mobs = [];
+            const mobTiers = [];
+
+            // Add base enemies to this encounter, plus 1 extra for first 'remainder' encounters
+            const enemiesInThisEncounter = enemiesPerEncounter + (i < remainder ? 1 : 0);
+
+            for (let j = 0; j < enemiesInThisEncounter; j++) {
+                const tier = availableTiers[Math.floor(Math.random() * availableTiers.length)];
+                const pool = getMobPoolForTier(tier);
+                if (pool.length === 0) continue;
+
+                const mobId = pool[Math.floor(Math.random() * pool.length)];
+                mobs.push(mobId);
+                mobTiers.push(tier);
+            }
+
+            if (mobs.length > 0) {
+                encounters.push({ mobs, mobTiers });
+            }
+        }
+    } else if (tag === 'hunt') {
+        // HUNT: All enemies in one encounter (or specified number of encounters)
+        const numEncounters = tagConfig.encounters || 1;
+
+        if (numEncounters === 1) {
+            // Single encounter with all enemies
+            const mobs = [];
+            const mobTiers = [];
+
+            for (let i = 0; i < totalEnemies; i++) {
+                const tier = availableTiers[Math.floor(Math.random() * availableTiers.length)];
+                const pool = getMobPoolForTier(tier);
+                if (pool.length === 0) continue;
+
+                const mobId = pool[Math.floor(Math.random() * pool.length)];
+                mobs.push(mobId);
+                mobTiers.push(tier);
+            }
+
+            if (mobs.length > 0) {
+                encounters.push({ mobs, mobTiers });
             }
         } else {
-            // Tier III: 1-2 fodder + 1 standard (reduced from 2-3 fodder)
-            const fodderCount = Utils.randomInt(1, 2);
-            for (let j = 0; j < fodderCount; j++) {
-                mobs.push(fodderPool[Math.floor(Math.random() * fodderPool.length)]);
-                mobTiers.push('fodder');
-            }
-            mobs.push(standardPool[Math.floor(Math.random() * standardPool.length)]);
-            mobTiers.push('standard');
-        }
+            // Multiple encounters for hunt (e.g., Master hunt with 2 bosses)
+            const enemiesPerEncounter = Math.ceil(totalEnemies / numEncounters);
+            let remainingEnemies = totalEnemies;
 
-        encounters.push({ mobs, mobTiers });
+            for (let i = 0; i < numEncounters && remainingEnemies > 0; i++) {
+                const mobs = [];
+                const mobTiers = [];
+                const enemiesInThisEncounter = Math.min(enemiesPerEncounter, remainingEnemies);
+
+                for (let j = 0; j < enemiesInThisEncounter; j++) {
+                    const tier = availableTiers[Math.floor(Math.random() * availableTiers.length)];
+                    const pool = getMobPoolForTier(tier);
+                    if (pool.length === 0) continue;
+
+                    const mobId = pool[Math.floor(Math.random() * pool.length)];
+                    mobs.push(mobId);
+                    mobTiers.push(tier);
+                }
+
+                if (mobs.length > 0) {
+                    encounters.push({ mobs, mobTiers });
+                    remainingEnemies -= mobs.length;
+                }
+            }
+        }
+    }
+
+    // Ensure we have at least one encounter
+    if (encounters.length === 0) {
+        const fallbackTier = availableTiers[0] || 'fodder';
+        const pool = getMobPoolForTier(fallbackTier);
+        const mobId = pool.length > 0 ? pool[0] : 'sewer_rat';
+        encounters.push({
+            mobs: [mobId],
+            mobTiers: [fallbackTier]
+        });
     }
 
     return encounters;
+}
+
+/**
+ * Legacy function for backwards compatibility
+ * @deprecated Use generateEncountersForTag instead
+ */
+function generateEncountersForTier(theme, tier) {
+    // Map old tier system to new bracket/tag system
+    const bracketMap = { 1: 'novice', 2: 'apprentice', 3: 'journeyman' };
+    const bracket = bracketMap[tier] || 'novice';
+    return generateEncountersForTag(theme, bracket, 'standard');
 }
 
 /**
@@ -2121,13 +2251,13 @@ class Quest {
     }
 
     /**
-     * Create a new quest from a theme with bracket and tier (new system)
+     * Create a new quest from a theme with bracket and tag (Design Doc v2)
      * @param {string} themeId - Theme ID from QUEST_THEMES
-     * @param {string} bracket - Bracket (novice, journeyman, expert)
-     * @param {number} tier - Tier (1, 2, or 3)
+     * @param {string} bracket - Bracket (novice, apprentice, journeyman, veteran, expert, master, legendary)
+     * @param {string} tag - Tag (swarm, standard, hunt)
      * @param {string} userId - User ID
      */
-    static fromTheme(themeId, bracket, tier, userId) {
+    static fromTheme(themeId, bracket, tag, userId) {
         const theme = QUEST_THEMES[themeId];
         if (!theme) {
             Utils.error(`Unknown quest theme: ${themeId}`);
@@ -2140,8 +2270,8 @@ class Quest {
             return null;
         }
 
-        // Generate encounters based on tier
-        const selectedEncounters = generateEncountersForTier(theme, tier);
+        // Generate encounters based on bracket and tag
+        const selectedEncounters = generateEncountersForTag(theme, bracket, tag);
 
         // Calculate expiration time based on bracket
         const expirationDuration = CONFIG.QUESTS.EXPIRATION[bracket] || CONFIG.QUESTS.EXPIRATION.novice;
@@ -2152,7 +2282,7 @@ class Quest {
             templateId: themeId, // For compatibility
             userId,
             bracket,
-            tier,
+            tag,
             status: QuestStatus.AVAILABLE,
             selectedEncounters,
             totalEncounters: selectedEncounters.length,
@@ -2195,12 +2325,13 @@ const Quests = {
 
     /**
      * Create a mob instance with stats scaled to hero level
-     * Design Doc v2: Enemies are stat templates, tier determines BST multiplier
+     * Design Doc v2: Enemies scale to hero BASE BST, elite/boss scale with gear
      * @param {string} mobId - The mob definition ID
      * @param {number} heroLevel - The level of the hero fighting this mob
      * @param {string} tierOverride - Required for BESTIARY mobs (which have no inherent tier)
+     * @param {number} heroGearBst - Total BST bonus from hero's gear (for elite/boss scaling)
      */
-    createMobInstance(mobId, heroLevel = 1, tierOverride = null) {
+    createMobInstance(mobId, heroLevel = 1, tierOverride = null, heroGearBst = 0) {
         // Try BESTIARY first, then fall back to legacy MOB_DEFINITIONS
         let def = null;
         let isBestiaryMob = false;
@@ -2227,9 +2358,15 @@ const Quests = {
             return null;
         }
 
-        // Calculate BST: hero's BST * tier multiplier (Design Doc v2)
-        const heroBst = heroLevel * CONFIG.STATS.BST_PER_LEVEL;
-        const mobBst = Math.floor(heroBst * tierConfig.bstMult);
+        // Calculate BST: hero's BASE BST * tier multiplier (Design Doc v2)
+        // Elites/Bosses also scale with a portion of hero's gear bonus
+        const baseBst = heroLevel * CONFIG.STATS.BST_PER_LEVEL;
+        let mobBst = Math.floor(baseBst * tierConfig.bst);
+
+        // Apply gear scaling for elites/bosses (they scale with X% of hero gear)
+        if (tierConfig.gearScale > 0 && heroGearBst > 0) {
+            mobBst += Math.floor(heroGearBst * tierConfig.gearScale);
+        }
 
         // Distribute BST according to stat distribution (must sum to 1.0)
         const stats = {
@@ -2240,9 +2377,8 @@ const Quests = {
         };
 
         // Calculate HP: DEF + (level × 40) scaled by tier HP multiplier
-        // Using hero level as reference for mob HP scaling
         const baseHp = stats.def + (heroLevel * CONFIG.STATS.HP_PER_LEVEL);
-        const hp = Math.floor(baseHp * tierConfig.hpMult);
+        const hp = Math.floor(baseHp * tierConfig.hp);
 
         return {
             id: Utils.uuid(),
@@ -2250,6 +2386,7 @@ const Quests = {
             name: def.name,
             level: heroLevel, // Mobs scale to hero level
             tier,
+            tierLabel: tierConfig.label,
             stats,
             maxHp: hp,
             currentHp: hp,
@@ -2269,6 +2406,7 @@ Object.freeze(Quests);
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         QuestBracket,
+        QuestTag,
         QuestTier,
         QuestDifficulty,
         QuestStatus,
@@ -2278,7 +2416,8 @@ if (typeof module !== 'undefined' && module.exports) {
         MOB_DEFINITIONS,
         QUEST_THEMES,
         QUEST_TEMPLATES,
-        generateEncountersForTier,
+        generateEncountersForTag,
+        generateEncountersForTier, // Legacy
         getMobThreatLabel,
         mobExists,
         Quest,
