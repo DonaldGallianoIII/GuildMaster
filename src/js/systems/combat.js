@@ -434,6 +434,7 @@ class CombatAction {
         this.isSummon = data.isSummon || false;   // Actor is a summon
         this.targetId = data.targetId || null;
         this.targetName = data.targetName || 'Unknown';
+        this.targetIsHero = data.targetIsHero || false;  // Target is the hero
         this.skillId = data.skillId || null;
         this.skillName = data.skillName || 'Attack';
         this.damage = data.damage || 0;
@@ -1185,6 +1186,12 @@ const CombatEngine = {
             result.addRound(round);
         }
 
+        // Safety check: ensure hero is marked dead if HP is 0 or below
+        if (heroCombatant.currentHp <= 0) {
+            heroCombatant.currentHp = 0;
+            heroCombatant.isAlive = false;
+        }
+
         // Victory check
         result.victory = heroCombatant.isAlive && allEnemies.every(e => !e.isAlive);
         result.heroSurvived = heroCombatant.isAlive;
@@ -1192,7 +1199,7 @@ const CombatEngine = {
         // Update hero's current HP
         hero.currentHp = heroCombatant.currentHp;
 
-        Utils.log(`Combat ended: ${result.victory ? 'Victory' : 'Defeat'}`);
+        Utils.log(`Combat ended: ${result.victory ? 'Victory' : 'Defeat'}, heroHP: ${heroCombatant.currentHp}, heroAlive: ${heroCombatant.isAlive}`);
         return result;
     },
 
@@ -1240,6 +1247,7 @@ const CombatEngine = {
             actorIsHero: false,
             targetId: hero.id,
             targetName: hero.name,
+            targetIsHero: true,  // Hero is target
             damage: actual,
             damageType: 'physical',
             isFreeHit: true,
@@ -1368,6 +1376,7 @@ const CombatEngine = {
             actorIsHero: actor.isHero,
             targetId: target.id,
             targetName: target.name,
+            targetIsHero: target.isHero,  // Track if hero is target
             skillId,
             skillName: skillDef?.name || 'Attack',
             damage: isAoE || isCleave ? aoeDamage.reduce((sum, d) => sum + d.damage, 0) : damage,
@@ -1725,6 +1734,7 @@ const CombatEngine = {
                     actorId: actor.id,
                     actorName: actor.name,
                     actorIsHero: actor.isHero,
+                    targetIsHero: actor.isHero,  // Self-heal
                     healing,
                     skillId: 'second_wind',
                     skillName: 'Second Wind',
@@ -1769,6 +1779,7 @@ const CombatEngine = {
                     actorId: actor.id,
                     actorName: actor.name,
                     actorIsHero: actor.isHero,
+                    targetIsHero: actor.isHero,  // Self-heal/revival
                     healing: actor.currentHp,
                     skillId: 'undying',
                     skillName: 'Undying',
@@ -1798,6 +1809,7 @@ const CombatEngine = {
                             actorIsHero: true,
                             targetId: attacker.id,
                             targetName: attacker.name,
+                            targetIsHero: false,  // Target is enemy
                             damage: thornsDamage,
                             killed,
                             skillId: 'thorns',
@@ -1980,6 +1992,7 @@ const CombatEngine = {
                     isSummon: true,
                     targetId: heroCombatant.id,
                     targetName: heroCombatant.name,
+                    targetIsHero: true,  // Hero is being healed
                     healing: healAmount,
                     description: `${summon.icon} ${summon.name}'s bond heals ${heroCombatant.name} for ${healAmount} HP!`,
                 });
@@ -2114,6 +2127,7 @@ const CombatEngine = {
             isSummon: true,
             targetId: target.id,
             targetName: target.name,
+            targetIsHero: false,  // Summons attack enemies
             damage,
             killed,
             description: `${summon.icon} ${summon.name} attacks ${target.name} for ${damage} damage!${killed ? ` ${target.name} slain!` : ''}`,
@@ -2268,6 +2282,13 @@ const CombatEngine = {
                     }
                 }
             }
+        }
+
+        // Final safety check: if hero HP is 0, quest failed
+        if (hero.currentHp <= 0) {
+            results.success = false;
+            results.heroSurvived = false;
+            Utils.log(`[Safety] Hero HP is ${hero.currentHp}, marking quest as failed`);
         }
 
         // Calculate rewards if successful

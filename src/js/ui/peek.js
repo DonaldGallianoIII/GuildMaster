@@ -263,13 +263,18 @@ const PeekSystem = {
 
         for (const event of events) {
             if (event.type === 'combat_action' && event.data) {
-                // Hero took damage
-                if (!event.data.actorIsHero && event.data.damage) {
+                // Hero took damage: enemy attacking and target is hero
+                // For backwards compat, if targetIsHero is undefined, assume hero is target when enemy attacks
+                const heroIsTarget = event.data.targetIsHero !== false;
+                if (!event.data.actorIsHero && event.data.damage && heroIsTarget) {
                     calculatedHp = Math.max(0, calculatedHp - event.data.damage);
                 }
-                // Hero healed
-                if (event.data.actorIsHero && event.data.healing) {
-                    calculatedHp = Math.min(hero.maxHp, calculatedHp + event.data.healing);
+                // Hero healed - either by self or by summon/other targeting hero
+                if (event.data.healing) {
+                    // Count healing if: actor is hero (self-heal, lifesteal) OR target is hero (summon bond)
+                    if (event.data.actorIsHero || event.data.targetIsHero) {
+                        calculatedHp = Math.min(hero.maxHp, calculatedHp + event.data.healing);
+                    }
                 }
             }
             // Rest healing between encounters
