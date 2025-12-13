@@ -1007,6 +1007,7 @@ const CombatEngine = {
                 if (revival.turnsRemaining <= 0) {
                     // Revive the summon at 50% HP
                     revival.summon.currentHp = Math.floor(revival.summon.maxHp * 0.5);
+                    revival.summon.isAlive = true;  // Mark as alive again
                     Utils.log(`[Summons] ${revival.summon.icon} ${revival.summon.name} reassembles!`);
 
                     round.addAction(new CombatAction({
@@ -1740,7 +1741,8 @@ const CombatEngine = {
                 const skillDef = Skills.get('undying');
                 const rank = getSkillRank('undying');
                 const healPercent = Skills.calcEffectValue(skillDef, rank);
-                actor.currentHp = Math.floor(actor.maxHp * healPercent);
+                // Ensure at least 1 HP after revival
+                actor.currentHp = Math.max(1, Math.floor(actor.maxHp * healPercent));
                 actor.isAlive = true;
                 actor.triggeredThisCombat['undying'] = true;
 
@@ -1935,6 +1937,7 @@ const CombatEngine = {
                 summon.immortalUsed = true;
                 // Immediately revive at 30% HP
                 summon.currentHp = Math.floor(summon.maxHp * 0.3);
+                summon.isAlive = true;  // Mark as alive again
                 Utils.log(`[Summons] ${summon.icon} ${summon.name} reforms from stone! (Immortal)`);
                 return new CombatAction({
                     type: CombatActionType.TRIGGER,
