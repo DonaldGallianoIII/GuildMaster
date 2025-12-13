@@ -876,6 +876,370 @@ const SKILL_DEFINITIONS = {
 Object.freeze(SKILL_DEFINITIONS);
 
 /**
+ * ============================================
+ * SKILL TREES (15 nodes per skill)
+ * ============================================
+ * Each tree has 3 tiers:
+ * - early: points 1-5 (all heroes)
+ * - mid: points 6-10 (requires 2× or 3×)
+ * - deep: points 11-15 (requires 3× only, includes capstone)
+ */
+const SKILL_TREES = {
+    // ==================== PYROMANCER TREES ====================
+    fireball: {
+        early: [
+            { id: 'ember', name: 'Ember', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'kindle', name: 'Kindle', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'sparks', name: 'Sparks', type: NodeType.MINOR, cost: 1, effect: '+5% crit chance' },
+            { id: 'heat', name: 'Heat', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'ignite', name: 'Ignite', type: NodeType.MAJOR, cost: 1, effect: 'Targets burn for 15% damage over 2s' },
+        ],
+        mid: [
+            { id: 'scorch', name: 'Scorch', type: NodeType.MAJOR, cost: 1, effect: 'Burning targets take +20% fire damage' },
+            { id: 'spread', name: 'Spread', type: NodeType.MAJOR, cost: 2, effect: 'Ignite spreads to 1 nearby enemy' },
+            { id: 'impact', name: 'Impact', type: NodeType.MAJOR, cost: 1, effect: '+25% damage, removes ignite effect' },
+            { id: 'chain_fire', name: 'Chain Fire', type: NodeType.MAJOR, cost: 2, effect: 'Bounces to 1 additional target at 60%' },
+            { id: 'inferno', name: 'Inferno', type: NodeType.MAJOR, cost: 1, effect: '+40% damage vs already burning' },
+        ],
+        deep: [
+            { id: 'pyroclasm', name: 'Pyroclasm', type: NodeType.MAJOR, cost: 2, effect: 'Becomes AOE, -30% damage' },
+            { id: 'meteor_form', name: 'Meteor Form', type: NodeType.MAJOR, cost: 2, effect: '+50% damage, +1 cooldown' },
+            { id: 'soul_fire', name: 'Soul Fire', type: NodeType.MAJOR, cost: 1, effect: 'Burns ignore fire resistance' },
+            { id: 'conflagration', name: 'Conflagration', type: NodeType.MAJOR, cost: 1, effect: 'Burning targets explode on death for 50% AOE' },
+            { id: 'avatar_of_flame', name: 'Avatar of Flame', type: NodeType.CAPSTONE, cost: 1, effect: 'All fire skills +25% damage, you take 25% less fire' },
+        ],
+    },
+    flame_wave: {
+        early: [
+            { id: 'wider_wave', name: 'Wider Wave', type: NodeType.MINOR, cost: 1, effect: '+15% damage' },
+            { id: 'hotter', name: 'Hotter', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'scald', name: 'Scald', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'burning_ground', name: 'Burning Ground', type: NodeType.MAJOR, cost: 1, effect: 'Leaves fire for 1 turn (0.2× WILL)' },
+            { id: 'heat_wave', name: 'Heat Wave', type: NodeType.MINOR, cost: 1, effect: '+5% damage per enemy hit (max 25%)' },
+        ],
+        mid: [
+            { id: 'melt_armor', name: 'Melt Armor', type: NodeType.MAJOR, cost: 2, effect: 'Enemies hit take +15% physical for 2s' },
+            { id: 'concentrated', name: 'Concentrated', type: NodeType.MAJOR, cost: 2, effect: 'Cleave instead of AOE, +40% damage' },
+            { id: 'backdraft', name: 'Backdraft', type: NodeType.MAJOR, cost: 1, effect: 'If enemies burning, +30% damage' },
+            { id: 'push', name: 'Push', type: NodeType.MAJOR, cost: 1, effect: 'Knockback enemies hit' },
+            { id: 'napalm', name: 'Napalm', type: NodeType.MAJOR, cost: 1, effect: 'Burning ground lasts +2 turns' },
+        ],
+        deep: [
+            { id: 'firestorm', name: 'Firestorm', type: NodeType.MAJOR, cost: 2, effect: 'Hits twice' },
+            { id: 'wall_of_fire', name: 'Wall of Fire', type: NodeType.MAJOR, cost: 2, effect: 'Creates barrier, enemies passing take 0.5× WILL' },
+            { id: 'cremation', name: 'Cremation', type: NodeType.MAJOR, cost: 1, effect: '+100% damage vs targets below 20% HP' },
+            { id: 'immolation_aura', name: 'Immolation Aura', type: NodeType.MAJOR, cost: 1, effect: 'Also damages enemies adjacent to you passively' },
+            { id: 'flame_lord', name: 'Flame Lord', type: NodeType.CAPSTONE, cost: 1, effect: 'Wave CD reduced to 1, +20% base damage' },
+        ],
+    },
+    ignite: {
+        early: [
+            { id: 'hotter_burn', name: 'Hotter Burn', type: NodeType.MINOR, cost: 1, effect: '+15% DOT damage' },
+            { id: 'longer_burn', name: 'Longer Burn', type: NodeType.MINOR, cost: 1, effect: '+1s duration, same damage' },
+            { id: 'intense', name: 'Intense', type: NodeType.MINOR, cost: 1, effect: '+15% DOT damage' },
+            { id: 'fast_burn', name: 'Fast Burn', type: NodeType.MINOR, cost: 1, effect: '-1s duration, same total (faster)' },
+            { id: 'sear', name: 'Sear', type: NodeType.MAJOR, cost: 1, effect: 'Initial hit +50%' },
+        ],
+        mid: [
+            { id: 'stacking_flames', name: 'Stacking Flames', type: NodeType.MAJOR, cost: 2, effect: 'Can stack 2 ignites on same target' },
+            { id: 'combustion', name: 'Combustion', type: NodeType.MAJOR, cost: 2, effect: 'When DOT ends, burst for 40% of total' },
+            { id: 'spreading_fire', name: 'Spreading Fire', type: NodeType.MAJOR, cost: 1, effect: 'On death, spreads to 2 nearby' },
+            { id: 'agony', name: 'Agony', type: NodeType.MAJOR, cost: 1, effect: 'Burning targets deal -15% damage' },
+            { id: 'fan_the_flames', name: 'Fan the Flames', type: NodeType.MAJOR, cost: 1, effect: 'Fire attacks refresh ignite duration' },
+        ],
+        deep: [
+            { id: 'triple_stack', name: 'Triple Stack', type: NodeType.MAJOR, cost: 1, effect: 'Can stack 3 ignites' },
+            { id: 'incinerate', name: 'Incinerate', type: NodeType.MAJOR, cost: 2, effect: '3× ignite stacks = instant 50% max HP' },
+            { id: 'eternal_flame', name: 'Eternal Flame', type: NodeType.MAJOR, cost: 2, effect: 'Ignite doesn\'t expire, must be cleansed' },
+            { id: 'phoenix_mark', name: 'Phoenix Mark', type: NodeType.MAJOR, cost: 1, effect: 'Marked targets resurrect as fire allies' },
+            { id: 'burning_soul', name: 'Burning Soul', type: NodeType.CAPSTONE, cost: 1, effect: 'Ignite deals true damage' },
+        ],
+    },
+    fire_shield: {
+        early: [
+            { id: 'hotter_shield', name: 'Hotter Shield', type: NodeType.MINOR, cost: 1, effect: '+15% reflect damage' },
+            { id: 'warming', name: 'Warming', type: NodeType.MINOR, cost: 1, effect: '+10% reflect damage' },
+            { id: 'heat_aura', name: 'Heat Aura', type: NodeType.MINOR, cost: 1, effect: '+5% fire damage dealt' },
+            { id: 'burning_touch', name: 'Burning Touch', type: NodeType.MAJOR, cost: 1, effect: 'Attackers ignited for 2s' },
+            { id: 'efficient', name: 'Efficient', type: NodeType.MINOR, cost: 1, effect: '+10% reflect damage' },
+        ],
+        mid: [
+            { id: 'fire_absorption', name: 'Fire Absorption', type: NodeType.MAJOR, cost: 2, effect: 'Take 25% less fire damage' },
+            { id: 'blazing_speed', name: 'Blazing Speed', type: NodeType.MAJOR, cost: 1, effect: '+15% SPD while active' },
+            { id: 'retribution', name: 'Retribution', type: NodeType.MAJOR, cost: 2, effect: 'Reflect damage = 0.4 × WILL' },
+            { id: 'nova_burst', name: 'Nova Burst', type: NodeType.MAJOR, cost: 1, effect: 'Can detonate for 0.6 × WILL AOE (3 turn CD)' },
+            { id: 'fuel', name: 'Fuel', type: NodeType.MINOR, cost: 1, effect: '+3% damage per kill (stacks, combat)' },
+        ],
+        deep: [
+            { id: 'inferno_shield', name: 'Inferno Shield', type: NodeType.MAJOR, cost: 2, effect: 'Reflect damages ALL enemies each turn' },
+            { id: 'phoenix_cloak', name: 'Phoenix Cloak', type: NodeType.MAJOR, cost: 2, effect: 'On death, 50% chance revive with 20% HP' },
+            { id: 'living_flame', name: 'Living Flame', type: NodeType.MAJOR, cost: 1, effect: 'Shield pulses 0.2 × WILL to all enemies/turn' },
+            { id: 'cauterize', name: 'Cauterize', type: NodeType.MAJOR, cost: 1, effect: 'Immune to bleed, heal 2% when hit' },
+            { id: 'flame_incarnate', name: 'Flame Incarnate', type: NodeType.CAPSTONE, cost: 1, effect: 'All damage you deal becomes fire, +20% fire damage' },
+        ],
+    },
+    meteor: {
+        early: [
+            { id: 'mass', name: 'Mass', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'velocity', name: 'Velocity', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'crater', name: 'Crater', type: NodeType.MAJOR, cost: 1, effect: 'Leaves burning ground 2 turns' },
+            { id: 'impact', name: 'Impact', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'debris', name: 'Debris', type: NodeType.MINOR, cost: 1, effect: '+5% damage, +5% crit' },
+        ],
+        mid: [
+            { id: 'meteor_shower', name: 'Meteor Shower', type: NodeType.MAJOR, cost: 2, effect: '3 meteors at 0.5× each, random targets' },
+            { id: 'targeted', name: 'Targeted', type: NodeType.MAJOR, cost: 2, effect: 'Single target, +60% damage, always crits' },
+            { id: 'extinction', name: 'Extinction', type: NodeType.MAJOR, cost: 1, effect: '+75% damage vs below 30% HP' },
+            { id: 'skyfall', name: 'Skyfall', type: NodeType.MAJOR, cost: 1, effect: '-1 CD (min 1)' },
+            { id: 'molten_core', name: 'Molten Core', type: NodeType.MAJOR, cost: 1, effect: 'Kills grant +15% damage next cast' },
+        ],
+        deep: [
+            { id: 'cataclysm', name: 'Cataclysm', type: NodeType.MAJOR, cost: 2, effect: '+50% damage, stuns all 1 turn' },
+            { id: 'armageddon', name: 'Armageddon', type: NodeType.MAJOR, cost: 2, effect: 'Once per quest: 3× damage' },
+            { id: 'gravity_well', name: 'Gravity Well', type: NodeType.MAJOR, cost: 1, effect: 'Pulls all enemies together before impact' },
+            { id: 'scorched_earth', name: 'Scorched Earth', type: NodeType.MAJOR, cost: 1, effect: 'Burning ground permanent this combat' },
+            { id: 'world_ender', name: 'World Ender', type: NodeType.CAPSTONE, cost: 1, effect: 'Meteor ignores 50% WILL, +30% damage' },
+        ],
+    },
+
+    // ==================== CRYOMANCER TREES ====================
+    ice_bolt: {
+        early: [
+            { id: 'sharp_ice', name: 'Sharp Ice', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'cold', name: 'Cold', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'chill', name: 'Chill', type: NodeType.MAJOR, cost: 1, effect: 'Target slowed 20% for 2s' },
+            { id: 'frost', name: 'Frost', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'piercing_cold', name: 'Piercing Cold', type: NodeType.MINOR, cost: 1, effect: '+5% crit chance' },
+        ],
+        mid: [
+            { id: 'freeze', name: 'Freeze', type: NodeType.MAJOR, cost: 2, effect: '20% chance to freeze 1s (stun)' },
+            { id: 'shatter', name: 'Shatter', type: NodeType.MAJOR, cost: 2, effect: '+60% damage to frozen targets' },
+            { id: 'pierce', name: 'Pierce', type: NodeType.MAJOR, cost: 1, effect: 'Passes through, hits 2 targets' },
+            { id: 'frostbite', name: 'Frostbite', type: NodeType.MAJOR, cost: 1, effect: 'Chilled take +20% damage from all' },
+            { id: 'icicle_barrage', name: 'Icicle Barrage', type: NodeType.MAJOR, cost: 1, effect: '3 bolts at 40% each' },
+        ],
+        deep: [
+            { id: 'flash_freeze', name: 'Flash Freeze', type: NodeType.MAJOR, cost: 2, effect: '50% freeze chance' },
+            { id: 'glacial_execution', name: 'Glacial Execution', type: NodeType.MAJOR, cost: 2, effect: 'Frozen below 25% HP = instant kill' },
+            { id: 'ice_spear', name: 'Ice Spear', type: NodeType.MAJOR, cost: 1, effect: '+40% damage, pierce 3 targets' },
+            { id: 'permafrost', name: 'Permafrost', type: NodeType.MAJOR, cost: 1, effect: 'Freeze duration +2s' },
+            { id: 'absolute_zero', name: 'Absolute Zero', type: NodeType.CAPSTONE, cost: 1, effect: 'Frozen targets take 2× damage, shatter heals you 10%' },
+        ],
+    },
+    frost_nova: {
+        early: [
+            { id: 'colder', name: 'Colder', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'radius', name: 'Radius', type: NodeType.MINOR, cost: 1, effect: '+15% range' },
+            { id: 'freeze_chance', name: 'Freeze Chance', type: NodeType.MINOR, cost: 1, effect: '10% freeze chance' },
+            { id: 'sharper', name: 'Sharper', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'chill_all', name: 'Chill All', type: NodeType.MAJOR, cost: 1, effect: 'All hit are chilled 2s' },
+        ],
+        mid: [
+            { id: 'flash_freeze_nova', name: 'Flash Freeze', type: NodeType.MAJOR, cost: 2, effect: '+25% freeze chance' },
+            { id: 'hypothermia', name: 'Hypothermia', type: NodeType.MAJOR, cost: 1, effect: 'Chilled lose 15% ATK' },
+            { id: 'ice_age', name: 'Ice Age', type: NodeType.MAJOR, cost: 1, effect: 'Freeze +1s duration' },
+            { id: 'defensive_burst', name: 'Defensive Burst', type: NodeType.MAJOR, cost: 2, effect: 'Gain +25% DEF for 2s' },
+            { id: 'blizzard_trail', name: 'Blizzard Trail', type: NodeType.MAJOR, cost: 1, effect: 'Leaves slow field 2s' },
+        ],
+        deep: [
+            { id: 'shatter_nova', name: 'Shatter Nova', type: NodeType.MAJOR, cost: 2, effect: 'Frozen enemies take 2× and unfreeze' },
+            { id: 'ice_tomb', name: 'Ice Tomb', type: NodeType.MAJOR, cost: 2, effect: '25% chance to permanently freeze fodder' },
+            { id: 'frozen_sanctuary', name: 'Frozen Sanctuary', type: NodeType.MAJOR, cost: 1, effect: 'While enemies frozen, you regen 5% HP/turn' },
+            { id: 'chain_freeze', name: 'Chain Freeze', type: NodeType.MAJOR, cost: 1, effect: 'Freeze spreads to adjacent' },
+            { id: 'cryomancers_wrath', name: 'Cryomancer\'s Wrath', type: NodeType.CAPSTONE, cost: 1, effect: 'Nova -1 CD (min 1), +30% damage, always chills' },
+        ],
+    },
+    frozen_armor: {
+        early: [
+            { id: 'thicker_ice', name: 'Thicker Ice', type: NodeType.MINOR, cost: 1, effect: '+5% DEF' },
+            { id: 'hardened', name: 'Hardened', type: NodeType.MINOR, cost: 1, effect: '+5% DEF' },
+            { id: 'chilling_aura', name: 'Chilling Aura', type: NodeType.MAJOR, cost: 1, effect: 'Attackers become chilled' },
+            { id: 'cold_skin', name: 'Cold Skin', type: NodeType.MINOR, cost: 1, effect: '+5% DEF' },
+            { id: 'frost_layer', name: 'Frost Layer', type: NodeType.MINOR, cost: 1, effect: '+5% DEF' },
+        ],
+        mid: [
+            { id: 'ice_mirror', name: 'Ice Mirror', type: NodeType.MAJOR, cost: 2, effect: 'Reflect 15% cold damage to attackers' },
+            { id: 'shatter_guard', name: 'Shatter Guard', type: NodeType.MAJOR, cost: 1, effect: 'On big hit (>20% HP), AOE frost' },
+            { id: 'glacial_fortress', name: 'Glacial Fortress', type: NodeType.MAJOR, cost: 2, effect: '+20% DEF, -10% SPD' },
+            { id: 'cold_recovery', name: 'Cold Recovery', type: NodeType.MAJOR, cost: 1, effect: 'Regen 3% HP while above 60% HP' },
+            { id: 'frozen_resolve', name: 'Frozen Resolve', type: NodeType.MAJOR, cost: 1, effect: 'Immune to freeze effects' },
+        ],
+        deep: [
+            { id: 'ice_block', name: 'Ice Block', type: NodeType.MAJOR, cost: 2, effect: 'Activate: immune 1 turn, can\'t act (4 turn CD)' },
+            { id: 'iceborn', name: 'Iceborn', type: NodeType.MAJOR, cost: 2, effect: 'Fire damage -40%, cold damage heals you' },
+            { id: 'living_glacier', name: 'Living Glacier', type: NodeType.MAJOR, cost: 1, effect: 'DEF bonus doubled while standing still' },
+            { id: 'frozen_heart', name: 'Frozen Heart', type: NodeType.MAJOR, cost: 1, effect: 'At <30% HP, freeze attackers automatically' },
+            { id: 'avatar_of_ice', name: 'Avatar of Ice', type: NodeType.CAPSTONE, cost: 1, effect: '+30% DEF, attackers frozen 50% chance' },
+        ],
+    },
+    blizzard: {
+        early: [
+            { id: 'colder_wind', name: 'Colder Wind', type: NodeType.MINOR, cost: 1, effect: '+15% DOT damage' },
+            { id: 'longer_storm', name: 'Longer Storm', type: NodeType.MINOR, cost: 1, effect: '+1 turn duration' },
+            { id: 'harsher', name: 'Harsher', type: NodeType.MINOR, cost: 1, effect: '+10% DOT damage' },
+            { id: 'wind_chill', name: 'Wind Chill', type: NodeType.MAJOR, cost: 1, effect: 'Enemies chilled while in blizzard' },
+            { id: 'frost_bite', name: 'Frost Bite', type: NodeType.MINOR, cost: 1, effect: '+10% DOT damage' },
+        ],
+        mid: [
+            { id: 'hailstorm', name: 'Hailstorm', type: NodeType.MAJOR, cost: 2, effect: 'Also deals 0.15 × ATK physical' },
+            { id: 'whiteout', name: 'Whiteout', type: NodeType.MAJOR, cost: 1, effect: 'Enemies 25% miss chance' },
+            { id: 'snowdrift', name: 'Snowdrift', type: NodeType.MAJOR, cost: 1, effect: 'Allies +20% evasion in blizzard' },
+            { id: 'bitter_cold', name: 'Bitter Cold', type: NodeType.MAJOR, cost: 2, effect: '-10% SPD per turn in blizzard (stacks)' },
+            { id: 'avalanche', name: 'Avalanche', type: NodeType.MAJOR, cost: 1, effect: 'Final turn deals 0.6 × WILL burst' },
+        ],
+        deep: [
+            { id: 'eternal_winter', name: 'Eternal Winter', type: NodeType.MAJOR, cost: 2, effect: 'Duration +4 turns (8 total)' },
+            { id: 'freeze_solid', name: 'Freeze Solid', type: NodeType.MAJOR, cost: 2, effect: '15% chance per turn to freeze random enemy' },
+            { id: 'eye_of_storm', name: 'Eye of Storm', type: NodeType.MAJOR, cost: 1, effect: 'Caster immune, heals 3%/turn in blizzard' },
+            { id: 'arctic_apocalypse', name: 'Arctic Apocalypse', type: NodeType.MAJOR, cost: 1, effect: 'Frozen in blizzard take 3× DOT' },
+            { id: 'winters_dominion', name: 'Winter\'s Dominion', type: NodeType.CAPSTONE, cost: 1, effect: 'Blizzard permanent, 50% damage, enemies can\'t flee' },
+        ],
+    },
+    glacial_spike: {
+        early: [
+            { id: 'sharper_spike', name: 'Sharper', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'larger', name: 'Larger', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'impale', name: 'Impale', type: NodeType.MAJOR, cost: 1, effect: 'Target +15% damage taken for 2s' },
+            { id: 'deeper', name: 'Deeper', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'cold_steel', name: 'Cold Steel', type: NodeType.MINOR, cost: 1, effect: '+5% crit chance' },
+        ],
+        mid: [
+            { id: 'frozen_solid', name: 'Frozen Solid', type: NodeType.MAJOR, cost: 2, effect: '30% freeze chance' },
+            { id: 'execute_spike', name: 'Execute', type: NodeType.MAJOR, cost: 2, effect: '+50% vs below 25% HP' },
+            { id: 'pierce_spike', name: 'Pierce', type: NodeType.MAJOR, cost: 1, effect: '50% damage to enemy behind' },
+            { id: 'brittle', name: 'Brittle', type: NodeType.MAJOR, cost: 1, effect: 'Crit damage +40% vs frozen' },
+            { id: 'stacking_cold', name: 'Stacking Cold', type: NodeType.MAJOR, cost: 1, effect: '+15% per spike on same target (combat)' },
+        ],
+        deep: [
+            { id: 'skewer', name: 'Skewer', type: NodeType.MAJOR, cost: 2, effect: 'Hits all enemies in a line' },
+            { id: 'ice_execution', name: 'Ice Execution', type: NodeType.MAJOR, cost: 2, effect: 'Frozen below 30% = instant kill' },
+            { id: 'glacial_tomb', name: 'Glacial Tomb', type: NodeType.MAJOR, cost: 1, effect: 'Kill = corpse becomes ice block ally' },
+            { id: 'permafrost_spike', name: 'Permafrost Spike', type: NodeType.MAJOR, cost: 1, effect: 'Frozen take 2.5× damage' },
+            { id: 'frozen_annihilation', name: 'Frozen Annihilation', type: NodeType.CAPSTONE, cost: 1, effect: '+50% damage, always freezes, -1 CD (min 1)' },
+        ],
+    },
+
+    // ==================== STORMCALLER TREES ====================
+    spark: {
+        early: [
+            { id: 'voltage', name: 'Voltage', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'charge', name: 'Charge', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'arc', name: 'Arc', type: NodeType.MAJOR, cost: 1, effect: '25% chance arc to second target 50% damage' },
+            { id: 'current', name: 'Current', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'static', name: 'Static', type: NodeType.MINOR, cost: 1, effect: '+5% crit chance' },
+        ],
+        mid: [
+            { id: 'shock', name: 'Shock', type: NodeType.MAJOR, cost: 2, effect: '20% stun chance 1s' },
+            { id: 'overcharge', name: 'Overcharge', type: NodeType.MAJOR, cost: 2, effect: '+35% damage, +1 CD' },
+            { id: 'static_buildup', name: 'Static Buildup', type: NodeType.MAJOR, cost: 1, effect: '+10% per spark on same target (stacks 5)' },
+            { id: 'lightning_speed', name: 'Lightning Speed', type: NodeType.MAJOR, cost: 1, effect: '+5% SPD per cast this combat' },
+            { id: 'energize', name: 'Energize', type: NodeType.MAJOR, cost: 1, effect: 'Kill = next skill -1 CD (min 1)' },
+        ],
+        deep: [
+            { id: 'ball_lightning', name: 'Ball Lightning', type: NodeType.MAJOR, cost: 2, effect: 'Orbits you, auto-hits nearest each turn 0.3×' },
+            { id: 'thunder_god', name: 'Thunder God', type: NodeType.MAJOR, cost: 2, effect: '+50% damage while above 80% HP' },
+            { id: 'chain_arc', name: 'Chain Arc', type: NodeType.MAJOR, cost: 1, effect: 'Arc chains to 3 targets' },
+            { id: 'electrocute', name: 'Electrocute', type: NodeType.MAJOR, cost: 1, effect: 'Adds 0.4 × WILL DOT over 2s' },
+            { id: 'living_lightning', name: 'Living Lightning', type: NodeType.CAPSTONE, cost: 1, effect: 'Spark -1 CD (min 1), arcs always, +25%' },
+        ],
+    },
+    chain_lightning: {
+        early: [
+            { id: 'power', name: 'Power', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'reach', name: 'Reach', type: NodeType.MINOR, cost: 1, effect: '+1 chain' },
+            { id: 'sustained', name: 'Sustained', type: NodeType.MINOR, cost: 1, effect: 'Only -15% per jump' },
+            { id: 'energy', name: 'Energy', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'conductivity', name: 'Conductivity', type: NodeType.MAJOR, cost: 1, effect: 'Wet/metal enemies +20% damage' },
+        ],
+        mid: [
+            { id: 'long_chain', name: 'Long Chain', type: NodeType.MAJOR, cost: 2, effect: '+2 chains (5 total base)' },
+            { id: 'fork', name: 'Fork', type: NodeType.MAJOR, cost: 1, effect: 'Can hit same target twice' },
+            { id: 'grounding', name: 'Grounding', type: NodeType.MAJOR, cost: 2, effect: 'Final target +50% damage' },
+            { id: 'paralysis', name: 'Paralysis', type: NodeType.MAJOR, cost: 1, effect: 'Each jump 10% stun' },
+            { id: 'storm_surge', name: 'Storm Surge', type: NodeType.MAJOR, cost: 1, effect: 'Kill during chain = +2 chains' },
+        ],
+        deep: [
+            { id: 'infinite_chain', name: 'Infinite Chain', type: NodeType.MAJOR, cost: 2, effect: 'No chain limit, -10% per jump' },
+            { id: 'lightning_rod', name: 'Lightning Rod', type: NodeType.MAJOR, cost: 2, effect: 'Take 10%, chain +40% damage' },
+            { id: 'overload_chain', name: 'Overload', type: NodeType.MAJOR, cost: 1, effect: '25% chance double damage per jump' },
+            { id: 'thunderstorm', name: 'Thunderstorm', type: NodeType.MAJOR, cost: 1, effect: 'Chains bounce back through' },
+            { id: 'storm_master', name: 'Storm Master', type: NodeType.CAPSTONE, cost: 1, effect: 'No damage decay, +30% base' },
+        ],
+    },
+    thunder_strike: {
+        early: [
+            { id: 'power_strike', name: 'Power', type: NodeType.MINOR, cost: 1, effect: '+12% damage' },
+            { id: 'boom', name: 'Boom', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'deafen', name: 'Deafen', type: NodeType.MAJOR, cost: 1, effect: 'Target can\'t skill 1 turn' },
+            { id: 'crack', name: 'Crack', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'rumble', name: 'Rumble', type: NodeType.MINOR, cost: 1, effect: '+5% crit' },
+        ],
+        mid: [
+            { id: 'thunder_clap', name: 'Thunder Clap', type: NodeType.MAJOR, cost: 2, effect: 'Becomes Cleave, -20% damage' },
+            { id: 'divine_wrath', name: 'Divine Wrath', type: NodeType.MAJOR, cost: 1, effect: '+50% vs demons/undead' },
+            { id: 'electrocute_strike', name: 'Electrocute', type: NodeType.MAJOR, cost: 2, effect: '0.4 × WILL DOT over 2s' },
+            { id: 'instant', name: 'Instant', type: NodeType.MAJOR, cost: 1, effect: '-1 CD (min 1), costs 10% HP' },
+            { id: 'smite', name: 'Smite', type: NodeType.MAJOR, cost: 1, effect: 'Auto-crit vs stunned' },
+        ],
+        deep: [
+            { id: 'judgment', name: 'Judgment', type: NodeType.MAJOR, cost: 2, effect: '+100% vs below 20% HP' },
+            { id: 'overload_strike', name: 'Overload', type: NodeType.MAJOR, cost: 2, effect: 'Crits +60% damage, 10% self-damage' },
+            { id: 'thunder_god_strike', name: 'Thunder God', type: NodeType.MAJOR, cost: 1, effect: 'Above 80% HP: +40% damage' },
+            { id: 'skybreaker', name: 'Skybreaker', type: NodeType.MAJOR, cost: 1, effect: 'AOE instead, -30% damage' },
+            { id: 'wrath_of_heaven', name: 'Wrath of Heaven', type: NodeType.CAPSTONE, cost: 1, effect: '+50% damage, stuns, always crits below 50% HP' },
+        ],
+    },
+    static_field: {
+        early: [
+            { id: 'stronger_field', name: 'Stronger Field', type: NodeType.MINOR, cost: 1, effect: '+15% aura damage' },
+            { id: 'wider_field', name: 'Wider Field', type: NodeType.MINOR, cost: 1, effect: '+20% radius' },
+            { id: 'charged_air', name: 'Charged Air', type: NodeType.MAJOR, cost: 1, effect: 'Allies +8% crit in field' },
+            { id: 'intensity', name: 'Intensity', type: NodeType.MINOR, cost: 1, effect: '+10% aura damage' },
+            { id: 'persistence', name: 'Persistence', type: NodeType.MINOR, cost: 1, effect: '+10% aura damage' },
+        ],
+        mid: [
+            { id: 'energy_leech', name: 'Energy Leech', type: NodeType.MAJOR, cost: 2, effect: 'Heal 25% of field damage' },
+            { id: 'grounded', name: 'Grounded', type: NodeType.MAJOR, cost: 1, effect: 'Enemies -20% SPD in field' },
+            { id: 'arc_flash', name: 'Arc Flash', type: NodeType.MAJOR, cost: 2, effect: 'When hit, 30% chance zap attacker 0.3×' },
+            { id: 'unstable', name: 'Unstable', type: NodeType.MAJOR, cost: 1, effect: '+40% damage, 5% shock self' },
+            { id: 'magnetic', name: 'Magnetic', type: NodeType.MAJOR, cost: 1, effect: 'Enemies can\'t flee' },
+        ],
+        deep: [
+            { id: 'tesla_coil', name: 'Tesla Coil', type: NodeType.MAJOR, cost: 2, effect: '+10% per enemy in field' },
+            { id: 'lightning_prison', name: 'Lightning Prison', type: NodeType.MAJOR, cost: 2, effect: 'Enemies entering field stunned 1s' },
+            { id: 'storm_heart', name: 'Storm Heart', type: NodeType.MAJOR, cost: 1, effect: 'Field pulses for 0.3× burst each turn' },
+            { id: 'ionize', name: 'Ionize', type: NodeType.MAJOR, cost: 1, effect: 'Enemies in field +30% lightning damage' },
+            { id: 'eye_of_the_storm', name: 'Eye of the Storm', type: NodeType.CAPSTONE, cost: 1, effect: 'Field damage 0.25×, heals allies 3%/turn' },
+        ],
+    },
+    storm_call: {
+        early: [
+            { id: 'stronger', name: 'Stronger', type: NodeType.MINOR, cost: 1, effect: '+12% damage' },
+            { id: 'longer', name: 'Longer', type: NodeType.MINOR, cost: 1, effect: '+1 turn duration' },
+            { id: 'winds', name: 'Winds', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'thunder', name: 'Thunder', type: NodeType.MINOR, cost: 1, effect: '+10% damage' },
+            { id: 'eye_safety', name: 'Eye Safety', type: NodeType.MAJOR, cost: 1, effect: 'Caster immune to storm effects' },
+        ],
+        mid: [
+            { id: 'lightning_strikes', name: 'Lightning Strikes', type: NodeType.MAJOR, cost: 2, effect: 'Random enemy takes +0.25× per turn' },
+            { id: 'downpour', name: 'Downpour', type: NodeType.MAJOR, cost: 1, effect: 'Enemies "wet" = +30% lightning' },
+            { id: 'gale_force', name: 'Gale Force', type: NodeType.MAJOR, cost: 2, effect: '25% miss chance for enemies' },
+            { id: 'tempest', name: 'Tempest', type: NodeType.MAJOR, cost: 1, effect: 'Duration +2 turns' },
+            { id: 'thunder_wrath', name: 'Thunder Wrath', type: NodeType.MAJOR, cost: 1, effect: 'Final turn 2× damage' },
+        ],
+        deep: [
+            { id: 'supercell', name: 'Supercell', type: NodeType.MAJOR, cost: 2, effect: '25% stun random enemy each turn' },
+            { id: 'elemental_fury', name: 'Elemental Fury', type: NodeType.MAJOR, cost: 2, effect: 'Also fire/cold 0.15× each' },
+            { id: 'eternal_storm', name: 'Eternal Storm', type: NodeType.MAJOR, cost: 1, effect: 'Storm permanent, 60% damage' },
+            { id: 'cataclysm_storm', name: 'Cataclysm', type: NodeType.MAJOR, cost: 1, effect: 'Stuns all enemies first turn' },
+            { id: 'storm_lord', name: 'Storm Lord', type: NodeType.CAPSTONE, cost: 1, effect: '+40% damage, -1 CD (min 1), always wets' },
+        ],
+    },
+};
+
+Object.freeze(SKILL_TREES);
+
+/**
  * Skill utility functions
  */
 const Skills = {
