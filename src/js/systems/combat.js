@@ -507,6 +507,10 @@ class Combatant {
     heal(amount) {
         const actual = Math.min(amount, this.maxHp - this.currentHp);
         this.currentHp += actual;
+        // Safety: if healed above 0, ensure alive
+        if (this.currentHp > 0) {
+            this.isAlive = true;
+        }
         return actual;
     }
 
@@ -1007,6 +1011,7 @@ const CombatEngine = {
                 if (revival.turnsRemaining <= 0) {
                     // Revive the summon at 50% HP
                     revival.summon.currentHp = Math.floor(revival.summon.maxHp * 0.5);
+                    revival.summon.isAlive = true;  // Mark as alive again
                     Utils.log(`[Summons] ${revival.summon.icon} ${revival.summon.name} reassembles!`);
 
                     round.addAction(new CombatAction({
@@ -1105,6 +1110,9 @@ const CombatEngine = {
                     // Skip if hero already dead
                     if (!heroCombatant.isAlive) continue;
 
+                    // Skip if this enemy was killed (e.g., by hero's AoE earlier this round)
+                    if (!actor.isAlive) continue;
+
                     // ENEMY TARGET SELECTION: Hero or summons?
                     // 40% chance to target a summon if any are alive
                     const livingSummons = summons.filter(s => s.isAlive);
@@ -1140,12 +1148,21 @@ const CombatEngine = {
                     if (!targetIsSummon) {
                         const heroTriggers = this.checkTriggers(heroCombatant, action, allEnemies, hero, questTriggers);
                         heroTriggers.forEach(t => round.addAction(t));
+
+                        // If hero died and triggers didn't save them, break out of duel
+                        if (!heroCombatant.isAlive) break;
                     }
 
                     // Check for enemy triggered abilities (second wind, etc.) - enemies don't use quest triggers
                     const enemyTriggers = this.checkTriggers(actor, action, allEnemies, hero, null);
                     enemyTriggers.forEach(t => round.addAction(t));
                 }
+            }
+
+            // Check if hero died during the duel - end combat immediately
+            if (!heroCombatant.isAlive) {
+                result.addRound(round);
+                break;
             }
 
             // Remove all dead enemies from queue (AoE can kill multiple)
@@ -1737,7 +1754,8 @@ const CombatEngine = {
                 const skillDef = Skills.get('undying');
                 const rank = getSkillRank('undying');
                 const healPercent = Skills.calcEffectValue(skillDef, rank);
-                actor.currentHp = Math.floor(actor.maxHp * healPercent);
+                // Ensure at least 1 HP after revival
+                actor.currentHp = Math.max(1, Math.floor(actor.maxHp * healPercent));
                 actor.isAlive = true;
                 actor.triggeredThisCombat['undying'] = true;
 
@@ -1932,6 +1950,7 @@ const CombatEngine = {
                 summon.immortalUsed = true;
                 // Immediately revive at 30% HP
                 summon.currentHp = Math.floor(summon.maxHp * 0.3);
+                summon.isAlive = true;  // Mark as alive again
                 Utils.log(`[Summons] ${summon.icon} ${summon.name} reforms from stone! (Immortal)`);
                 return new CombatAction({
                     type: CombatActionType.TRIGGER,
