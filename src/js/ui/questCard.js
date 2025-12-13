@@ -87,7 +87,7 @@ const QuestCard = {
 
         // Add tag badge and danger rating
         const badgeSection = Utils.createElement('div', { className: 'quest-badges' });
-        // Add tag badge if quest has tag
+        // Add tag badge for all quest tags (swarm, standard, hunt)
         if (quest.tag) {
             badgeSection.appendChild(this.createTagBadge(quest.tag));
         }
