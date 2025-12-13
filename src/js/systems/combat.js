@@ -966,11 +966,16 @@ const CombatEngine = {
         // Each summon tracks its sourceSkill so we know when it can be resummoned
         const summons = [];
 
+        // Pending revivals - summons waiting to respawn (from skill tree perks)
+        // Each entry: { summon, turnsRemaining, sourceSkill }
+        const pendingRevivals = [];
+
         // Store summon creation context for when hero uses summon skills
         const summonContext = {
             hero,
             effectiveStats,
             summons,
+            pendingRevivals,
         };
 
         // Create all enemies (for AoE tracking)
@@ -993,6 +998,29 @@ const CombatEngine = {
 
             roundNumber++;
             const round = new CombatRound(roundNumber);
+
+            // PROCESS PENDING REVIVALS: Check if any summons should respawn this round
+            for (let i = pendingRevivals.length - 1; i >= 0; i--) {
+                const revival = pendingRevivals[i];
+                revival.turnsRemaining--;
+
+                if (revival.turnsRemaining <= 0) {
+                    // Revive the summon at 50% HP
+                    revival.summon.currentHp = Math.floor(revival.summon.maxHp * 0.5);
+                    Utils.log(`[Summons] ${revival.summon.icon} ${revival.summon.name} reassembles!`);
+
+                    round.addAction(new CombatAction({
+                        type: CombatActionType.TRIGGER,
+                        actorId: revival.summon.id,
+                        actorName: revival.summon.name,
+                        actorIsHero: false,
+                        isSummon: true,
+                        description: `${revival.summon.icon} ${revival.summon.name} reassembles from the dead!`,
+                    }));
+
+                    pendingRevivals.splice(i, 1);
+                }
+            }
 
             // FREE HIT: Next enemy attacks first if previous enemy died
             if (pendingFreeHit) {
@@ -1097,6 +1125,14 @@ const CombatEngine = {
                         // Only count damage to hero as damage taken
                         if (!targetIsSummon) {
                             result.totalDamageTaken += action.damage || 0;
+                        }
+
+                        // Check if summon died and should auto-revive from skill tree perk
+                        if (targetIsSummon && action.killed && !enemyTarget.isAlive) {
+                            const revivalAction = this.checkSummonRevival(enemyTarget, hero, summonContext, heroCombatant);
+                            if (revivalAction) {
+                                round.addAction(revivalAction);
+                            }
                         }
                     }
 
@@ -1834,6 +1870,97 @@ const CombatEngine = {
             skillName: skillDef.name,
             description: `${actor.name} summons ${template.icon} ${template.name}!`,
         });
+    },
+
+    /**
+     * Check if a dead summon should auto-revive based on skill tree perks
+     * @param {Combatant} summon - The dead summon
+     * @param {Hero} hero - The hero who owns the summon
+     * @param {Object} summonContext - { hero, effectiveStats, summons, pendingRevivals }
+     * @param {Combatant} heroCombatant - The hero combatant for healing effects
+     * @returns {CombatAction|null} Revival action or null
+     */
+    checkSummonRevival(summon, hero, summonContext, heroCombatant) {
+        const { pendingRevivals } = summonContext;
+        const sourceSkill = summon.sourceSkill;
+
+        // Find the hero's skill reference to check unlocked nodes
+        const skillRef = hero.skills.find(s => s.skillId === sourceSkill);
+        if (!skillRef) return null;
+
+        // Check for revival perks based on summon type
+        // Skeleton: 'reassemble_skel' (mid tier) - revive after 2 turns
+        // Golem: 'immortal_golem' (deep tier) - revive once per combat immediately
+        // Wolf: 'bond' (mid tier) - heals hero 25% on death (no revive)
+
+        if (sourceSkill === 'summon_skeleton') {
+            // Check if "Reassemble" node is unlocked (node index 8 = mid tier, 4th node)
+            // Mid tier nodes are indices 5-9, "reassemble_skel" is the 4th mid node (index 8)
+            const reassembleUnlocked = hero.isSkillNodeUnlocked(sourceSkill, 8);
+            if (reassembleUnlocked) {
+                // Add to pending revivals - will respawn after 2 turns
+                pendingRevivals.push({
+                    summon,
+                    turnsRemaining: 2,
+                    sourceSkill,
+                });
+                Utils.log(`[Summons] ${summon.icon} ${summon.name} will reassemble in 2 turns!`);
+                return new CombatAction({
+                    type: CombatActionType.TRIGGER,
+                    actorId: summon.id,
+                    actorName: summon.name,
+                    actorIsHero: false,
+                    isSummon: true,
+                    description: `${summon.icon} ${summon.name}'s bones begin to stir... (reassembling in 2 turns)`,
+                });
+            }
+        }
+
+        if (sourceSkill === 'summon_golem') {
+            // Check if "Immortal" node is unlocked (node index 13 = deep tier, 4th node)
+            // Deep tier nodes are indices 10-14, "immortal_golem" is the 4th deep node (index 13)
+            const immortalUnlocked = hero.isSkillNodeUnlocked(sourceSkill, 13);
+            if (immortalUnlocked && !summon.immortalUsed) {
+                // Mark as used so it only triggers once per combat
+                summon.immortalUsed = true;
+                // Immediately revive at 30% HP
+                summon.currentHp = Math.floor(summon.maxHp * 0.3);
+                Utils.log(`[Summons] ${summon.icon} ${summon.name} reforms from stone! (Immortal)`);
+                return new CombatAction({
+                    type: CombatActionType.TRIGGER,
+                    actorId: summon.id,
+                    actorName: summon.name,
+                    actorIsHero: false,
+                    isSummon: true,
+                    healing: summon.currentHp,
+                    description: `${summon.icon} ${summon.name} reforms from stone! (Immortal - once per combat)`,
+                });
+            }
+        }
+
+        // Wolf: "Bond" heals the hero 25% when wolf dies (no revive)
+        if (sourceSkill === 'summon_wolf') {
+            // Check if "Bond" node is unlocked (node index 9 = mid tier, 5th node)
+            const bondUnlocked = hero.isSkillNodeUnlocked(sourceSkill, 9);
+            if (bondUnlocked && heroCombatant && heroCombatant.isAlive) {
+                const healAmount = Math.floor(heroCombatant.maxHp * 0.25);
+                heroCombatant.heal(healAmount);
+                Utils.log(`[Summons] ${summon.icon} ${summon.name}'s bond heals ${heroCombatant.name} for ${healAmount} HP!`);
+                return new CombatAction({
+                    type: CombatActionType.TRIGGER,
+                    actorId: summon.id,
+                    actorName: summon.name,
+                    actorIsHero: false,
+                    isSummon: true,
+                    targetId: heroCombatant.id,
+                    targetName: heroCombatant.name,
+                    healing: healAmount,
+                    description: `${summon.icon} ${summon.name}'s bond heals ${heroCombatant.name} for ${healAmount} HP!`,
+                });
+            }
+        }
+
+        return null;
     },
 
     /**
