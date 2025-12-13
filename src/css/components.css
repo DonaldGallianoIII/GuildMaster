@@ -281,6 +281,7 @@
     gap: var(--spacing-xs);
     min-height: 30px;
     position: relative;
+    overflow: visible;
 }
 
 .skill-special-container {
@@ -320,81 +321,57 @@
 
 /* Skill fade in animation */
 .skill-tag.skill-reveal {
-    animation: skillFadeIn 0.4s ease-out forwards;
+    animation: skillFadeIn 0.3s ease-out forwards;
 }
 
 @keyframes skillFadeIn {
     from {
         opacity: 0;
-        transform: scale(0.8) translateY(10px);
+        transform: scale(0.5);
     }
     to {
         opacity: 1;
-        transform: scale(1) translateY(0);
+        transform: scale(1);
     }
 }
 
-/* Incoming skill (before merge) */
-.skill-tag.skill-incoming {
-    animation: skillIncoming 0.4s ease-out forwards;
-    position: relative;
+/* Duplicate skill flying in to merge */
+.skill-tag.skill-duplicate {
+    opacity: 1;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+    pointer-events: none;
 }
 
-@keyframes skillIncoming {
-    from {
-        opacity: 0;
-        transform: scale(0.5) translateX(30px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateX(0);
-    }
-}
-
-/* Merging skill (colliding) */
-.skill-tag.skill-merging {
-    animation: skillMerge 0.25s ease-in forwards;
-}
-
-@keyframes skillMerge {
-    0% {
-        opacity: 1;
-        transform: scale(1) translateX(0);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(0.8) translateX(-20px);
-    }
-}
-
-/* Target skill receiving merge */
+/* Target skill receiving merge - glow and shake */
 .skill-tag.skill-merge-target {
-    animation: skillPulse 0.25s ease-in-out;
+    animation: skillTarget 0.4s ease-in-out;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
 }
 
-@keyframes skillPulse {
+@keyframes skillTarget {
     0%, 100% {
         transform: scale(1);
     }
+    25% {
+        transform: scale(1.1) rotate(-2deg);
+    }
     50% {
         transform: scale(1.15);
-        box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+    }
+    75% {
+        transform: scale(1.1) rotate(2deg);
     }
 }
 
 /* Skill just merged (burst effect) */
 .skill-tag.skill-merged {
-    animation: skillMerged 0.5s ease-out forwards;
+    animation: skillMerged 0.3s ease-out forwards;
 }
 
 @keyframes skillMerged {
     0% {
-        transform: scale(1.2);
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-    }
-    50% {
-        transform: scale(1.1);
-        box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        transform: scale(1.3);
+        box-shadow: 0 0 25px rgba(255, 215, 0, 1);
     }
     100% {
         transform: scale(1);
@@ -402,14 +379,36 @@
     }
 }
 
-/* Doubled skill glow */
+/* Doubled skill glow on merge */
 .skill-tag.doubled.skill-merged {
-    box-shadow: 0 0 15px rgba(65, 105, 225, 0.6);
+    animation: skillMergedDouble 0.3s ease-out forwards;
 }
 
-/* Tripled skill glow */
+@keyframes skillMergedDouble {
+    0% {
+        transform: scale(1.3);
+        box-shadow: 0 0 25px rgba(65, 105, 225, 1);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: none;
+    }
+}
+
+/* Tripled skill glow on merge */
 .skill-tag.tripled.skill-merged {
-    box-shadow: 0 0 20px rgba(218, 165, 32, 0.8);
+    animation: skillMergedTriple 0.3s ease-out forwards;
+}
+
+@keyframes skillMergedTriple {
+    0% {
+        transform: scale(1.4);
+        box-shadow: 0 0 30px rgba(218, 165, 32, 1);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: none;
+    }
 }
 
 /* ==================== QUEST CARD ==================== */
