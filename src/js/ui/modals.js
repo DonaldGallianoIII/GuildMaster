@@ -798,7 +798,7 @@ const Modals = {
 
         // Build scaling description
         const scalingText = skillDef.scaling && skillDef.scaling.length > 0
-            ? skillDef.scaling.map(s => s.toUpperCase()).join(' + ')
+            ? skillDef.scaling.map(s => s.stat.toUpperCase()).join(' + ')
             : 'None';
 
         // Stack indicator classes
