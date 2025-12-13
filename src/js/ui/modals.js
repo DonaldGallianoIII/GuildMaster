@@ -794,7 +794,10 @@ const Modals = {
         const stackIndicator = stackCount >= 3 ? '³' : stackCount >= 2 ? '²' : '';
 
         return `
-            <div class="skill-bubble ${stackClass}" data-skill-id="${skillId}">
+            <div class="skill-bubble ${stackClass} clickable"
+                 data-skill-id="${skillId}"
+                 data-hero-id="${hero.id}"
+                 title="Click to view skill tree">
                 <div class="skill-bubble-icon">${skillDef.icon}</div>
                 <div class="skill-bubble-content">
                     <div class="skill-bubble-header">
@@ -812,39 +815,30 @@ const Modals = {
                         ${nextValue ? `<span class="effect-next">→ ${formatEffect(nextValue)}</span>` : '<span class="effect-max">MAX</span>'}
                     </div>
                 </div>
-                ${canUpgrade ? `
-                    <button class="skill-upgrade-btn" data-skill-id="${skillId}" data-hero-id="${hero.id}" title="Spend 1 skill point to upgrade">
-                        <span class="upgrade-plus">+</span>
-                    </button>
-                ` : ''}
+                <div class="skill-bubble-arrow">▶</div>
             </div>
         `;
     },
 
     /**
-     * Bind skill upgrade button handlers
+     * Bind skill bubble click handlers to open skill tree
      */
     _bindSkillUpgradeHandlers(hero) {
         const container = document.getElementById('hero-skills-container');
         if (!container) return;
 
-        container.querySelectorAll('.skill-upgrade-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const skillId = btn.dataset.skillId;
-                const heroId = btn.dataset.heroId;
+        // Make skill bubbles clickable to open skill tree
+        container.querySelectorAll('.skill-bubble.clickable').forEach(bubble => {
+            bubble.addEventListener('click', (e) => {
+                const skillId = bubble.dataset.skillId;
+                const heroId = bubble.dataset.heroId;
 
                 const currentHero = GameState.getHero(heroId);
                 if (!currentHero) return;
 
-                const success = currentHero.upgradeSkill(skillId);
-                if (success) {
-                    await GameState.updateHero(currentHero);
-                    Utils.toast(`Upgraded ${Skills.get(skillId).name}!`, 'success');
-                    // Refresh modal to show updated skills
-                    this.showHeroDetail(currentHero);
-                } else {
-                    Utils.toast('Cannot upgrade skill', 'warning');
+                const skillRef = currentHero.skills.find(s => s.skillId === skillId);
+                if (skillRef) {
+                    this.showSkillTree(skillRef, currentHero);
                 }
             });
         });
@@ -1322,6 +1316,206 @@ const Modals = {
         `;
 
         this.show('combat-modal');
+    },
+
+    // ==================== SKILL TREE MODAL ====================
+
+    /**
+     * Show skill tree modal for a specific skill
+     * @param {Object} skillRef - Hero's skill reference { skillId, points, maxPoints, stackCount }
+     * @param {Hero} hero - Hero who owns the skill
+     */
+    showSkillTree(skillRef, hero) {
+        const modal = document.getElementById('skill-tree-modal');
+        const content = modal.querySelector('.modal-content');
+
+        const skillDef = Skills.get(skillRef.skillId);
+        if (!skillDef) {
+            Utils.toast('Skill not found', 'error');
+            return;
+        }
+
+        const tree = Skills.getTree(skillRef.skillId);
+        const points = skillRef.points || 0;
+        const maxPoints = skillRef.maxPoints || 5;
+        const stackCount = skillRef.stackCount || 1;
+        const canUpgrade = hero.skillPoints > 0 && points < maxPoints;
+
+        // Determine which tiers are accessible
+        const accessibleTiers = Skills.getAccessibleTiers(maxPoints);
+        const hasEarly = accessibleTiers.includes('early');
+        const hasMid = accessibleTiers.includes('mid');
+        const hasDeep = accessibleTiers.includes('deep');
+
+        // Stack indicator
+        const stackIndicator = stackCount >= 3 ? '³' : stackCount >= 2 ? '²' : '';
+        const stackClass = stackCount >= 3 ? 'tripled' : stackCount >= 2 ? 'doubled' : '';
+
+        // Build node HTML
+        const buildNode = (node, index, tierName) => {
+            const isUnlocked = points > index;
+            const isNext = points === index && canUpgrade;
+            const isLocked = points < index;
+            const isTierLocked = (tierName === 'mid' && !hasMid) || (tierName === 'deep' && !hasDeep);
+
+            let nodeClass = 'skill-node';
+            if (isUnlocked) nodeClass += ' unlocked';
+            else if (isNext) nodeClass += ' available';
+            else if (isTierLocked) nodeClass += ' tier-locked';
+            else nodeClass += ' locked';
+
+            if (node.type === 'capstone') nodeClass += ' capstone';
+            else if (node.type === 'major') nodeClass += ' major';
+
+            return `
+                <div class="${nodeClass}"
+                     data-node-index="${index}"
+                     data-node-id="${node.id}"
+                     data-tooltip="${Utils.escapeHtml(node.name)}: ${Utils.escapeHtml(node.effect)}">
+                    <div class="node-pip ${isUnlocked ? 'filled' : ''}"></div>
+                    <div class="node-name">${Utils.escapeHtml(node.name)}</div>
+                    <div class="node-effect">${Utils.escapeHtml(node.effect)}</div>
+                    ${node.type === 'capstone' ? '<div class="node-badge">★</div>' : ''}
+                    ${node.type === 'major' ? '<div class="node-badge">◆</div>' : ''}
+                </div>
+            `;
+        };
+
+        // Build tier HTML
+        const buildTier = (nodes, tierName, tierLabel, startIndex, isAccessible) => {
+            if (!nodes || nodes.length === 0) return '';
+
+            return `
+                <div class="skill-tier ${tierName} ${isAccessible ? '' : 'inaccessible'}">
+                    <div class="tier-header">
+                        <span class="tier-label">${tierLabel}</span>
+                        ${!isAccessible ? `<span class="tier-locked-msg">(Requires ${tierName === 'mid' ? '²' : '³'} stack)</span>` : ''}
+                    </div>
+                    <div class="tier-nodes">
+                        ${nodes.map((node, i) => buildNode(node, startIndex + i, tierName)).join('')}
+                    </div>
+                </div>
+            `;
+        };
+
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>${skillDef.icon} ${Utils.escapeHtml(skillDef.name)}${stackIndicator} - Skill Tree</h2>
+                <button class="modal-close" onclick="Modals.hide('skill-tree-modal')">×</button>
+            </div>
+            <div class="modal-body skill-tree-body">
+                <div class="skill-tree-header ${stackClass}">
+                    <div class="skill-icon-large">${skillDef.icon}</div>
+                    <div class="skill-header-info">
+                        <h3>${Utils.escapeHtml(skillDef.name)}${stackIndicator}</h3>
+                        <p class="skill-desc">${Utils.escapeHtml(skillDef.description)}</p>
+                        <div class="skill-meta">
+                            <span class="meta-item"><strong>Type:</strong> ${Utils.capitalize(skillDef.activation)}</span>
+                            <span class="meta-item"><strong>Damage:</strong> ${Utils.capitalize(skillDef.damageType)}</span>
+                            ${skillDef.cooldown ? `<span class="meta-item"><strong>Cooldown:</strong> ${skillDef.cooldown} turns</span>` : ''}
+                            ${skillDef.scaling?.length ? `<span class="meta-item"><strong>Scales:</strong> ${skillDef.scaling.map(s => s.toUpperCase()).join(', ')}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="skill-progress-bar">
+                    <div class="progress-track">
+                        ${Array.from({ length: maxPoints }, (_, i) => `
+                            <div class="progress-pip ${i < points ? 'filled' : ''} ${i === points && canUpgrade ? 'next' : ''}"></div>
+                        `).join('')}
+                    </div>
+                    <div class="progress-label">${points} / ${maxPoints} points invested</div>
+                    ${hero.skillPoints > 0 ? `<div class="skill-points-available">${hero.skillPoints} point${hero.skillPoints > 1 ? 's' : ''} available</div>` : ''}
+                </div>
+
+                <div class="skill-tree-container">
+                    ${tree ? `
+                        ${buildTier(tree.early, 'early', 'Early Tier (1-5)', 0, hasEarly)}
+                        ${buildTier(tree.mid, 'mid', 'Mid Tier (6-10)', 5, hasMid)}
+                        ${buildTier(tree.deep, 'deep', 'Deep Tier (11-15)', 10, hasDeep)}
+                    ` : '<p class="no-tree">No skill tree data available</p>'}
+                </div>
+
+                ${canUpgrade ? `
+                    <div class="skill-tree-actions">
+                        <button class="btn btn-primary skill-upgrade-tree-btn"
+                                data-skill-id="${skillRef.skillId}"
+                                data-hero-id="${hero.id}">
+                            Invest Point (+1)
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="Modals.hide('skill-tree-modal')">Close</button>
+            </div>
+        `;
+
+        // Bind upgrade button
+        const upgradeBtn = content.querySelector('.skill-upgrade-tree-btn');
+        if (upgradeBtn) {
+            upgradeBtn.addEventListener('click', async () => {
+                const result = hero.upgradeSkill(skillRef.skillId);
+                if (result && result.success) {
+                    await GameState.updateHero(hero);
+                    Utils.toast(`Invested point in ${skillDef.name}!`, 'success');
+                    // Refresh the skill tree modal
+                    const updatedHero = GameState.getHero(hero.id);
+                    const updatedSkill = updatedHero.skills.find(s => s.skillId === skillRef.skillId);
+                    if (updatedSkill) {
+                        this.showSkillTree(updatedSkill, updatedHero);
+                    }
+                } else {
+                    Utils.toast('Cannot upgrade skill', 'warning');
+                }
+            });
+        }
+
+        // Add hover tooltips for nodes
+        content.querySelectorAll('.skill-node').forEach(node => {
+            node.addEventListener('mouseenter', (e) => {
+                const tooltip = node.dataset.tooltip;
+                if (tooltip) {
+                    this._showNodeTooltip(e, tooltip);
+                }
+            });
+            node.addEventListener('mouseleave', () => {
+                this._hideNodeTooltip();
+            });
+        });
+
+        this.show('skill-tree-modal');
+    },
+
+    /**
+     * Show tooltip for skill node
+     */
+    _showNodeTooltip(event, text) {
+        let tooltip = document.getElementById('node-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'node-tooltip';
+            tooltip.className = 'node-tooltip';
+            document.body.appendChild(tooltip);
+        }
+
+        tooltip.textContent = text;
+        tooltip.style.display = 'block';
+
+        // Position near the node
+        const rect = event.target.getBoundingClientRect();
+        tooltip.style.left = `${rect.left + rect.width / 2}px`;
+        tooltip.style.top = `${rect.top - 10}px`;
+    },
+
+    /**
+     * Hide node tooltip
+     */
+    _hideNodeTooltip() {
+        const tooltip = document.getElementById('node-tooltip');
+        if (tooltip) {
+            tooltip.style.display = 'none';
+        }
     },
 };
 
