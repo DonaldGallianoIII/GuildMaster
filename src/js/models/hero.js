@@ -98,6 +98,10 @@ class Hero {
         // Hire cost (for recruits only, preserved from generation)
         this.hireCost = data.hireCost ?? null;
 
+        // Skill roll animation data (for recruits, shows the roll waves for UI animation)
+        // Format: [{ rolled: [], merges: [], newSkills: [] }, ...]
+        this.skillRollWaves = data.skillRollWaves || null;
+
         // Conjured weapon commitment (0 = none, up to WILL)
         this.conjuredWeaponWill = data.conjuredWeaponWill || data.conjured_weapon_will || 0;
 

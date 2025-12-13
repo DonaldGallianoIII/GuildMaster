@@ -2086,21 +2086,70 @@ const Skills = {
 
     /**
      * Roll random skills for a new recruit (V3 - equal chance all skills)
-     * @param {number} count - Number of skills to roll (default 3)
+     * Guarantees 3 unique skills - keeps rolling when duplicates merge
+     * @param {number} targetCount - Target number of unique skills (default 3)
      * @returns {Array} Array of { skillId, points, maxPoints, stackCount }
      */
-    rollForRecruit(count = 3) {
-        const allSkillIds = this.getAllIds();
-        const rolled = [];
+    rollForRecruit(targetCount = 3) {
+        const result = this.rollForRecruitAnimated(targetCount);
+        return result.finalSkills;
+    },
 
-        for (let i = 0; i < count; i++) {
-            // Equal chance for any of the 50 skills
-            const skillId = allSkillIds[Math.floor(Math.random() * allSkillIds.length)];
-            rolled.push(skillId);
+    /**
+     * Roll skills with animation data for UI reveal effect
+     * Returns both final skills and the roll history for animations
+     * @param {number} targetCount - Target number of unique skills
+     * @returns {Object} { finalSkills, rollWaves }
+     */
+    rollForRecruitAnimated(targetCount = 3) {
+        const allSkillIds = this.getAllIds();
+        const rollWaves = [];  // Each wave: { rolled: [], merges: [], newSkills: [] }
+        const skillStacks = {}; // Track current stacks: { skillId: stackCount }
+
+        const MAX_WAVES = 10; // Safety limit
+        let wave = 0;
+
+        while (Object.keys(skillStacks).length < targetCount && wave < MAX_WAVES) {
+            const neededCount = targetCount - Object.keys(skillStacks).length;
+            const waveData = { rolled: [], merges: [], newSkills: [] };
+
+            // Roll needed skills
+            for (let i = 0; i < neededCount; i++) {
+                const skillId = allSkillIds[Math.floor(Math.random() * allSkillIds.length)];
+                waveData.rolled.push(skillId);
+
+                if (skillStacks[skillId]) {
+                    // Duplicate - merge!
+                    const oldStack = skillStacks[skillId];
+                    const newStack = Math.min(oldStack + 1, 3);
+                    if (newStack > oldStack) {
+                        skillStacks[skillId] = newStack;
+                        waveData.merges.push({ skillId, fromStack: oldStack, toStack: newStack });
+                    }
+                    // If already at 3, we just ignore (can't stack higher)
+                } else {
+                    // New unique skill
+                    skillStacks[skillId] = 1;
+                    waveData.newSkills.push(skillId);
+                }
+            }
+
+            rollWaves.push(waveData);
+            wave++;
         }
 
-        // Process duplicates - merge into stacked skills
-        return this.processRolledSkills(rolled);
+        // Build final skills array
+        const finalSkills = [];
+        for (const [skillId, stackCount] of Object.entries(skillStacks)) {
+            finalSkills.push({
+                skillId,
+                points: 0,
+                maxPoints: this.getMaxPoints(stackCount),
+                stackCount,
+            });
+        }
+
+        return { finalSkills, rollWaves };
     },
 
     /**

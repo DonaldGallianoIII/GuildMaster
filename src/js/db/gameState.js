@@ -517,15 +517,17 @@ const GameState = {
             'Atlas', 'Luna', 'Felix', 'Ivy', 'Storm',
         ];
 
-        const skills = Skills.rollForRecruit();
+        // Roll skills with animation data
+        const { finalSkills, rollWaves } = Skills.rollForRecruitAnimated();
 
         // Return as Hero instance so hireCost is preserved through serialization
         return new Hero({
             id: Utils.uuid(),
             name: Utils.randomChoice(names),
             portraitId: Utils.randomInt(1, 20),
-            skills,
-            hireCost: this.calcHireCost(skills),
+            skills: finalSkills,
+            skillRollWaves: rollWaves,  // Animation data for UI
+            hireCost: this.calcHireCost(finalSkills),
         });
     },
 
