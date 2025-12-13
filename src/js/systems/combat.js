@@ -1142,8 +1142,9 @@ const CombatEngine = {
                 actor.heal(healing);
             }
         } else {
-            // Basic attack - physical
-            damage = Utils.calcPhysicalDamage(actor.atk, target.def);
+            // Basic attack - physical (nerfed to 0.7× ATK so skills feel impactful)
+            const basicAtkPower = Math.floor(actor.atk * 0.7);
+            damage = Utils.calcPhysicalDamage(basicAtkPower, target.def);
         }
 
         // Handle AoE/cleave multi-target damage

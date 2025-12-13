@@ -887,10 +887,10 @@ const Skills = {
     },
 
     /**
-     * Get all skills of a rarity
+     * Get all skills of an archetype
      */
-    getByRarity(rarity) {
-        return Object.values(SKILL_DEFINITIONS).filter(s => s.rarity === rarity);
+    getByArchetype(archetype) {
+        return Object.values(SKILL_DEFINITIONS).filter(s => s.archetype === archetype);
     },
 
     /**
@@ -901,35 +901,27 @@ const Skills = {
     },
 
     /**
-     * Roll random skills for a new recruit
+     * Roll random skills for a new recruit (V3 - equal chance all skills)
      * @param {number} count - Number of skills to roll (default 3)
-     * @returns {Array} Array of { skillId, rank, isDoubled, isTripled }
+     * @returns {Array} Array of { skillId, points, maxPoints, stackCount }
      */
-    rollForRecruit(count = CONFIG.HERO.SKILL_COUNT) {
+    rollForRecruit(count = 3) {
+        const allSkillIds = this.getAllIds();
         const rolled = [];
 
         for (let i = 0; i < count; i++) {
-            // Roll rarity
-            const rarity = Utils.weightedRandom(CONFIG.SKILL_RARITY_WEIGHTS);
-
-            // Get skills of that rarity
-            const availableSkills = this.getByRarity(rarity);
-
-            if (availableSkills.length === 0) {
-                // Fallback to common if no skills of that rarity
-                const commonSkills = this.getByRarity('common');
-                rolled.push(Utils.randomChoice(commonSkills).id);
-            } else {
-                rolled.push(Utils.randomChoice(availableSkills).id);
-            }
+            // Equal chance for any of the 50 skills
+            const skillId = allSkillIds[Math.floor(Math.random() * allSkillIds.length)];
+            rolled.push(skillId);
         }
 
-        // Process duplicates - merge into doubled/tripled
+        // Process duplicates - merge into stacked skills
         return this.processRolledSkills(rolled);
     },
 
     /**
-     * Process rolled skill IDs into skill objects with doubling/tripling
+     * Process rolled skill IDs into skill objects with stacking
+     * Duplicates merge: 1× = 5 max, 2× = 10 max, 3× = 15 max
      * @param {Array} skillIds - Array of skill IDs (may have duplicates)
      * @returns {Array} Processed skill objects
      */
@@ -940,12 +932,12 @@ const Skills = {
         });
 
         const result = [];
-        for (const [skillId, count] of Object.entries(counts)) {
+        for (const [skillId, stackCount] of Object.entries(counts)) {
             result.push({
                 skillId,
-                rank: 1,
-                isDoubled: count === 2,
-                isTripled: count >= 3,
+                points: 0,           // Points invested in skill tree
+                maxPoints: this.getMaxPoints(stackCount),
+                stackCount,          // 1, 2, or 3
             });
         }
 
@@ -953,67 +945,94 @@ const Skills = {
     },
 
     /**
-     * Calculate skill effect value at a given rank
-     * @param {Object} skillDef - Skill definition
-     * @param {number} rank - Current rank
-     * @returns {number} Effect multiplier
+     * Get max skill tree points based on stack count
+     * 1× = 5 points (early tier), 2× = 10 (mid), 3× = 15 (deep + capstone)
      */
-    calcEffectValue(skillDef, rank) {
-        return skillDef.baseValue + (skillDef.rankBonus * (rank - 1));
+    getMaxPoints(stackCount) {
+        if (stackCount >= 3) return 15;
+        if (stackCount === 2) return 10;
+        return 5;
     },
 
     /**
-     * Get max rank for a skill based on doubled/tripled status
+     * Get accessible tree tiers based on max points
      */
-    getMaxRank(isDoubled, isTripled) {
-        if (isTripled) return CONFIG.SKILLS.MAX_RANK_TRIPLED;
-        if (isDoubled) return CONFIG.SKILLS.MAX_RANK_DOUBLED;
-        return CONFIG.SKILLS.MAX_RANK_BASE;
+    getAccessibleTiers(maxPoints) {
+        const tiers = [TreeTier.EARLY];
+        if (maxPoints >= 10) tiers.push(TreeTier.MID);
+        if (maxPoints >= 15) tiers.push(TreeTier.DEEP);
+        return tiers;
     },
 
     /**
-     * Get cooldown for a skill at a specific rank
+     * Determine hero's archetype for art based on their skills
+     * Returns the archetype with most skills, or random if tied
+     * @param {Array} skills - Hero's skills array
+     * @returns {string} Archetype enum value
+     */
+    determineArchetype(skills) {
+        const archetypeCounts = {};
+
+        for (const skill of skills) {
+            const def = this.get(skill.skillId);
+            if (!def || !def.archetype) continue;
+
+            archetypeCounts[def.archetype] = (archetypeCounts[def.archetype] || 0) + 1;
+        }
+
+        // Find max count
+        let maxCount = 0;
+        for (const count of Object.values(archetypeCounts)) {
+            if (count > maxCount) maxCount = count;
+        }
+
+        // Get all archetypes with max count (handles ties)
+        const topArchetypes = Object.entries(archetypeCounts)
+            .filter(([_, count]) => count === maxCount)
+            .map(([archetype]) => archetype);
+
+        // Random choice among tied archetypes
+        if (topArchetypes.length === 0) {
+            // Fallback to warrior if no skills
+            return Archetype.WARRIOR;
+        }
+
+        return topArchetypes[Math.floor(Math.random() * topArchetypes.length)];
+    },
+
+    /**
+     * Get skill display name with stack indicator
+     * e.g., "Fireball", "Fireball²", "Fireball³"
+     */
+    getDisplayName(skillId, stackCount) {
+        const def = this.get(skillId);
+        if (!def) return skillId;
+
+        const stackIndicator = stackCount >= 3 ? '³' : stackCount === 2 ? '²' : '';
+        return def.name + stackIndicator;
+    },
+
+    /**
+     * Get cooldown for a skill
      * @param {Object} skillDef - Skill definition
-     * @param {number} rank - Current rank
      * @returns {number} Cooldown in rounds (0 = no cooldown)
      */
-    getCooldownAtRank(skillDef, rank) {
+    getCooldown(skillDef) {
         if (!skillDef || skillDef.activation !== SkillActivation.ACTIVE) {
             return 0; // Passives and triggers have no cooldown
         }
-
-        let cooldown = skillDef.cooldown ?? 2; // Default cooldown is 2
-
-        // Check for cooldown reduction at this rank
-        if (skillDef.cooldownReduction) {
-            // Find the highest rank threshold we've reached
-            for (const [rankThreshold, newCooldown] of Object.entries(skillDef.cooldownReduction)) {
-                if (rank >= parseInt(rankThreshold)) {
-                    cooldown = newCooldown;
-                }
-            }
-        }
-
-        return cooldown;
+        return skillDef.cooldown ?? 2;
     },
 
     /**
      * Calculate hire cost modifier based on skills
+     * Stack count increases cost
      */
     calcSkillCostModifier(skills) {
         let modifier = 0;
         for (const skill of skills) {
-            const def = this.get(skill.skillId);
-            if (!def) continue;
-
-            const rarityMult = CONFIG.RECRUITMENT.SKILL_COST_MULTIPLIER[def.rarity] || 1;
-
-            // Doubled/tripled skills cost more
-            let countMult = 1;
-            if (skill.isTripled) countMult = 3;
-            else if (skill.isDoubled) countMult = 2;
-
-            modifier += rarityMult * countMult;
+            // Stacked skills cost more (represents better hero)
+            modifier += skill.stackCount || 1;
         }
         return modifier;
     },
@@ -1027,6 +1046,9 @@ if (typeof module !== 'undefined' && module.exports) {
         SkillTarget,
         DamageType,
         SkillActivation,
+        Archetype,
+        NodeType,
+        TreeTier,
         SKILL_DEFINITIONS,
         Skills,
     };
